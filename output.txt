@@ -1,0 +1,179 @@
+Rebuilding scddb.sqlite from scddata.sql (once you’re happy, comment this out)...
+
+=== Tables & views ===
+- TABLE album (907 rows)
+- TABLE albumsrecordingsmap (11747 rows)
+- TABLE couples (49 rows)
+- TABLE couplesshape (58 rows)
+- TABLE dance (22627 rows)
+- TABLE dancealias (902 rows)
+- TABLE dancecrib (15935 rows)
+- TABLE dancecribsource (12 rows)
+- TABLE dancediagram (7187 rows)
+- TABLE dancesformationsmap (57146 rows)
+- TABLE dancespublicationsmap (26550 rows)
+- TABLE dancesrecordingsmap (10947 rows)
+- TABLE dancesstepsmap (37655 rows)
+- TABLE dancestunesmap (11896 rows)
+- TABLE dancetype (20 rows)
+- TABLE danceurl (3005 rows)
+- TABLE dancevideo (9450 rows)
+- TABLE formation (354 rows)
+- TABLE formationmodifier (66 rows)
+- TABLE formationroot (82 rows)
+- TABLE formationstepmap (450 rows)
+- TABLE group
+- TABLE media (1076 rows)
+- TABLE mediatype (6 rows)
+- TABLE medleytype (116 rows)
+- TABLE metadata (0 rows)
+- TABLE person (6344 rows)
+- TABLE personurl (131 rows)
+- TABLE phrasing (43 rows)
+- TABLE progression (104 rows)
+- TABLE publication (1848 rows)
+- TABLE publicationurl (271 rows)
+- TABLE recording (11042 rows)
+- TABLE shape (19 rows)
+- TABLE shapeprogressionsmap (66 rows)
+- TABLE step (14 rows)
+- TABLE tune (15843 rows)
+- TABLE tunealias (916 rows)
+- TABLE tunespublicationsmap (9419 rows)
+- TABLE tunesrecordingsmap (35971 rows)
+- TABLE tuneurl (284 rows)
+
+Candidates:
+  dances:      ['dance', 'dancealias', 'dancecrib', 'dancecribsource', 'dancediagram', 'dancesformationsmap', 'dancespublicationsmap', 'dancesrecordingsmap', 'dancesstepsmap', 'dancestunesmap', 'dancetype', 'danceurl', 'dancevideo']
+  formations:  ['dancesformationsmap', 'formation', 'formationmodifier', 'formationroot', 'formationstepmap']
+  mappings:    ['albumsrecordingsmap', 'dancesformationsmap', 'dancespublicationsmap', 'dancesrecordingsmap', 'dancesstepsmap', 'dancestunesmap', 'formationstepmap', 'shapeprogressionsmap', 'tunespublicationsmap', 'tunesrecordingsmap']
+  cribs:       ['dancecrib', 'dancecribsource']
+  misc-text:   []
+
+[dance] dance columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), name (character varying(128)), ucname (character varying(128)), barsperrepeat (smallint), intensity (smallint), intensity_per_turn (smallint), intensity_bars (character varying(256)), devised (date), data_verified (smallint), steps_verified (smallint), formations_verified (smallint), tunes_verified (smallint), notes (TEXT), couples_id (INTEGER), devisor_id (INTEGER), medleytype_id (INTEGER), progression_id (INTEGER), shape_id (INTEGER), type_id (INTEGER)
+  sample: [{'id': 18396, 'created': '2018-07-13 09:52:29.547919+00', 'last_modified': '2018-07-13 09:52:29.547919+00', 'name': 'Metamorphosis', 'ucname': 'METAMORPHOSIS', 'barsperrepeat': 40, 'intensity': -1, 'intensity_per_turn': -1, 'intensity_bars': '', 'devised': None, 'data_verified': 0, 'steps_verified': 0, 'formations_verified': 0, 'tunes_verified': 0, 'notes': '', 'couples_id': 4, 'devisor_id': 11659, 'medleytype_id': None, 'progression_id': None, 'shape_id': 1, 'type_id': 2}, {'id': 4, 'created': '1997-08-28 22:00:00+00', 'last_modified': '2012-01-20 12:55:59.955314+00', 'name': "A' Dol Suiridhe", 'ucname': 'A DOL SUIRIDHE', 'barsperrepeat': 32, 'intensity': -1, 'intensity_per_turn': -1, 'intensity_bars': '', 'devised': None, 'data_verified': 0, 'steps_verified': 0, 'formations_verified': 0, 'tunes_verified': 0, 'notes': '', 'couples_id': 4, 'devisor_id': 607, 'medleytype_id': 9999, 'progression_id': None, 'shape_id': 1, 'type_id': 3}, {'id': 5, 'created': '1997-04-03 22:00:00+00', 'last_modified': '2012-01-20 12:55:59.962458+00', 'name': "A' the Marquis's", 'ucname': 'A THE MARQUISS', 'barsperrepeat': 32, 'intensity': -1, 'intensity_per_turn': -1, 'intensity_bars': '', 'devised': None, 'data_verified': 0, 'steps_verified': 0, 'formations_verified': 0, 'tunes_verified': 0, 'notes': '', 'couples_id': 4, 'devisor_id': 35, 'medleytype_id': 9999, 'progression_id': None, 'shape_id': 1, 'type_id': 3}]
+
+[dance] dancealias columns:
+  id (INTEGER), name (character varying(128)), ucname (character varying(128)), status (smallint), dance_id (INTEGER)
+  sample: [{'id': 19, 'name': 'Follow her over the Borders', 'ucname': 'FOLLOW HER OVER THE BORDERS', 'status': 2, 'dance_id': 5032}, {'id': 2, 'name': "Broun's Reel", 'ucname': 'BROUNS REEL', 'status': 2, 'dance_id': 1792}, {'id': 4, 'name': 'Fergus McIver', 'ucname': 'FERGUS MACIVER', 'status': 2, 'dance_id': 6957}]
+
+[dance] dancecrib columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), format (character varying(10)), text (TEXT), reliability (smallint), dance_id (INTEGER), source_id (INTEGER), user_id (INTEGER)
+  sample: [{'id': 16682, 'created': '2024-07-15 03:11:46.600141+00', 'last_modified': '2025-08-20 03:10:52.863494+00', 'format': 'amd', 'text': '1-8\n: 1s & 4s cross RH & cast in 1 place, 2s & 3s step up/down; 1s+4s turn LH\n  on sides (slow turn).  2 (1) (4) 3\n9-16\n: 2s+1s also 4s+3s dance RH across; 1s+4s dance LH across **while** 2s\n  & 3s chase clockwise 1/2 round. (3) (1) (4) (2)\n17-24\n: 3s+1s also 4s+2s dance RH across; All chase clockwise 1/2 round.\n   2 4 1 3\n25-32\n: All circle 8H round & back.  2 4 1 3', 'reliability': 0, 'dance_id': 21930, 'source_id': 3, 'user_id': None}, {'id': 1615, 'created': '2012-01-22 19:28:51.115415+00', 'last_modified': '2023-05-09 15:09:40.554419+00', 'format': 'amd', 'text': '1–\n: 1c turn RH ; turn LH 1½ moving down (2c up) (2,1x)\n9–\n: 2W+1M & 2M+1W set and turn BH ; the W pass RH as 1M dances up W side and 2M down M side | 1c+2c turn LH to original places (1c small turn, 2c big turn)\n17–\n: 1c down the middle and up\n25–\n: 1c+2c Poussette.', 'reliability': 3, 'dance_id': 15, 'source_id': 1, 'user_id': None}, {'id': 1616, 'created': '2012-01-22 19:28:51.162417+00', 'last_modified': '2023-05-09 15:09:40.557069+00', 'format': 'amd', 'text': '1–\n: 1c+2c set | turn RH ½ and face P in the middle ; swiveling R dance out to opposite side and chase clw to (2,1,3), 1W facing down, 1M up\n9–\n: 1W+3c & 1M+2c reels3 across, Rsh to 3cnr (end C start Lsh), at end 1c turn LH to face 1cnr.\n17–\n: Turn 1cnr RH | pass P Rsh ; turn 2cnr RH | cross Rsh (2,1,3)\n25–\n: All circle6 L to own sides | all C turn BH (2,1,3)', 'reliability': 3, 'dance_id': 9761, 'source_id': 1, 'user_id': None}]
+
+[dance] dancecribsource columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), name (character varying(64)), editor (character varying(256)), slug (character varying(50)), url (character varying(256)), email (character varying(256)), group_id (INTEGER), derived_from_id (INTEGER), processor (character varying(32)), comments_as_issues (boolean)
+  sample: [{'id': 6, 'created': '2012-07-15 14:57:13.919859+00', 'last_modified': '2012-07-16 09:23:51.651886+00', 'name': 'Skua Dubh', 'editor': 'Tim Hoffmann', 'slug': 'sd', 'url': '', 'email': '', 'group_id': 2, 'derived_from_id': None, 'processor': '', 'comments_as_issues': 0}, {'id': 4, 'created': None, 'last_modified': '2013-01-12 21:53:08.734978+00', 'name': "Keith Rose's Diagrams", 'editor': 'Keith Rose', 'slug': 'kr', 'url': '', 'email': 'keith@krose.plus.com', 'group_id': 3, 'derived_from_id': None, 'processor': '', 'comments_as_issues': 0}, {'id': 2, 'created': None, 'last_modified': '2013-04-10 06:17:55.982017+00', 'name': 'SCDDB Contributed Cribs & Diagrams', 'editor': 'SCDData', 'slug': 'scddb', 'url': 'http://my.strathspey.org/dd/', 'email': 'webmaster@my.strathspey.org', 'group_id': 1, 'derived_from_id': None, 'processor': '', 'comments_as_issues': 0}]
+
+[dance] dancediagram columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), upload_file (character varying(100)), reliability (smallint), dance_id (INTEGER), source_id (INTEGER), user_id (INTEGER), aspect_ratio (double precision)
+  sample: [{'id': 7000, 'created': '2024-11-19 23:15:04.348357+00', 'last_modified': '2024-11-19 23:15:04.357439+00', 'upload_file': '', 'reliability': 4, 'dance_id': 18695, 'source_id': 4, 'user_id': 197, 'aspect_ratio': 0.27373626373626375}, {'id': 6976, 'created': '2024-11-09 22:24:32.923573+00', 'last_modified': '2025-04-11 21:02:05.114769+00', 'upload_file': '', 'reliability': 5, 'dance_id': 21919, 'source_id': 4, 'user_id': 197, 'aspect_ratio': 0.4385714285714286}, {'id': 6964, 'created': '2024-11-03 23:15:13.083596+00', 'last_modified': '2024-11-03 23:46:35.261443+00', 'upload_file': '', 'reliability': 4, 'dance_id': 3468, 'source_id': 4, 'user_id': 197, 'aspect_ratio': 0.6034065934065934}]
+
+[dance] dancesformationsmap columns:
+  id (INTEGER), number (smallint), instancenum (smallint), dance_id (INTEGER), formation_id (INTEGER)
+  sample: [{'id': 2, 'number': 0, 'instancenum': 1, 'dance_id': 5, 'formation_id': 87}, {'id': 6, 'number': 0, 'instancenum': 1, 'dance_id': 12, 'formation_id': 96}, {'id': 11, 'number': 0, 'instancenum': 1, 'dance_id': 17, 'formation_id': 28}]
+
+[dance] dancespublicationsmap columns:
+  id (INTEGER), number (smallint), priority (smallint), dance_id (INTEGER), publication_id (INTEGER), count (smallint), page (smallint)
+  sample: [{'id': 16266, 'number': 4, 'priority': 30, 'dance_id': 14569, 'publication_id': 1116, 'count': 1, 'page': 0}, {'id': 16267, 'number': 5, 'priority': 30, 'dance_id': 14596, 'publication_id': 1116, 'count': 1, 'page': 0}, {'id': 16268, 'number': 6, 'priority': 30, 'dance_id': 15564, 'publication_id': 1116, 'count': 1, 'page': 0}]
+
+[dance] dancesrecordingsmap columns:
+  id (INTEGER), alias_id (INTEGER), dance_id (INTEGER), recording_id (INTEGER)
+  sample: [{'id': 1, 'alias_id': None, 'dance_id': 55, 'recording_id': 4}, {'id': 2, 'alias_id': None, 'dance_id': 89, 'recording_id': 5}, {'id': 4, 'alias_id': None, 'dance_id': 116, 'recording_id': 7}]
+
+[dance] dancesstepsmap columns:
+  id (INTEGER), dance_id (INTEGER), step_id (INTEGER)
+  sample: [{'id': 1, 'dance_id': 2, 'step_id': 1}, {'id': 2, 'dance_id': 3, 'step_id': 4}, {'id': 3, 'dance_id': 4, 'step_id': 4}]
+
+[dance] dancestunesmap columns:
+  id (INTEGER), priority (smallint), comment (character varying(64)), dance_id (INTEGER), tune_id (INTEGER), alias_id (INTEGER)
+  sample: [{'id': 2, 'priority': 10, 'comment': '', 'dance_id': 17, 'tune_id': 106, 'alias_id': None}, {'id': 3, 'priority': 10, 'comment': '', 'dance_id': 17, 'tune_id': 1713, 'alias_id': None}, {'id': 4, 'priority': 10, 'comment': '', 'dance_id': 17, 'tune_id': 1774, 'alias_id': None}]
+
+[dance] dancetype columns:
+  id (INTEGER), name (character varying(32)), short_name (character varying(8)), rectype (boolean), dnctype (boolean)
+  sample: [{'id': 2, 'name': 'Jig', 'short_name': 'J', 'rectype': 1, 'dnctype': 1}, {'id': 3, 'name': 'Strathspey', 'short_name': 'S', 'rectype': 1, 'dnctype': 1}, {'id': 4, 'name': 'Medley', 'short_name': 'M', 'rectype': 1, 'dnctype': 1}]
+
+[dance] danceurl columns:
+  id (INTEGER), url (character varying(200)), priority (smallint), dance_id (INTEGER), errors (smallint), invalid (boolean), last_check (timestamp with time zone), last_status (smallint), last_success (timestamp with time zone)
+  sample: [{'id': 4250, 'url': 'http://scottishweekend.org/dances/HaggartysBrig.PDF', 'priority': 10, 'dance_id': 10458, 'errors': 0, 'invalid': 0, 'last_check': '2025-08-31 01:10:33.777807+00', 'last_status': 200, 'last_success': '2025-08-31 01:10:33.777807+00'}, {'id': 3841, 'url': 'http://www.highlandmistdancers.org/HM3goldenoldies.html#fair', 'priority': 10, 'dance_id': 2910, 'errors': 0, 'invalid': 0, 'last_check': '2025-08-31 01:10:49.834837+00', 'last_status': 200, 'last_success': '2025-08-31 01:10:49.834837+00'}, {'id': 3842, 'url': 'http://www.highlandmistdancers.org/HM3goldenoldies.html#rambler', 'priority': 10, 'dance_id': 2924, 'errors': 0, 'invalid': 0, 'last_check': '2025-08-31 01:10:50.899898+00', 'last_status': 200, 'last_success': '2025-08-31 01:10:50.899898+00'}]
+
+[dance] dancevideo columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), number (smallint), upload_file (character varying(100)), offset (INTEGER), end (INTEGER), quality (character varying(1)), comment (TEXT), encoded (boolean), published (boolean), source (character varying(1)), external (character varying(32)), channel_id (INTEGER), dance_id (INTEGER), uploader_id (INTEGER), embed_path (character varying(200)), thumbnail_path (character varying(200)), credit (character varying(256)), editors_pick (boolean)
+  sample: [{'id': 4759, 'created': '2019-04-16 23:49:31.59468+00', 'last_modified': '2019-04-16 23:50:23.223393+00', 'number': 2, 'upload_file': '', 'offset': 0, 'end': 0, 'quality': 'B', 'comment': 'RSCDS Toronto January 2019', 'encoded': 1, 'published': 1, 'source': 'Y', 'external': 'rNOnonnJOsM', 'channel_id': None, 'dance_id': 14243, 'uploader_id': 106, 'embed_path': '', 'thumbnail_path': '', 'credit': '', 'editors_pick': 0}, {'id': 4760, 'created': '2019-04-16 23:57:34.951641+00', 'last_modified': '2019-04-17 00:00:47.358215+00', 'number': 5, 'upload_file': '', 'offset': 0, 'end': 0, 'quality': 'D', 'comment': 'RSCDS Toronto January 2019', 'encoded': 1, 'published': 1, 'source': 'Y', 'external': 'LOFf0xEc7QM', 'channel_id': None, 'dance_id': 2498, 'uploader_id': 106, 'embed_path': '', 'thumbnail_path': '', 'credit': '', 'editors_pick': 0}, {'id': 3841, 'created': '2018-10-01 22:07:52.745388+00', 'last_modified': '2019-04-17 00:01:08.826267+00', 'number': 4, 'upload_file': '', 'offset': 0, 'end': 0, 'quality': 'X', 'comment': '"The Glasgow Highlanders" is a 32 bar strathspey for 2 couples.', 'encoded': 1, 'published': 1, 'source': 'Y', 'external': 'dSQBJrYtEYU', 'channel_id': 1, 'dance_id': 2498, 'uploader_id': 1296, 'embed_path': '', 'thumbnail_path': '', 'credit': '', 'editors_pick': 0}]
+
+[formation] dancesformationsmap columns:
+  id (INTEGER), number (smallint), instancenum (smallint), dance_id (INTEGER), formation_id (INTEGER)
+  sample: [{'id': 2, 'number': 0, 'instancenum': 1, 'dance_id': 5, 'formation_id': 87}, {'id': 6, 'number': 0, 'instancenum': 1, 'dance_id': 12, 'formation_id': 96}, {'id': 11, 'number': 0, 'instancenum': 1, 'dance_id': 17, 'formation_id': 28}]
+
+[formation] formation columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), napiername (character varying(8)), name (character varying(64)), searchid (character varying(32)), notes (TEXT)
+  sample: [{'id': 1, 'created': None, 'last_modified': '2012-01-20 12:55:59.358677+00', 'napiername': 'A&R2', 'name': 'Advance and Retire', 'searchid': 'ADVRET;2S;', 'notes': ''}, {'id': 22, 'created': None, 'last_modified': '2012-01-20 12:55:59.411345+00', 'napiername': 'CHAIN6', 'name': 'Grand Chain for 6', 'searchid': 'GCHAIN;6P;', 'notes': ''}, {'id': 3, 'created': None, 'last_modified': '2012-01-20 12:55:59.364311+00', 'napiername': 'A&TRN', 'name': 'Advance and Turn', 'searchid': 'ADVTRN', 'notes': ''}]
+
+[formation] formationmodifier columns:
+  id (INTEGER), key (character varying(16)), name (character varying(64))
+  sample: [{'id': 37, 'key': '7P', 'name': 'seven'}, {'id': 1, 'key': 'SET', 'name': 'with setting'}, {'id': 2, 'key': '2C', 'name': 'for 2 couples'}]
+
+[formation] formationroot columns:
+  id (INTEGER), key (character varying(16)), name (character varying(64))
+  sample: [{'id': 28, 'key': 'KNOT', 'name': 'Knot'}, {'id': 1, 'key': 'REEL', 'name': 'Reel'}, {'id': 2, 'key': 'ADVRET', 'name': 'Advance and Retire'}]
+
+[formation] formationstepmap columns:
+  id (INTEGER), formation_id (INTEGER), step_id (INTEGER), type_id (INTEGER)
+  sample: [{'id': 1, 'formation_id': 1, 'step_id': 1, 'type_id': 1}, {'id': 2, 'formation_id': None, 'step_id': 1, 'type_id': 1}, {'id': 3, 'formation_id': None, 'step_id': 2, 'type_id': 1}]
+
+[map] albumsrecordingsmap columns:
+  id (INTEGER), tracknumber (smallint), album_id (INTEGER), recording_id (INTEGER)
+  sample: [{'id': 1, 'tracknumber': 3, 'album_id': 1, 'recording_id': 50}, {'id': 2, 'tracknumber': 16, 'album_id': 1, 'recording_id': 59}, {'id': 3, 'tracknumber': 1, 'album_id': 1, 'recording_id': 72}]
+
+[map] dancesformationsmap columns:
+  id (INTEGER), number (smallint), instancenum (smallint), dance_id (INTEGER), formation_id (INTEGER)
+  sample: [{'id': 2, 'number': 0, 'instancenum': 1, 'dance_id': 5, 'formation_id': 87}, {'id': 6, 'number': 0, 'instancenum': 1, 'dance_id': 12, 'formation_id': 96}, {'id': 11, 'number': 0, 'instancenum': 1, 'dance_id': 17, 'formation_id': 28}]
+
+[map] dancespublicationsmap columns:
+  id (INTEGER), number (smallint), priority (smallint), dance_id (INTEGER), publication_id (INTEGER), count (smallint), page (smallint)
+  sample: [{'id': 16266, 'number': 4, 'priority': 30, 'dance_id': 14569, 'publication_id': 1116, 'count': 1, 'page': 0}, {'id': 16267, 'number': 5, 'priority': 30, 'dance_id': 14596, 'publication_id': 1116, 'count': 1, 'page': 0}, {'id': 16268, 'number': 6, 'priority': 30, 'dance_id': 15564, 'publication_id': 1116, 'count': 1, 'page': 0}]
+
+[map] dancesrecordingsmap columns:
+  id (INTEGER), alias_id (INTEGER), dance_id (INTEGER), recording_id (INTEGER)
+  sample: [{'id': 1, 'alias_id': None, 'dance_id': 55, 'recording_id': 4}, {'id': 2, 'alias_id': None, 'dance_id': 89, 'recording_id': 5}, {'id': 4, 'alias_id': None, 'dance_id': 116, 'recording_id': 7}]
+
+[map] dancesstepsmap columns:
+  id (INTEGER), dance_id (INTEGER), step_id (INTEGER)
+  sample: [{'id': 1, 'dance_id': 2, 'step_id': 1}, {'id': 2, 'dance_id': 3, 'step_id': 4}, {'id': 3, 'dance_id': 4, 'step_id': 4}]
+
+[map] dancestunesmap columns:
+  id (INTEGER), priority (smallint), comment (character varying(64)), dance_id (INTEGER), tune_id (INTEGER), alias_id (INTEGER)
+  sample: [{'id': 2, 'priority': 10, 'comment': '', 'dance_id': 17, 'tune_id': 106, 'alias_id': None}, {'id': 3, 'priority': 10, 'comment': '', 'dance_id': 17, 'tune_id': 1713, 'alias_id': None}, {'id': 4, 'priority': 10, 'comment': '', 'dance_id': 17, 'tune_id': 1774, 'alias_id': None}]
+
+[map] formationstepmap columns:
+  id (INTEGER), formation_id (INTEGER), step_id (INTEGER), type_id (INTEGER)
+  sample: [{'id': 1, 'formation_id': 1, 'step_id': 1, 'type_id': 1}, {'id': 2, 'formation_id': None, 'step_id': 1, 'type_id': 1}, {'id': 3, 'formation_id': None, 'step_id': 2, 'type_id': 1}]
+
+[map] shapeprogressionsmap columns:
+  id (INTEGER), couples_id (INTEGER), progression_id (INTEGER), shape_id (INTEGER)
+  sample: [{'id': 1, 'couples_id': 4, 'progression_id': 1, 'shape_id': 1}, {'id': 2, 'couples_id': 4, 'progression_id': 2, 'shape_id': 1}, {'id': 3, 'couples_id': 4, 'progression_id': 5, 'shape_id': 1}]
+
+[map] tunespublicationsmap columns:
+  id (INTEGER), priority (smallint), number (INTEGER), publication_id (INTEGER), tune_id (INTEGER), alias_id (INTEGER), count (smallint), page (smallint)
+  sample: [{'id': 28, 'priority': 50, 'number': 0, 'publication_id': 147, 'tune_id': 792, 'alias_id': None, 'count': 1, 'page': 0}, {'id': 29, 'priority': 10, 'number': 0, 'publication_id': 147, 'tune_id': 2591, 'alias_id': None, 'count': 1, 'page': 0}, {'id': 30, 'priority': 10, 'number': 0, 'publication_id': 147, 'tune_id': 2602, 'alias_id': None, 'count': 1, 'page': 0}]
+
+[map] tunesrecordingsmap columns:
+  id (INTEGER), number (smallint), alias_id (INTEGER), recording_id (INTEGER), tune_id (INTEGER)
+  sample: [{'id': 1, 'number': 1, 'alias_id': None, 'recording_id': 72, 'tune_id': 448}, {'id': 2, 'number': 2, 'alias_id': None, 'recording_id': 72, 'tune_id': 2774}, {'id': 3, 'number': 3, 'alias_id': None, 'recording_id': 72, 'tune_id': 2986}]
+
+[crib] dancecrib columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), format (character varying(10)), text (TEXT), reliability (smallint), dance_id (INTEGER), source_id (INTEGER), user_id (INTEGER)
+  sample: [{'id': 16682, 'created': '2024-07-15 03:11:46.600141+00', 'last_modified': '2025-08-20 03:10:52.863494+00', 'format': 'amd', 'text': '1-8\n: 1s & 4s cross RH & cast in 1 place, 2s & 3s step up/down; 1s+4s turn LH\n  on sides (slow turn).  2 (1) (4) 3\n9-16\n: 2s+1s also 4s+3s dance RH across; 1s+4s dance LH across **while** 2s\n  & 3s chase clockwise 1/2 round. (3) (1) (4) (2)\n17-24\n: 3s+1s also 4s+2s dance RH across; All chase clockwise 1/2 round.\n   2 4 1 3\n25-32\n: All circle 8H round & back.  2 4 1 3', 'reliability': 0, 'dance_id': 21930, 'source_id': 3, 'user_id': None}, {'id': 1615, 'created': '2012-01-22 19:28:51.115415+00', 'last_modified': '2023-05-09 15:09:40.554419+00', 'format': 'amd', 'text': '1–\n: 1c turn RH ; turn LH 1½ moving down (2c up) (2,1x)\n9–\n: 2W+1M & 2M+1W set and turn BH ; the W pass RH as 1M dances up W side and 2M down M side | 1c+2c turn LH to original places (1c small turn, 2c big turn)\n17–\n: 1c down the middle and up\n25–\n: 1c+2c Poussette.', 'reliability': 3, 'dance_id': 15, 'source_id': 1, 'user_id': None}, {'id': 1616, 'created': '2012-01-22 19:28:51.162417+00', 'last_modified': '2023-05-09 15:09:40.557069+00', 'format': 'amd', 'text': '1–\n: 1c+2c set | turn RH ½ and face P in the middle ; swiveling R dance out to opposite side and chase clw to (2,1,3), 1W facing down, 1M up\n9–\n: 1W+3c & 1M+2c reels3 across, Rsh to 3cnr (end C start Lsh), at end 1c turn LH to face 1cnr.\n17–\n: Turn 1cnr RH | pass P Rsh ; turn 2cnr RH | cross Rsh (2,1,3)\n25–\n: All circle6 L to own sides | all C turn BH (2,1,3)', 'reliability': 3, 'dance_id': 9761, 'source_id': 1, 'user_id': None}]
+
+[crib] dancecribsource columns:
+  id (INTEGER), created (timestamp with time zone), last_modified (timestamp with time zone), name (character varying(64)), editor (character varying(256)), slug (character varying(50)), url (character varying(256)), email (character varying(256)), group_id (INTEGER), derived_from_id (INTEGER), processor (character varying(32)), comments_as_issues (boolean)
+  sample: [{'id': 6, 'created': '2012-07-15 14:57:13.919859+00', 'last_modified': '2012-07-16 09:23:51.651886+00', 'name': 'Skua Dubh', 'editor': 'Tim Hoffmann', 'slug': 'sd', 'url': '', 'email': '', 'group_id': 2, 'derived_from_id': None, 'processor': '', 'comments_as_issues': 0}, {'id': 4, 'created': None, 'last_modified': '2013-01-12 21:53:08.734978+00', 'name': "Keith Rose's Diagrams", 'editor': 'Keith Rose', 'slug': 'kr', 'url': '', 'email': 'keith@krose.plus.com', 'group_id': 3, 'derived_from_id': None, 'processor': '', 'comments_as_issues': 0}, {'id': 2, 'created': None, 'last_modified': '2013-04-10 06:17:55.982017+00', 'name': 'SCDDB Contributed Cribs & Diagrams', 'editor': 'SCDData', 'slug': 'scddb', 'url': 'http://my.strathspey.org/dd/', 'email': 'webmaster@my.strathspey.org', 'group_id': 1, 'derived_from_id': None, 'processor': '', 'comments_as_issues': 0}]
+
+=== Sanity queries (best-effort) ===
+- Total dances in dance: 22627
+- Sample dances: [{'id': 12508, 'name': '"Deer" Friends'}, {'id': 20308, 'name': '"It\'s a Doozie"'}, {'id': 16678, 'name': '"Lady" Paulien\'s Fancy'}, {'id': 14417, 'name': '"O", The'}, {'id': 17814, 'name': '"The Brays" of Brinsmead'}, {'id': 14728, 'name': '"You Cannot go Wrong!"'}, {'id': 20316, 'name': '#ILoveNice'}, {'id': 11027, 'name': "'Allo 'Allo"}, {'id': 11776, 'name': "'Allo Vera!"}, {'id': 10092, 'name': "'Appy Dance, An"}]
+- Sample dance → formation join: [{'dance_id': 5, 'dance_name': "A' the Marquis's", 'formation': 0}, {'dance_id': 38, 'dance_name': 'Adelaide Grand Prix', 'formation': 1}, {'dance_id': 38, 'dance_name': 'Adelaide Grand Prix', 'formation': 25}, {'dance_id': 38, 'dance_name': 'Adelaide Grand Prix', 'formation': 9}, {'dance_id': 12, 'dance_name': 'Aberdeen to Zorra', 'formation': 1}, {'dance_id': 12, 'dance_name': 'Aberdeen to Zorra', 'formation': 0}, {'dance_id': 17, 'dance_name': 'Academy, The', 'formation': 9}, {'dance_id': 17, 'dance_name': 'Academy, The', 'formation': 0}, {'dance_id': 17, 'dance_name': 'Academy, The', 'formation': 0}, {'dance_id': 19, 'dance_name': 'Accounting For Time', 'formation': 0}]
+
+- Found metadata table: metadata
+  Sample: []
