@@ -102,6 +102,7 @@ mcp_client = MCPSCDDBClient()
 
 @tool
 async def find_dances(
+    name_contains: Optional[str] = None,
     kind: Optional[str] = None,
     metaform_contains: Optional[str] = None,
     max_bars: Optional[int] = None,
@@ -109,9 +110,10 @@ async def find_dances(
     limit: int = 25
 ) -> List[Dict[str, Any]]:
     """
-    Query dances from SCDDB by kind/metaform/bars and optionally require a formation token.
+    Query dances from SCDDB by name, kind/metaform/bars and optionally require a formation token.
     
     Args:
+        name_contains: Substring to search for in dance name (case-insensitive)
         kind: Dance kind (e.g., 'Jig', 'Reel', 'Strathspey', 'Hornpipe')
         metaform_contains: Substring like 'Longwise 3C' or just 'Longwise'
         max_bars: Upper bound on bars (per repeat)
@@ -124,6 +126,8 @@ async def find_dances(
     await mcp_client.setup()
     
     arguments = {"limit": limit}
+    if name_contains:
+        arguments["name_contains"] = name_contains
     if kind:
         arguments["kind"] = kind
     if metaform_contains:
@@ -133,7 +137,11 @@ async def find_dances(
     if formation_token:
         arguments["formation_token"] = formation_token
     
-    return await mcp_client.call_tool("find_dances", arguments)
+    print(f"DEBUG: Calling find_dances with arguments: {arguments}", file=sys.stderr)
+    result = await mcp_client.call_tool("find_dances", arguments)
+    print(f"DEBUG: find_dances returned {len(result)} results", file=sys.stderr)
+    
+    return result
 
 
 @tool

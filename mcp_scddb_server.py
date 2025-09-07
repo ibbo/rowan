@@ -51,12 +51,13 @@ async def handle_list_tools() -> List[Tool]:
         Tool(
             name="find_dances",
             description=(
-                "Query dances from SCDDB by kind/metaform/bars and optionally require a formation token "
+                "Query dances from SCDDB by name, kind/metaform/bars and optionally require a formation token "
                 "(e.g., 'REEL;3P;'). Returns distinct dances."
             ),
             inputSchema={
                 "type":"object",
                 "properties":{
+                    "name_contains":{"type":["string","null"], "description":"Substring to search for in dance name (case-insensitive)"},
                     "kind":{"type":["string","null"], "description":"Jig | Reel | Strathspey | Hornpipe | …"},
                     "metaform_contains":{"type":["string","null"], "description":"Substring like 'Longwise 3C' or just 'Longwise'"},
                     "max_bars":{"type":["integer","null"], "minimum":1, "description":"Upper bound on bars (per repeat)"},
@@ -95,11 +96,15 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
         logger.info("call_tool: %s", name)
         logger.debug("arguments: %s", arguments)
         if name == "find_dances":
+            name_contains = arguments.get("name_contains")
             kind = arguments.get("kind")
             metaform_contains = arguments.get("metaform_contains")
             max_bars = arguments.get("max_bars")
             formation_token = arguments.get("formation_token")
             limit = int(arguments.get("limit", 25))
+
+            logger.info("find_dances called with: name_contains=%s, kind=%s, metaform_contains=%s, max_bars=%s, formation_token=%s, limit=%s", 
+                       name_contains, kind, metaform_contains, max_bars, formation_token, limit)
 
             sql = """
             SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression
@@ -108,6 +113,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
             WHERE 1=1
             """
             args: List[Any] = []
+            if name_contains:
+                sql += " AND m.name LIKE ? COLLATE NOCASE"; args.append(f"%{name_contains}%")
             if kind:
                 sql += " AND m.kind = ?"; args.append(kind)
             if metaform_contains:
@@ -118,7 +125,9 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
                 sql += " AND t.formation_tokens LIKE ?"; args.append(f"%{formation_token}%")
             sql += " ORDER BY m.name LIMIT ?"; args.append(limit)
 
+            logger.debug("Executing SQL: %s with args: %s", sql, args)
             rows = q(sql, tuple(args))
+            logger.info("find_dances returned %d results", len(rows))
             return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
 
         if name == "dance_detail":
