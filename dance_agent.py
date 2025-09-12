@@ -107,17 +107,21 @@ async def find_dances(
     metaform_contains: Optional[str] = None,
     max_bars: Optional[int] = None,
     formation_token: Optional[str] = None,
+    official_rscds_dances: Optional[bool] = None,
+    random_variety: Optional[bool] = None,
     limit: int = 25
 ) -> List[Dict[str, Any]]:
     """
-    Query dances from SCDDB by name, kind/metaform/bars and optionally require a formation token.
+    Search Scottish Country Dances by various criteria.
     
     Args:
         name_contains: Substring to search for in dance name (case-insensitive)
-        kind: Dance kind (e.g., 'Jig', 'Reel', 'Strathspey', 'Hornpipe')
-        metaform_contains: Substring like 'Longwise 3C' or just 'Longwise'
-        max_bars: Upper bound on bars (per repeat)
-        formation_token: Formation token from formation.searchid, e.g. 'REEL;3P;'
+        kind: Dance type (e.g., 'Jig', 'Reel', 'Strathspey', 'Hornpipe', 'Waltz', 'March')
+        metaform_contains: Formation pattern like 'Longwise 3C', 'Square', 'Circle', etc.
+        max_bars: Maximum number of bars (per repeat)
+        formation_token: Specific formation token like 'REEL;3P;' or 'JIG;4C;'
+        official_rscds_dances: FILTER BY PUBLICATION - True=only official RSCDS published dances, False=only community/non-RSCDS dances, None=all dances. Use this to distinguish between official and community dances!
+        random_variety: If True, randomize results for variety instead of alphabetical order. Recommended for diverse suggestions!
         limit: Maximum number of results (1-200, default 25)
     
     Returns:
@@ -136,6 +140,10 @@ async def find_dances(
         arguments["max_bars"] = max_bars
     if formation_token:
         arguments["formation_token"] = formation_token
+    if official_rscds_dances is not None:
+        arguments["official_rscds_dances"] = official_rscds_dances
+    if random_variety is not None:
+        arguments["random_variety"] = random_variety
     
     print(f"DEBUG: Calling find_dances with arguments: {arguments}", file=sys.stderr)
     result = await mcp_client.call_tool("find_dances", arguments)
