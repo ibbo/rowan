@@ -6,8 +6,10 @@ This creates a web UI that can be hosted on a VPS for public access.
 """
 
 import asyncio
+import logging
 import os
 import sys
+import time
 from pathlib import Path
 from typing import List, Tuple
 
@@ -17,6 +19,17 @@ from dotenv import load_dotenv
 # Import our existing dance agent
 from dance_agent import create_dance_agent, mcp_client
 from langchain_core.messages import HumanMessage
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('dance_gradio.log')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 class DanceAgentUI:
@@ -47,13 +60,20 @@ class DanceAgentUI:
     
     async def process_query(self, message: str, history: List[Tuple[str, str]]) -> str:
         """Process a user query through the dance agent."""
+        start_time = time.time()
+        logger.info(f"🔄 Processing query: '{message[:50]}{'...' if len(message) > 50 else ''}'")
+        
         if not self.setup_complete:
+            logger.info("🔧 Initializing agent...")
+            init_start = time.time()
             init_result = await self.initialize_agent()
+            logger.info(f"⚡ Agent initialization took {time.time() - init_start:.2f}s")
             if "❌" in init_result:
                 return init_result
         
         try:
             # Create the system prompt and user message
+            logger.info("📝 Creating messages for agent...")
             messages = [
                 HumanMessage(content=(
                     "You are a Scottish Country Dance expert assistant with access to the Scottish Country Dance Database (SCDDB). "
@@ -69,15 +89,48 @@ class DanceAgentUI:
                 ))
             ]
             
-            # Process through the agent
-            response = await self.agent.ainvoke({"messages": messages})
+            # Process through the agent with timeout
+            logger.info("🤖 Invoking dance agent...")
+            agent_start = time.time()
+            
+            # Add timeout wrapper
+            response = await asyncio.wait_for(
+                self.agent.ainvoke({"messages": messages}),
+                timeout=600.0  # 10 minute timeout
+            )
+            
+            agent_time = time.time() - agent_start
+            logger.info(f"🎯 Agent processing took {agent_time:.2f}s")
             
             # Extract the final message
             final_message = response["messages"][-1]
-            return final_message.content
+            total_time = time.time() - start_time
+            logger.info(f"✅ Query completed successfully in {total_time:.2f}s total")
             
+            # Ensure the response is safe for JSON serialization
+            response_content = final_message.content
+            if response_content is None:
+                response_content = "No response generated."
+            
+            # Convert to string and clean up any problematic characters
+            response_content = str(response_content)
+            
+            # Log response for debugging
+            logger.info(f"📤 Response length: {len(response_content)} characters")
+            logger.debug(f"📤 Response preview: {response_content[:200]}...")
+            
+            return response_content
+            
+        except asyncio.TimeoutError:
+            total_time = time.time() - start_time
+            error_msg = f"⏰ Query timed out after {total_time:.2f}s. The dance agent took too long to process your request. Please try a simpler query or try again later."
+            logger.error(error_msg)
+            return error_msg
         except Exception as e:
-            return f"❌ Error processing query: {str(e)}"
+            total_time = time.time() - start_time
+            error_msg = f"❌ Error processing query after {total_time:.2f}s: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return error_msg
 
 
 # Global UI instance
@@ -86,10 +139,15 @@ ui = DanceAgentUI()
 
 def sync_process_query(message: str, history: List[Tuple[str, str]]) -> str:
     """Synchronous wrapper for the async query processing."""
+    logger.info(f"🌐 Starting sync wrapper for query: '{message[:30]}{'...' if len(message) > 30 else ''}'")
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         return loop.run_until_complete(ui.process_query(message, history))
+    except Exception as e:
+        error_msg = f"❌ Sync wrapper error: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return error_msg
     finally:
         loop.close()
 
@@ -214,11 +272,46 @@ def create_interface():
             if not message.strip():
                 return "", chat_history
             
+            logger.info(f"💬 New chat message received: '{message[:50]}{'...' if len(message) > 50 else ''}'")
+            
             # Add user message to history
             chat_history.append([message, None])
             
             # Get bot response
-            bot_response = sync_process_query(message, chat_history)
+            try:
+                bot_response = sync_process_query(message, chat_history)
+                
+                # Validate and sanitize response for JSON serialization
+                if bot_response is None:
+                    bot_response = "No response received."
+                
+                # Ensure it's a string
+                bot_response = str(bot_response)
+                
+                # Remove any HTML tags that might cause JSON parsing issues
+                import re
+                # Basic HTML tag removal (but preserve markdown formatting)
+                bot_response = re.sub(r'<(?!/?(?:b|i|u|strong|em|code|pre|br|p|ul|ol|li|h[1-6])\b)[^>]*>', '', bot_response)
+                
+                # Ensure response doesn't start with HTML
+                if bot_response.strip().startswith('<'):
+                    logger.warning("⚠️ Response starts with HTML, wrapping in text")
+                    bot_response = f"Response: {bot_response}"
+                
+                logger.debug(f"✅ Sanitized response length: {len(bot_response)}")
+                
+            except Exception as e:
+                bot_response = f"❌ Unexpected error in response handler: {str(e)}"
+                logger.error(f"Response handler error: {e}", exc_info=True)
+            
+            # Final validation before returning
+            try:
+                # Test JSON serialization
+                import json
+                json.dumps(bot_response)
+            except (TypeError, ValueError) as e:
+                logger.error(f"JSON serialization failed: {e}")
+                bot_response = "❌ Response formatting error. Please try again."
             
             # Update the last message with bot response
             chat_history[-1][1] = bot_response
@@ -228,9 +321,9 @@ def create_interface():
         def clear_chat():
             return []
         
-        # Wire up the events
-        msg.submit(respond, [msg, chatbot], [msg, chatbot], queue=False)
-        submit_btn.click(respond, [msg, chatbot], [msg, chatbot], queue=False)
+        # Wire up the events - enable queue for long-running requests
+        msg.submit(respond, [msg, chatbot], [msg, chatbot], queue=True)
+        submit_btn.click(respond, [msg, chatbot], [msg, chatbot], queue=True)
         clear_btn.click(clear_chat, None, chatbot, queue=False)
         
         # Footer
@@ -252,6 +345,10 @@ def main():
     # Check for required environment variables
     load_dotenv()
     
+    # Set environment variables for extended timeouts
+    os.environ['GRADIO_CLIENT_TIMEOUT'] = '650'  # 10+ minutes for client timeout
+    os.environ['HTTPX_TIMEOUT'] = '650'  # Extended HTTP timeout
+    
     if not os.getenv("OPENAI_API_KEY"):
         print("❌ Error: OPENAI_API_KEY environment variable not set.")
         print("Please set your OpenAI API key in a .env file or as an environment variable.")
@@ -270,12 +367,23 @@ def main():
     demo = create_interface()
     
     # Launch with settings appropriate for VPS hosting
+    logger.info("🚀 Launching Gradio interface...")
+    # Configure queue with extended timeout to match server timeout
+    demo.queue(
+        default_concurrency_limit=10,  # Allow 10 concurrent requests
+        max_size=50,  # Queue up to 50 requests
+        api_open=True  # Allow API access
+    )
     demo.launch(
         server_name="0.0.0.0",  # Allow external connections
         server_port=7860,       # Default Gradio port
         share=False,            # Don't create a public gradio.app link
         show_error=True,        # Show detailed errors
-        quiet=False             # Show startup info
+        quiet=False,            # Show startup info
+        max_threads=10,         # Allow more concurrent requests
+        # Configure timeouts to match server settings
+        favicon_path=None,
+        ssl_verify=False
     )
 
 

@@ -114,13 +114,20 @@ async def find_dances(
     """
     Search Scottish Country Dances by various criteria.
     
+    IMPORTANT SYNTAX EXAMPLES:
+    - kind: Use exact values like 'Reel', 'Jig', 'Strathspey', 'Hornpipe', 'Waltz', 'March'
+    - metaform_contains: Use patterns like 'Longwise 3 3C', 'Longwise 4 3C', 'Circle 3C', 'Square 3C', 'Longwise 2 2C'
+      (NOTE: For 3 couples longwise, use 'Longwise 3 3C' or 'Longwise 4 3C', NOT 'Longwise 3C')
+    - formation_token: Use specific tokens like 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;', 'R&L;3C;', 'REEL;ACROSS;R3;'
+      (These are technical formation codes - usually better to use metaform_contains instead)
+    
     Args:
         name_contains: Substring to search for in dance name (case-insensitive)
-        kind: Dance type (e.g., 'Jig', 'Reel', 'Strathspey', 'Hornpipe', 'Waltz', 'March')
-        metaform_contains: Formation pattern like 'Longwise 3C', 'Square', 'Circle', etc.
-        max_bars: Maximum number of bars (per repeat)
-        formation_token: Specific formation token like 'REEL;3P;' or 'JIG;4C;'
-        official_rscds_dances: FILTER BY PUBLICATION - True=only official RSCDS published dances, False=only community/non-RSCDS dances, None=all dances. Use this to distinguish between official and community dances!
+        kind: Dance type - EXACT VALUES: 'Jig', 'Reel', 'Strathspey', 'Hornpipe', 'Waltz', 'March', etc.
+        metaform_contains: Formation pattern - EXAMPLES: 'Longwise 3 3C', 'Longwise 4 3C', 'Circle 3C', 'Square 3C'
+        max_bars: Maximum number of bars (per repeat) - common values: 32, 48, 64
+        formation_token: Technical formation code - EXAMPLES: 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;' (advanced use)
+        official_rscds_dances: FILTER BY PUBLICATION - True=only official RSCDS published dances, False=only community/non-RSCDS dances, None=all dances
         random_variety: If True, randomize results for variety instead of alphabetical order. Recommended for diverse suggestions!
         limit: Maximum number of results (1-200, default 25)
     
