@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 import sqlite3
+import random
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server, InitializationOptions, NotificationOptions
@@ -51,17 +52,21 @@ async def handle_list_tools() -> List[Tool]:
         Tool(
             name="find_dances",
             description=(
-                "Query dances from SCDDB by name, kind/metaform/bars and optionally require a formation token "
-                "(e.g., 'REEL;3P;'). Returns distinct dances."
+                "Search Scottish Country Dances by various criteria. "
+                "IMPORTANT: Use 'official_rscds_dances=true' to find official RSCDS published dances, "
+                "or 'official_rscds_dances=false' for community/non-RSCDS dances. "
+                "Use 'random_variety=true' for varied results instead of alphabetical order."
             ),
             inputSchema={
                 "type":"object",
                 "properties":{
                     "name_contains":{"type":["string","null"], "description":"Substring to search for in dance name (case-insensitive)"},
-                    "kind":{"type":["string","null"], "description":"Jig | Reel | Strathspey | Hornpipe | …"},
-                    "metaform_contains":{"type":["string","null"], "description":"Substring like 'Longwise 3C' or just 'Longwise'"},
-                    "max_bars":{"type":["integer","null"], "minimum":1, "description":"Upper bound on bars (per repeat)"},
-                    "formation_token":{"type":["string","null"], "description":"Formation token from formation.searchid, e.g. 'REEL;3P;'"},
+                    "kind":{"type":["string","null"], "description":"Dance type: Jig | Reel | Strathspey | Hornpipe | Waltz | March | ..."},
+                    "metaform_contains":{"type":["string","null"], "description":"Formation pattern like 'Longwise 3C', 'Square', 'Circle', etc."},
+                    "max_bars":{"type":["integer","null"], "minimum":1, "description":"Maximum number of bars (per repeat)"},
+                    "formation_token":{"type":["string","null"], "description":"Specific formation token like 'REEL;3P;' or 'JIG;4C;'"},
+                    "official_rscds_dances":{"type":["boolean","null"], "description":"FILTER BY PUBLICATION: true=only official RSCDS published dances, false=only community/non-RSCDS dances, null=all dances. Use this to distinguish between official and community dances!"},
+                    "random_variety":{"type":["boolean","null"], "description":"If true, randomize results for variety instead of alphabetical order. Recommended for diverse suggestions!"},
                     "limit":{"type":"integer","minimum":1,"maximum":200,"default":25}
                 },
                 "required":[]
@@ -101,17 +106,42 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
             metaform_contains = arguments.get("metaform_contains")
             max_bars = arguments.get("max_bars")
             formation_token = arguments.get("formation_token")
+            # Support both old and new parameter names for compatibility
+            rscds_only = arguments.get("rscds_only") or arguments.get("official_rscds_dances")
+            random_variety = arguments.get("random_variety", False)
             limit = int(arguments.get("limit", 25))
 
-            logger.info("find_dances called with: name_contains=%s, kind=%s, metaform_contains=%s, max_bars=%s, formation_token=%s, limit=%s", 
-                       name_contains, kind, metaform_contains, max_bars, formation_token, limit)
+            logger.info("find_dances called with: name_contains=%s, kind=%s, metaform_contains=%s, max_bars=%s, formation_token=%s, rscds_only=%s, random_variety=%s, limit=%s", 
+                       name_contains, kind, metaform_contains, max_bars, formation_token, rscds_only, random_variety, limit)
 
             sql = """
             SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression
             FROM v_metaform m
             LEFT JOIN v_dance_has_token t ON t.dance_id = m.id
-            WHERE 1=1
             """
+            
+            # Add RSCDS filtering if requested
+            if rscds_only is not None:
+                if rscds_only:
+                    # Only dances published by RSCDS
+                    sql += """
+                    INNER JOIN dancespublicationsmap dpm ON m.id = dpm.dance_id
+                    INNER JOIN publication p ON dpm.publication_id = p.id AND p.rscds = 1
+                    """
+                else:
+                    # Only dances NOT published by RSCDS (exclude any dance that has any RSCDS publication)
+                    sql += """
+                    WHERE m.id NOT IN (
+                        SELECT DISTINCT dpm2.dance_id 
+                        FROM dancespublicationsmap dpm2
+                        INNER JOIN publication p2 ON dpm2.publication_id = p2.id AND p2.rscds = 1
+                    )
+                    """
+            
+            # Add WHERE clause if not already added by RSCDS filtering
+            if rscds_only != False:  # False case already adds WHERE clause
+                sql += " WHERE 1=1"
+            
             args: List[Any] = []
             if name_contains:
                 sql += " AND m.name LIKE ? COLLATE NOCASE"; args.append(f"%{name_contains}%")
@@ -123,7 +153,13 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
                 sql += " AND m.bars <= ?"; args.append(int(max_bars))
             if formation_token:
                 sql += " AND t.formation_tokens LIKE ?"; args.append(f"%{formation_token}%")
-            sql += " ORDER BY m.name LIMIT ?"; args.append(limit)
+            
+            # Add ordering - random or alphabetical
+            if random_variety:
+                sql += " ORDER BY RANDOM() LIMIT ?"
+            else:
+                sql += " ORDER BY m.name LIMIT ?"
+            args.append(limit)
 
             logger.debug("Executing SQL: %s with args: %s", sql, args)
             rows = q(sql, tuple(args))
@@ -138,7 +174,20 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
                 (dance_id,),
             )
             crib = q_one("SELECT reliability, last_modified, text FROM v_crib_best WHERE dance_id=?", (dance_id,))
-            out = {"dance": dance, "formations": formations, "crib": crib}
+            
+            # Get publication information including RSCDS status
+            publications = q(
+                """
+                SELECT p.name, p.shortname, p.rscds, dpm.number, dpm.page
+                FROM publication p
+                JOIN dancespublicationsmap dpm ON p.id = dpm.publication_id
+                WHERE dpm.dance_id = ?
+                ORDER BY p.rscds DESC, p.name
+                """,
+                (dance_id,),
+            )
+            
+            out = {"dance": dance, "formations": formations, "crib": crib, "publications": publications}
             return [TextContent(type="text", text=json.dumps(out, ensure_ascii=False))]
 
         if name == "search_cribs":

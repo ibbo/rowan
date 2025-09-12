@@ -190,7 +190,7 @@ async def create_dance_agent():
     
     # Initialize OpenAI model
     llm = ChatOpenAI(
-        model="gpt-4o-mini",  # Use the more cost-effective model
+        model="gpt-5-mini",  # Use the more cost-effective model
         temperature=0
     )
     
