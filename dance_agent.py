@@ -113,25 +113,21 @@ class MCPSCDDBClient:
                 'created_at': time.time()
             }
     
-    def _return_session_to_pool(self, session_info):
+    async def _return_session_to_pool(self, session_info):
         """Return a session to the pool for reuse."""
-        async def _return():
-            async with self._pool_lock:
-                # Check if session is still fresh (less than 5 minutes old)
-                if time.time() - session_info['created_at'] < 300 and len(self._connection_pool) < self._max_connections:
-                    self._connection_pool.append(session_info)
-                    print(f"DEBUG: Returned session to pool (pool size: {len(self._connection_pool)})", file=sys.stderr)
-                else:
-                    # Session too old or pool full - close it
-                    try:
-                        await session_info['session_context'].__aexit__(None, None, None)
-                        await session_info['client_context'].__aexit__(None, None, None)
-                    except:
-                        pass
-                    print(f"DEBUG: Closed expired/excess session", file=sys.stderr)
-        
-        # Schedule the return to happen soon but don't block
-        asyncio.create_task(_return())
+        async with self._pool_lock:
+            # Check if session is still fresh (less than 5 minutes old)
+            if time.time() - session_info['created_at'] < 300 and len(self._connection_pool) < self._max_connections:
+                self._connection_pool.append(session_info)
+                print(f"DEBUG: Returned session to pool (pool size: {len(self._connection_pool)})", file=sys.stderr)
+            else:
+                # Session too old or pool full - close it
+                try:
+                    await session_info['session_context'].__aexit__(None, None, None)
+                    await session_info['client_context'].__aexit__(None, None, None)
+                except Exception as e:
+                    print(f"DEBUG: Error closing session: {e}", file=sys.stderr)
+                print(f"DEBUG: Closed expired/excess session", file=sys.stderr)
     
     async def call_tool(self, name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Call an MCP tool using connection pooling for better performance."""
@@ -167,7 +163,7 @@ class MCPSCDDBClient:
             
             # Return session to pool for reuse
             if session_info:
-                self._return_session_to_pool(session_info)
+                await self._return_session_to_pool(session_info)
             
             call_end = time.perf_counter()
             total_time = (call_end - call_start) * 1000
@@ -184,8 +180,8 @@ class MCPSCDDBClient:
                 try:
                     await session_info['session_context'].__aexit__(None, None, None)
                     await session_info['client_context'].__aexit__(None, None, None)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"DEBUG: Error cleaning up failed session: {e}", file=sys.stderr)
             
             return [{"error": str(e)}]
     
