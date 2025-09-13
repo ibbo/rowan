@@ -6,6 +6,7 @@ import sys
 import logging
 import sqlite3
 import random
+import time
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server, InitializationOptions, NotificationOptions
@@ -16,23 +17,53 @@ import mcp.types as types
 # --- Config ---
 DB_PATH = os.environ.get("SCDDB_SQLITE", "data/scddb/scddb.sqlite")
 
-# --- DB helpers ---
+# --- DB helpers with profiling ---
 def q(sql: str, args: tuple = ()) -> List[Dict[str, Any]]:
+    start_time = time.perf_counter()
     con = sqlite3.connect(DB_PATH)
     try:
         con.row_factory = sqlite3.Row
+        query_start = time.perf_counter()
         cur = con.execute(sql, args)
-        return [dict(r) for r in cur.fetchall()]
+        fetch_start = time.perf_counter()
+        results = [dict(r) for r in cur.fetchall()]
+        end_time = time.perf_counter()
+        
+        # Log detailed timing
+        total_time = (end_time - start_time) * 1000
+        query_time = (fetch_start - query_start) * 1000
+        fetch_time = (end_time - fetch_start) * 1000
+        connection_time = (query_start - start_time) * 1000
+        
+        logger.info(f"QUERY PERF: Total={total_time:.2f}ms (Conn={connection_time:.2f}ms, Query={query_time:.2f}ms, Fetch={fetch_time:.2f}ms), Rows={len(results)}")
+        logger.debug(f"SQL: {sql[:200]}{'...' if len(sql) > 200 else ''}")
+        
+        return results
     finally:
         con.close()
 
 def q_one(sql: str, args: tuple = ()) -> Optional[Dict[str, Any]]:
+    start_time = time.perf_counter()
     con = sqlite3.connect(DB_PATH)
     try:
         con.row_factory = sqlite3.Row
+        query_start = time.perf_counter()
         cur = con.execute(sql, args)
+        fetch_start = time.perf_counter()
         row = cur.fetchone()
-        return dict(row) if row else None
+        result = dict(row) if row else None
+        end_time = time.perf_counter()
+        
+        # Log detailed timing
+        total_time = (end_time - start_time) * 1000
+        query_time = (fetch_start - query_start) * 1000
+        fetch_time = (end_time - fetch_start) * 1000
+        connection_time = (query_start - start_time) * 1000
+        
+        logger.info(f"QUERY_ONE PERF: Total={total_time:.2f}ms (Conn={connection_time:.2f}ms, Query={query_time:.2f}ms, Fetch={fetch_time:.2f}ms), Found={result is not None}")
+        logger.debug(f"SQL: {sql[:200]}{'...' if len(sql) > 200 else ''}")
+        
+        return result
     finally:
         con.close()
 
@@ -97,6 +128,7 @@ async def handle_list_tools() -> List[Tool]:
 
 @server.call_tool()
 async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | ImageContent]:
+    tool_start_time = time.perf_counter()
     try:
         logger.info("call_tool: %s", name)
         logger.debug("arguments: %s", arguments)
@@ -162,20 +194,38 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
             args.append(limit)
 
             logger.debug("Executing SQL: %s with args: %s", sql, args)
+            query_start = time.perf_counter()
             rows = q(sql, tuple(args))
-            logger.info("find_dances returned %d results", len(rows))
+            query_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            query_time = (query_end - query_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"find_dances TOOL PERF: Total={total_tool_time:.2f}ms, MainQuery={query_time:.2f}ms, Results={len(rows)}")
             return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
 
         if name == "dance_detail":
             dance_id = int(arguments["dance_id"])
+            
+            # Time individual queries
+            dance_start = time.perf_counter()
             dance = q_one("SELECT * FROM v_metaform WHERE id=?", (dance_id,))
+            dance_end = time.perf_counter()
+            
+            formations_start = time.perf_counter()
             formations = q(
                 "SELECT formation_name, formation_tokens FROM v_dance_formations WHERE dance_id=? ORDER BY formation_name",
                 (dance_id,),
             )
+            formations_end = time.perf_counter()
+            
+            crib_start = time.perf_counter()
             crib = q_one("SELECT reliability, last_modified, text FROM v_crib_best WHERE dance_id=?", (dance_id,))
+            crib_end = time.perf_counter()
             
             # Get publication information including RSCDS status
+            pub_start = time.perf_counter()
             publications = q(
                 """
                 SELECT p.name, p.shortname, p.rscds, dpm.number, dpm.page
@@ -186,6 +236,17 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
                 """,
                 (dance_id,),
             )
+            pub_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            # Log timing breakdown
+            dance_time = (dance_end - dance_start) * 1000
+            formations_time = (formations_end - formations_start) * 1000
+            crib_time = (crib_end - crib_start) * 1000
+            pub_time = (pub_end - pub_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"dance_detail TOOL PERF: Total={total_tool_time:.2f}ms (Dance={dance_time:.2f}ms, Formations={formations_time:.2f}ms, Crib={crib_time:.2f}ms, Pubs={pub_time:.2f}ms)")
             
             out = {"dance": dance, "formations": formations, "crib": crib, "publications": publications}
             return [TextContent(type="text", text=json.dumps(out, ensure_ascii=False))]
@@ -193,6 +254,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
         if name == "search_cribs":
             query = str(arguments["query"])
             limit = int(arguments.get("limit", 20))
+            
+            search_start = time.perf_counter()
             rows = q(
                 """
                 SELECT d.id, d.name, d.kind, d.metaform, d.bars
@@ -204,12 +267,24 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
                 """,
                 (query, limit),
             )
+            search_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            search_time = (search_end - search_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"search_cribs TOOL PERF: Total={total_tool_time:.2f}ms, FTSQuery={search_time:.2f}ms, Results={len(rows)}")
             return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
 
         # Unknown tool
+        tool_end = time.perf_counter()
+        total_tool_time = (tool_end - tool_start_time) * 1000
+        logger.warning(f"Unknown tool {name} - Total time: {total_tool_time:.2f}ms")
         return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool {name}"}))]
     except Exception as e:
-        logger.exception("Error in call_tool")
+        tool_end = time.perf_counter()
+        total_tool_time = (tool_end - tool_start_time) * 1000
+        logger.exception(f"Error in call_tool {name} after {total_tool_time:.2f}ms")
         return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
 
 # Optional: allow client to set server-side logging level

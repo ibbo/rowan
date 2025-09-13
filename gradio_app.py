@@ -61,19 +61,26 @@ class DanceAgentUI:
     async def process_query(self, message: str, history: List[Tuple[str, str]]) -> str:
         """Process a user query through the dance agent."""
         start_time = time.time()
-        logger.info(f"🔄 Processing query: '{message[:50]}{'...' if len(message) > 50 else ''}'")
+        logger.info(f"🔄 GRADIO: Processing query: '{message[:50]}{'...' if len(message) > 50 else ''}'")
+        print(f"DEBUG GRADIO: Starting process_query at {start_time}", file=sys.stderr)
         
         if not self.setup_complete:
-            logger.info("🔧 Initializing agent...")
+            logger.info("🔧 GRADIO: Initializing agent...")
             init_start = time.time()
+            print(f"DEBUG GRADIO: Starting agent initialization at {init_start}", file=sys.stderr)
             init_result = await self.initialize_agent()
-            logger.info(f"⚡ Agent initialization took {time.time() - init_start:.2f}s")
+            init_end = time.time()
+            init_duration = init_end - init_start
+            logger.info(f"⚡ GRADIO: Agent initialization took {init_duration:.2f}s")
+            print(f"DEBUG GRADIO: Agent initialization completed in {init_duration:.2f}s", file=sys.stderr)
             if "❌" in init_result:
                 return init_result
         
         try:
             # Create the system prompt and user message
-            logger.info("📝 Creating messages for agent...")
+            message_start = time.time()
+            logger.info("📝 GRADIO: Creating messages for agent...")
+            print(f"DEBUG GRADIO: Creating messages at {message_start}", file=sys.stderr)
             messages = [
                 HumanMessage(content=(
                     "You are a Scottish Country Dance expert assistant with access to the Scottish Country Dance Database (SCDDB). "
@@ -88,10 +95,14 @@ class DanceAgentUI:
                     f"User question: {message}"
                 ))
             ]
+            message_end = time.time()
+            message_duration = message_end - message_start
+            print(f"DEBUG GRADIO: Message creation took {message_duration:.3f}s", file=sys.stderr)
             
             # Process through the agent with timeout
-            logger.info("🤖 Invoking dance agent...")
+            logger.info("🤖 GRADIO: Invoking dance agent...")
             agent_start = time.time()
+            print(f"DEBUG GRADIO: Starting agent.ainvoke at {agent_start}", file=sys.stderr)
             
             # Add timeout wrapper
             response = await asyncio.wait_for(
@@ -99,13 +110,20 @@ class DanceAgentUI:
                 timeout=600.0  # 10 minute timeout
             )
             
-            agent_time = time.time() - agent_start
-            logger.info(f"🎯 Agent processing took {agent_time:.2f}s")
+            agent_end = time.time()
+            agent_time = agent_end - agent_start
+            logger.info(f"🎯 GRADIO: Agent processing took {agent_time:.2f}s")
+            print(f"DEBUG GRADIO: Agent.ainvoke completed in {agent_time:.2f}s", file=sys.stderr)
             
             # Extract the final message
+            extract_start = time.time()
             final_message = response["messages"][-1]
+            extract_end = time.time()
+            extract_time = extract_end - extract_start
+            
             total_time = time.time() - start_time
-            logger.info(f"✅ Query completed successfully in {total_time:.2f}s total")
+            logger.info(f"✅ GRADIO: Query completed successfully in {total_time:.2f}s total")
+            print(f"DEBUG GRADIO: Total query time {total_time:.2f}s (extract: {extract_time:.3f}s)", file=sys.stderr)
             
             # Ensure the response is safe for JSON serialization
             response_content = final_message.content
@@ -123,13 +141,15 @@ class DanceAgentUI:
             
         except asyncio.TimeoutError:
             total_time = time.time() - start_time
-            error_msg = f"⏰ Query timed out after {total_time:.2f}s. The dance agent took too long to process your request. Please try a simpler query or try again later."
+            error_msg = f"⏰ GRADIO: Query timed out after {total_time:.2f}s. The dance agent took too long to process your request. Please try a simpler query or try again later."
             logger.error(error_msg)
+            print(f"DEBUG GRADIO: TIMEOUT after {total_time:.2f}s", file=sys.stderr)
             return error_msg
         except Exception as e:
             total_time = time.time() - start_time
-            error_msg = f"❌ Error processing query after {total_time:.2f}s: {str(e)}"
+            error_msg = f"❌ GRADIO: Error processing query after {total_time:.2f}s: {str(e)}"
             logger.error(error_msg, exc_info=True)
+            print(f"DEBUG GRADIO: ERROR after {total_time:.2f}s - {str(e)}", file=sys.stderr)
             return error_msg
 
 
@@ -139,17 +159,35 @@ ui = DanceAgentUI()
 
 def sync_process_query(message: str, history: List[Tuple[str, str]]) -> str:
     """Synchronous wrapper for the async query processing."""
-    logger.info(f"🌐 Starting sync wrapper for query: '{message[:30]}{'...' if len(message) > 30 else ''}'")
+    sync_start = time.time()
+    logger.info(f"🌐 GRADIO: Starting sync wrapper for query: '{message[:30]}{'...' if len(message) > 30 else ''}'")
+    print(f"DEBUG GRADIO: sync_process_query started at {sync_start}", file=sys.stderr)
+    
+    loop_start = time.time()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    loop_setup_time = time.time() - loop_start
+    print(f"DEBUG GRADIO: Event loop setup took {loop_setup_time:.3f}s", file=sys.stderr)
+    
     try:
-        return loop.run_until_complete(ui.process_query(message, history))
+        async_start = time.time()
+        result = loop.run_until_complete(ui.process_query(message, history))
+        async_end = time.time()
+        async_time = async_end - async_start
+        total_sync_time = async_end - sync_start
+        
+        print(f"DEBUG GRADIO: Async execution took {async_time:.2f}s, total sync wrapper {total_sync_time:.2f}s", file=sys.stderr)
+        return result
     except Exception as e:
-        error_msg = f"❌ Sync wrapper error: {str(e)}"
+        error_time = time.time() - sync_start
+        error_msg = f"❌ GRADIO: Sync wrapper error after {error_time:.2f}s: {str(e)}"
         logger.error(error_msg, exc_info=True)
+        print(f"DEBUG GRADIO: Sync wrapper failed after {error_time:.2f}s", file=sys.stderr)
         return error_msg
     finally:
         loop.close()
+        close_time = time.time() - sync_start
+        print(f"DEBUG GRADIO: Loop closed, total sync_process_query time: {close_time:.2f}s", file=sys.stderr)
 
 
 def create_interface():
@@ -269,17 +307,26 @@ def create_interface():
         
         # Event handlers
         def respond(message, chat_history):
+            respond_start = time.time()
             if not message.strip():
                 return "", chat_history
             
-            logger.info(f"💬 New chat message received: '{message[:50]}{'...' if len(message) > 50 else ''}'")
+            logger.info(f"💬 GRADIO: New chat message received: '{message[:50]}{'...' if len(message) > 50 else ''}'")
+            print(f"DEBUG GRADIO: respond() called at {respond_start}", file=sys.stderr)
             
             # Add user message to history
+            history_start = time.time()
             chat_history.append([message, None])
+            history_time = time.time() - history_start
+            print(f"DEBUG GRADIO: Chat history update took {history_time:.3f}s", file=sys.stderr)
             
             # Get bot response
             try:
+                query_start = time.time()
                 bot_response = sync_process_query(message, chat_history)
+                query_end = time.time()
+                query_time = query_end - query_start
+                print(f"DEBUG GRADIO: sync_process_query returned after {query_time:.2f}s", file=sys.stderr)
                 
                 # Validate and sanitize response for JSON serialization
                 if bot_response is None:
@@ -314,7 +361,12 @@ def create_interface():
                 bot_response = "❌ Response formatting error. Please try again."
             
             # Update the last message with bot response
+            update_start = time.time()
             chat_history[-1][1] = bot_response
+            update_time = time.time() - update_start
+            total_respond_time = time.time() - respond_start
+            
+            print(f"DEBUG GRADIO: Chat history update took {update_time:.3f}s, total respond() time: {total_respond_time:.2f}s", file=sys.stderr)
             
             return "", chat_history
         
