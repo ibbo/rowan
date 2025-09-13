@@ -38,6 +38,8 @@ class DanceAgentUI:
     def __init__(self):
         self.agent = None
         self.setup_complete = False
+        self.session_counter = 0
+        self.active_threads = {}
     
     async def initialize_agent(self):
         """Initialize the dance agent asynchronously."""
@@ -58,11 +60,11 @@ class DanceAgentUI:
         except Exception as e:
             return f"❌ Failed to initialize agent: {str(e)}"
     
-    async def process_query(self, message: str, history: List[Tuple[str, str]]) -> str:
-        """Process a user query through the dance agent."""
+    async def process_query(self, message: str, history: List[Tuple[str, str]], session_id: str = None) -> str:
+        """Process a user query through the dance agent with conversation memory."""
         start_time = time.time()
         logger.info(f"🔄 GRADIO: Processing query: '{message[:50]}{'...' if len(message) > 50 else ''}'")
-        print(f"DEBUG GRADIO: Starting process_query at {start_time}", file=sys.stderr)
+        print(f"DEBUG GRADIO: Starting process_query at {start_time} for session {session_id}", file=sys.stderr)
         
         if not self.setup_complete:
             logger.info("🔧 GRADIO: Initializing agent...")
@@ -104,9 +106,17 @@ class DanceAgentUI:
             agent_start = time.time()
             print(f"DEBUG GRADIO: Starting agent.ainvoke at {agent_start}", file=sys.stderr)
             
-            # Add timeout wrapper
+            # Create config for conversation memory
+            if not session_id:
+                session_id = f"gradio_session_{self.session_counter}"
+                self.session_counter += 1
+            
+            config = {"configurable": {"thread_id": session_id}}
+            print(f"DEBUG GRADIO: Using thread_id: {session_id}", file=sys.stderr)
+            
+            # Add timeout wrapper with conversation memory
             response = await asyncio.wait_for(
-                self.agent.ainvoke({"messages": messages}),
+                self.agent.ainvoke({"messages": messages}, config),
                 timeout=600.0  # 10 minute timeout
             )
             
@@ -157,11 +167,11 @@ class DanceAgentUI:
 ui = DanceAgentUI()
 
 
-def sync_process_query(message: str, history: List[Tuple[str, str]]) -> str:
+def sync_process_query(message: str, history: List[Tuple[str, str]], session_id: str = None) -> str:
     """Synchronous wrapper for the async query processing."""
     sync_start = time.time()
     logger.info(f"🌐 GRADIO: Starting sync wrapper for query: '{message[:30]}{'...' if len(message) > 30 else ''}'")
-    print(f"DEBUG GRADIO: sync_process_query started at {sync_start}", file=sys.stderr)
+    print(f"DEBUG GRADIO: sync_process_query started at {sync_start} for session {session_id}", file=sys.stderr)
     
     loop_start = time.time()
     loop = asyncio.new_event_loop()
@@ -171,7 +181,7 @@ def sync_process_query(message: str, history: List[Tuple[str, str]]) -> str:
     
     try:
         async_start = time.time()
-        result = loop.run_until_complete(ui.process_query(message, history))
+        result = loop.run_until_complete(ui.process_query(message, history, session_id))
         async_end = time.time()
         async_time = async_end - async_start
         total_sync_time = async_end - sync_start
@@ -260,6 +270,9 @@ def create_interface():
         </div>
         """)
         
+        # Session state to maintain conversation memory
+        session_state = gr.State(None)
+        
         # Main chat interface
         with gr.Row():
             with gr.Column(scale=4):
@@ -305,14 +318,20 @@ def create_interface():
                 </div>
                 """)
         
-        # Event handlers
-        def respond(message, chat_history):
+        # Event handlers with session management
+        def respond(message, chat_history, session_state):
             respond_start = time.time()
             if not message.strip():
-                return "", chat_history
+                return "", chat_history, session_state
             
-            logger.info(f"💬 GRADIO: New chat message received: '{message[:50]}{'...' if len(message) > 50 else ''}'")
-            print(f"DEBUG GRADIO: respond() called at {respond_start}", file=sys.stderr)
+            # Initialize session if needed
+            if session_state is None:
+                session_state = {"session_id": f"gradio_chat_{int(time.time() * 1000)}"}
+                logger.info(f"🆕 GRADIO: Creating new session: {session_state['session_id']}")
+            
+            session_id = session_state["session_id"]
+            logger.info(f"💬 GRADIO: New chat message received: '{message[:50]}{'...' if len(message) > 50 else ''}' (session: {session_id})")
+            print(f"DEBUG GRADIO: respond() called at {respond_start} for session {session_id}", file=sys.stderr)
             
             # Add user message to history
             history_start = time.time()
@@ -323,7 +342,7 @@ def create_interface():
             # Get bot response
             try:
                 query_start = time.time()
-                bot_response = sync_process_query(message, chat_history)
+                bot_response = sync_process_query(message, chat_history, session_id)
                 query_end = time.time()
                 query_time = query_end - query_start
                 print(f"DEBUG GRADIO: sync_process_query returned after {query_time:.2f}s", file=sys.stderr)
@@ -371,12 +390,15 @@ def create_interface():
             return "", chat_history
         
         def clear_chat():
-            return []
+            # Create new session when chat is cleared
+            new_session = {"session_id": f"gradio_chat_{int(time.time() * 1000)}"}
+            logger.info(f"🧹 GRADIO: Chat cleared, new session: {new_session['session_id']}")
+            return [], new_session
         
-        # Wire up the events - enable queue for long-running requests
-        msg.submit(respond, [msg, chatbot], [msg, chatbot], queue=True)
-        submit_btn.click(respond, [msg, chatbot], [msg, chatbot], queue=True)
-        clear_btn.click(clear_chat, None, chatbot, queue=False)
+        # Wire up the events with session state - enable queue for long-running requests
+        msg.submit(respond, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
+        submit_btn.click(respond, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
+        clear_btn.click(clear_chat, None, [chatbot, session_state], queue=False)
         
         # Footer
         gr.HTML("""

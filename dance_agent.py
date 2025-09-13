@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 
 # LangGraph and LangChain imports
 from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
@@ -339,9 +340,9 @@ async def search_cribs(query: str, limit: int = 20) -> List[Dict[str, Any]]:
 
 
 async def create_dance_agent():
-    """Create the LangGraph agent with access to SCDDB tools."""
+    """Create the LangGraph agent with access to SCDDB tools and conversation memory."""
     agent_create_start = time.perf_counter()
-    print(f"DEBUG: Creating dance agent...", file=sys.stderr)
+    print(f"DEBUG: Creating dance agent with checkpointer...", file=sys.stderr)
     
     # Check for OpenAI API key
     if not os.getenv("OPENAI_API_KEY"):
@@ -353,16 +354,22 @@ async def create_dance_agent():
     # Initialize OpenAI model
     llm_start = time.perf_counter()
     llm = ChatOpenAI(
-        model="gpt-4o-mini",  # Use the more cost-effective model (corrected model name)
+        model="gpt-5-mini", 
         temperature=0
     )
     llm_end = time.perf_counter()
     print(f"DEBUG: OpenAI model initialized - {(llm_end - llm_start) * 1000:.2f}ms", file=sys.stderr)
     
-    # Create the agent with our SCDDB tools
+    # Create checkpointer for conversation memory
+    checkpointer_start = time.perf_counter()
+    checkpointer = MemorySaver()
+    checkpointer_end = time.perf_counter()
+    print(f"DEBUG: Checkpointer created - {(checkpointer_end - checkpointer_start) * 1000:.2f}ms", file=sys.stderr)
+    
+    # Create the agent with our SCDDB tools and checkpointer
     agent_setup_start = time.perf_counter()
     tools = [find_dances, get_dance_detail, search_cribs]
-    agent = create_react_agent(llm, tools)
+    agent = create_react_agent(llm, tools, checkpointer=checkpointer)
     agent_setup_end = time.perf_counter()
     agent_create_end = time.perf_counter()
     
@@ -430,10 +437,14 @@ async def main():
                 message_end = time.perf_counter()
                 print(f"DEBUG: Message created - {(message_end - message_start) * 1000:.2f}ms", file=sys.stderr)
                 
-                # Process the query through the agent
+                # Process the query through the agent with conversation memory
                 agent_start = time.perf_counter()
-                print(f"DEBUG: Starting agent.ainvoke()...", file=sys.stderr)
-                response = await agent.ainvoke({"messages": messages})
+                print(f"DEBUG: Starting agent.ainvoke() with thread_id...", file=sys.stderr)
+                
+                # Use a consistent thread_id to maintain conversation memory
+                # In practice, you'd want different thread_ids for different users/conversations
+                config = {"configurable": {"thread_id": "dance_conversation"}}
+                response = await agent.ainvoke({"messages": messages}, config)
                 agent_end = time.perf_counter()
                 query_end = time.perf_counter()
                 
