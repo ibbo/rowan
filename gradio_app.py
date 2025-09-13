@@ -113,7 +113,10 @@ class DanceAgentUI:
                 session_id = f"gradio_session_{self.session_counter}"
                 self.session_counter += 1
             
-            config = {"configurable": {"thread_id": session_id}}
+            config = {
+                "configurable": {"thread_id": session_id},
+                "recursion_limit": 50  # Increase from default 25 to handle complex queries
+            }
             print(f"DEBUG GRADIO: Using thread_id: {session_id}", file=sys.stderr)
             
             # Add timeout wrapper with conversation memory
