@@ -205,69 +205,209 @@ def sync_process_query(message: str, history: List[Tuple[str, str]], session_id:
 def create_interface():
     """Create the Gradio interface."""
     
-    # Custom CSS for Scottish theme
+    # Custom CSS for ChatSCD theme - enhanced for readability
     css = """
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
     .gradio-container {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: linear-gradient(135deg, #f8faff 0%, #e8f2ff 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-    .chat-message {
+    
+    /* Enhanced chat message styling */
+    .chatbot .message {
+        font-size: 15px !important;
+        line-height: 1.6 !important;
+        padding: 16px 20px !important;
+        margin: 8px 0 !important;
+        border-radius: 12px !important;
+        max-width: none !important;
+    }
+    
+    .chatbot .message.user {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+    }
+    
+    .chatbot .message.bot {
+        background: white !important;
+        color: #2c3e50 !important;
+        border: 1px solid #e1e8ed !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    }
+    
+    /* Better text formatting in bot messages */
+    .chatbot .message.bot p {
+        margin: 8px 0 !important;
+        line-height: 1.7 !important;
+    }
+    
+    .chatbot .message.bot ul, .chatbot .message.bot ol {
+        padding-left: 24px !important;
+        margin: 12px 0 !important;
+    }
+    
+    .chatbot .message.bot li {
+        margin: 6px 0 !important;
+        line-height: 1.6 !important;
+    }
+    
+    .chatbot .message.bot h1, .chatbot .message.bot h2, .chatbot .message.bot h3 {
+        color: #2c3e50 !important;
+        margin: 16px 0 8px 0 !important;
+        font-weight: 600 !important;
+    }
+    
+    .chatbot .message.bot h1 { font-size: 20px !important; }
+    .chatbot .message.bot h2 { font-size: 18px !important; }
+    .chatbot .message.bot h3 { font-size: 16px !important; }
+    
+    .chatbot .message.bot strong {
+        color: #1a365d !important;
+        font-weight: 600 !important;
+    }
+    
+    .chatbot .message.bot code {
+        background: #f1f5f9 !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        font-family: 'Monaco', 'Menlo', monospace !important;
+        font-size: 13px !important;
+    }
+    
+    .chatbot .message.bot pre {
+        background: #f8fafc !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+        border-left: 4px solid #3b82f6 !important;
+        margin: 12px 0 !important;
+        overflow-x: auto !important;
+    }
+    
+    /* Enhanced input styling */
+    .gradio-textbox textarea {
+        font-size: 15px !important;
+        line-height: 1.5 !important;
+        padding: 12px 16px !important;
+        border: 2px solid #e2e8f0 !important;
         border-radius: 10px !important;
+        font-family: 'Inter', sans-serif !important;
     }
-    .bot-message {
-        background-color: #e8f4fd !important;
-        border-left: 4px solid #1976d2 !important;
+    
+    .gradio-textbox textarea:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
     }
-    .user-message {
-        background-color: #f3e5f5 !important;
-        border-left: 4px solid #7b1fa2 !important;
+    
+    /* Enhanced button styling */
+    .gradio-button {
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 500 !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        transition: all 0.2s ease !important;
     }
-    /* Fix sidebar readability with specific classes */
+    
+    .gradio-button.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: none !important;
+        color: white !important;
+    }
+    
+    .gradio-button.primary:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+    }
+    
+    /* Sidebar styling */
     .sidebar-content {
-        color: #333 !important;
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 24px !important;
+        margin: 10px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
     }
+    
     .sidebar-title {
-        color: #1976d2 !important;
-        font-weight: bold !important;
-        margin-top: 0 !important;
+        color: #1a365d !important;
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        margin: 0 0 12px 0 !important;
     }
-    .example-list {
-        padding-left: 20px !important;
-        line-height: 1.8 !important;
-        color: #444 !important;
+    
+    .example-list, .capability-list {
+        padding-left: 0 !important;
+        list-style: none !important;
+        margin: 0 !important;
     }
-    .example-item {
-        color: #555 !important;
-        margin-bottom: 6px !important;
+    
+    .example-item, .capability-item {
+        background: #f8fafc !important;
+        padding: 10px 14px !important;
+        margin: 6px 0 !important;
+        border-radius: 8px !important;
+        border-left: 3px solid #667eea !important;
+        color: #2c3e50 !important;
+        font-size: 14px !important;
+        line-height: 1.4 !important;
+        transition: all 0.2s ease !important;
     }
-    .capability-list {
-        padding-left: 20px !important;
-        line-height: 1.8 !important;
-        color: #444 !important;
+    
+    .example-item:hover, .capability-item:hover {
+        background: #f1f5f9 !important;
+        transform: translateX(2px) !important;
     }
-    .capability-item {
-        color: #555 !important;
-        margin-bottom: 6px !important;
-    }
+    
     .highlight-text {
-        color: #1976d2 !important;
-        font-weight: bold !important;
+        color: #667eea !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Header styling */
+    .main-header {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        margin: 0 10px 20px 10px !important;
+        padding: 24px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    }
+    
+    .brand-title {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        font-size: 32px !important;
+        font-weight: 700 !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .brand-subtitle {
+        color: #64748b !important;
+        font-size: 18px !important;
+        font-weight: 400 !important;
+        margin: 0 !important;
     }
     """
     
     with gr.Blocks(
         css=css,
-        title="Scottish Country Dance Assistant",
+        title="ChatSCD - Scottish Country Dance Assistant",
         theme=gr.themes.Soft()
     ) as demo:
         
         # Header
         gr.HTML("""
-        <div style="text-align: center; padding: 20px;">
-            <h1 style="color: #1976d2; margin-bottom: 10px;">
-                🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scottish Country Dance Assistant
+        <div class="main-header" style="text-align: center;">
+            <h1 class="brand-title">
+                🏴󠁧󠁢󠁳󠁣󠁴󠁿 ChatSCD
             </h1>
-            <p style="color: #666; font-size: 18px;">
-                Your AI guide to the Scottish Country Dance Database
+            <p class="brand-subtitle">
+                Your AI assistant for Scottish Country Dancing
             </p>
         </div>
         """)
@@ -284,19 +424,22 @@ def create_interface():
         with gr.Row():
             with gr.Column(scale=4):
                 chatbot = gr.Chatbot(
-                    height=500,
+                    height=600,
                     show_label=False,
                     container=True,
                     bubble_full_width=False,
-                    avatar_images=(None, "🏴󠁧󠁢󠁳󠁣󠁴󠁿")
+                    avatar_images=("👤", "🏴󠁧󠁢󠁳󠁣󠁴󠁿"),
+                    elem_classes=["chat-container"]
                 )
                 
                 with gr.Row():
                     msg = gr.Textbox(
-                        placeholder="Ask me about Scottish Country Dances...",
+                        placeholder="Ask me about Scottish Country Dances, lesson plans, or specific moves...",
                         show_label=False,
                         scale=4,
-                        container=False
+                        container=False,
+                        lines=2,
+                        max_lines=5
                     )
                     submit_btn = gr.Button("Send", variant="primary", scale=1)
                 
@@ -305,22 +448,23 @@ def create_interface():
             
             with gr.Column(scale=1):
                 gr.HTML("""
-                <div class="sidebar-content" style="padding: 20px; background: white; border-radius: 10px; margin: 10px;">
+                <div class="sidebar-content">
                     <h3 class="sidebar-title">💡 Try asking:</h3>
                     <ul class="example-list">
+                        <li class="example-item">"Create a lesson plan for beginners"</li>
                         <li class="example-item">"Find me some 32-bar reels"</li>
                         <li class="example-item">"What dances have poussette moves?"</li>
                         <li class="example-item">"Show me longwise dances for 3 couples"</li>
-                        <li class="example-item">"Tell me about dance ID 100"</li>
-                        <li class="example-item">"Find jigs with less than 40 bars"</li>
-                        <li class="example-item">"Search for dances with allemande"</li>
+                        <li class="example-item">"Plan a workshop on strathspeys"</li>
+                        <li class="example-item">"Find RSCDS published jigs"</li>
                     </ul>
                     
-                    <h3 class="sidebar-title">📚 What I can do:</h3>
+                    <h3 class="sidebar-title">🎯 What I can do:</h3>
                     <ul class="capability-list">
-                        <li class="capability-item"><span class="highlight-text">Find Dances:</span> Search by type, formation, length</li>
-                        <li class="capability-item"><span class="highlight-text">Dance Details:</span> Get complete information about any dance</li>
-                        <li class="capability-item"><span class="highlight-text">Crib Search:</span> Find dances containing specific moves</li>
+                        <li class="capability-item"><span class="highlight-text">Lesson Planning:</span> Create structured dance lessons</li>
+                        <li class="capability-item"><span class="highlight-text">Dance Search:</span> Find by type, formation, length</li>
+                        <li class="capability-item"><span class="highlight-text">Move Analysis:</span> Search for specific techniques</li>
+                        <li class="capability-item"><span class="highlight-text">RSCDS Filter:</span> Official vs community dances</li>
                     </ul>
                 </div>
                 """)
@@ -417,10 +561,10 @@ def create_interface():
         
         # Footer
         gr.HTML("""
-        <div style="text-align: center; padding: 20px; color: #666;">
-            <p>Powered by the Scottish Country Dance Database (SCDDB)</p>
-            <p style="font-size: 12px;">
-                This assistant can help you explore thousands of Scottish Country Dances
+        <div style="text-align: center; padding: 20px; color: #2c3e50; background: white; border-radius: 12px; margin: 20px 10px 0 10px; border: 1px solid #e2e8f0;">
+            <p style="margin: 8px 0; font-weight: 500; color: #1a365d;">Powered by the Scottish Country Dance Database (SCDDB)</p>
+            <p style="font-size: 14px; margin: 4px 0; color: #4a5568;">
+                ChatSCD helps you explore thousands of Scottish Country Dances with AI assistance
             </p>
         </div>
         """)
@@ -450,7 +594,7 @@ def main():
         print("Please run refresh_scddb.py first to download the database.")
         sys.exit(1)
     
-    print("🏴󠁧󠁢󠁳󠁣󠁴󠁿 Starting Scottish Country Dance Assistant Web UI...")
+    print("🏴󠁧󠁢󠁳󠁣󠁴󠁿 Starting ChatSCD - Scottish Country Dance Assistant Web UI...")
     
     # Create and launch the interface
     demo = create_interface()
