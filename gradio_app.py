@@ -6,10 +6,12 @@ This creates a web UI that can be hosted on a VPS for public access.
 """
 
 import asyncio
+import hashlib
 import logging
 import os
 import sys
 import time
+import uuid
 from pathlib import Path
 from typing import List, Tuple
 
@@ -270,8 +272,13 @@ def create_interface():
         </div>
         """)
         
-        # Session state to maintain conversation memory
-        session_state = gr.State(None)
+        # Generate unique session ID per browser tab/window
+        def get_browser_session_id():
+            """Generate a unique session ID for each browser session."""
+            return str(uuid.uuid4())
+        
+        # Session state to maintain conversation memory - unique per browser session
+        session_state = gr.State(lambda: {"session_id": f"browser_{get_browser_session_id()}"})
         
         # Main chat interface
         with gr.Row():
@@ -318,20 +325,20 @@ def create_interface():
                 </div>
                 """)
         
-        # Event handlers with session management
+        # Event handlers with browser-scoped session management
         def respond(message, chat_history, session_state):
             respond_start = time.time()
             if not message.strip():
                 return "", chat_history, session_state
             
-            # Initialize session if needed
-            if session_state is None:
-                session_state = {"session_id": f"gradio_chat_{int(time.time() * 1000)}"}
-                logger.info(f"🆕 GRADIO: Creating new session: {session_state['session_id']}")
+            # Ensure session_state is properly initialized for this browser session
+            if session_state is None or not isinstance(session_state, dict) or "session_id" not in session_state:
+                session_state = {"session_id": f"browser_{str(uuid.uuid4())}"}
+                logger.info(f"🆕 GRADIO: Creating new browser session: {session_state['session_id']}")
             
             session_id = session_state["session_id"]
-            logger.info(f"💬 GRADIO: New chat message received: '{message[:50]}{'...' if len(message) > 50 else ''}' (session: {session_id})")
-            print(f"DEBUG GRADIO: respond() called at {respond_start} for session {session_id}", file=sys.stderr)
+            logger.info(f"💬 GRADIO: Message from browser session {session_id[:8]}...: '{message[:50]}{'...' if len(message) > 50 else ''}'")
+            print(f"DEBUG GRADIO: respond() called at {respond_start} for browser session {session_id}", file=sys.stderr)
             
             # Add user message to history
             history_start = time.time()
@@ -387,18 +394,26 @@ def create_interface():
             
             print(f"DEBUG GRADIO: Chat history update took {update_time:.3f}s, total respond() time: {total_respond_time:.2f}s", file=sys.stderr)
             
-            return "", chat_history
+            return "", chat_history, session_state
         
-        def clear_chat():
-            # Create new session when chat is cleared
-            new_session = {"session_id": f"gradio_chat_{int(time.time() * 1000)}"}
-            logger.info(f"🧹 GRADIO: Chat cleared, new session: {new_session['session_id']}")
-            return [], new_session
+        def clear_chat(session_state):
+            # Keep the same browser session but start a new conversation thread
+            if session_state and "session_id" in session_state:
+                # Create a new conversation thread within the same browser session
+                base_session = session_state["session_id"].split("_conv_")[0]
+                new_conversation = f"{base_session}_conv_{int(time.time() * 1000)}"
+                session_state["session_id"] = new_conversation
+                logger.info(f"🧹 GRADIO: Chat cleared, new conversation thread: {new_conversation}")
+            else:
+                # Fallback: create entirely new session
+                session_state = {"session_id": f"browser_{str(uuid.uuid4())}_conv_{int(time.time() * 1000)}"}
+                logger.info(f"🧹 GRADIO: Chat cleared, new session: {session_state['session_id']}")
+            return [], session_state
         
         # Wire up the events with session state - enable queue for long-running requests
         msg.submit(respond, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
         submit_btn.click(respond, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
-        clear_btn.click(clear_chat, None, [chatbot, session_state], queue=False)
+        clear_btn.click(clear_chat, [session_state], [chatbot, session_state], queue=False)
         
         # Footer
         gr.HTML("""
