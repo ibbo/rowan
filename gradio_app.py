@@ -13,7 +13,7 @@ import sys
 import time
 import uuid
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, AsyncIterator, Dict, Any
 
 import gradio as gr
 from dotenv import load_dotenv
@@ -62,29 +62,24 @@ class DanceAgentUI:
         except Exception as e:
             return f"❌ Failed to initialize agent: {str(e)}"
     
-    async def process_query(self, message: str, history: List[Tuple[str, str]], session_id: str = None) -> str:
-        """Process a user query through the dance agent with conversation memory."""
-        start_time = time.time()
-        logger.info(f"🔄 GRADIO: Processing query: '{message[:50]}{'...' if len(message) > 50 else ''}'")
-        print(f"DEBUG GRADIO: Starting process_query at {start_time} for session {session_id}", file=sys.stderr)
+    async def process_query_with_progress(self, message: str, history: List[Tuple[str, str]], session_id: str = None) -> AsyncIterator[Tuple[str, str]]:
+        """Process a query with real-time progress updates."""
+        print(f"DEBUG GRADIO: Starting process_query at {time.time()} for session {session_id}", file=sys.stderr)
         
-        if not self.setup_complete:
-            logger.info("🔧 GRADIO: Initializing agent...")
-            init_start = time.time()
-            print(f"DEBUG GRADIO: Starting agent initialization at {init_start}", file=sys.stderr)
-            init_result = await self.initialize_agent()
-            init_end = time.time()
-            init_duration = init_end - init_start
-            logger.info(f"⚡ GRADIO: Agent initialization took {init_duration:.2f}s")
-            print(f"DEBUG GRADIO: Agent initialization completed in {init_duration:.2f}s", file=sys.stderr)
-            if "❌" in init_result:
-                return init_result
+        # Yield initial progress IMMEDIATELY
+        yield ("🤔 **Analyzing Your Question**\n\n_Initializing the dance assistant and preparing your search..._", "progress")
+        await asyncio.sleep(0.01)  # Force immediate UI update
         
         try:
-            # Create the system prompt and user message
-            message_start = time.time()
-            logger.info("📝 GRADIO: Creating messages for agent...")
-            print(f"DEBUG GRADIO: Creating messages at {message_start}", file=sys.stderr)
+            # Initialize agent if not done yet
+            if self.agent is None:
+                yield ("🔧 **Initializing Dance Agent**\n\n_Setting up the Scottish Country Dance database connection..._", "progress")
+                await asyncio.sleep(0.01)  # Force UI update before initialization
+                await self.initialize_agent()
+                yield ("🔧 **Dance Agent Ready**\n\n_Agent initialized successfully, preparing database search..._", "progress")
+                await asyncio.sleep(0.01)  # Force UI update after initialization
+            
+            # Prepare the conversation
             messages = [
                 HumanMessage(content=(
                     "You are a Scottish Country Dance expert assistant with access to the Scottish Country Dance Database (SCDDB). "
@@ -99,14 +94,9 @@ class DanceAgentUI:
                     f"User question: {message}"
                 ))
             ]
-            message_end = time.time()
-            message_duration = message_end - message_start
-            print(f"DEBUG GRADIO: Message creation took {message_duration:.3f}s", file=sys.stderr)
             
-            # Process through the agent with timeout
-            logger.info("🤖 GRADIO: Invoking dance agent...")
-            agent_start = time.time()
-            print(f"DEBUG GRADIO: Starting agent.ainvoke at {agent_start}", file=sys.stderr)
+            # Process through the agent with streaming progress updates
+            yield ("🤖 **AI Agent Thinking**\n\nAnalyzing your request and planning database searches...", "progress")
             
             # Create config for conversation memory
             if not session_id:
@@ -117,92 +107,317 @@ class DanceAgentUI:
                 "configurable": {"thread_id": session_id},
                 "recursion_limit": 50  # Increase from default 25 to handle complex queries
             }
-            print(f"DEBUG GRADIO: Using thread_id: {session_id}", file=sys.stderr)
             
-            # Add timeout wrapper with conversation memory
-            response = await asyncio.wait_for(
-                self.agent.ainvoke({"messages": messages}, config),
-                timeout=600.0  # 10 minute timeout
-            )
-            
-            agent_end = time.time()
-            agent_time = agent_end - agent_start
-            logger.info(f"🎯 GRADIO: Agent processing took {agent_time:.2f}s")
-            print(f"DEBUG GRADIO: Agent.ainvoke completed in {agent_time:.2f}s", file=sys.stderr)
-            
-            # Extract the final message
-            extract_start = time.time()
-            final_message = response["messages"][-1]
-            extract_end = time.time()
-            extract_time = extract_end - extract_start
+            # Use the new streaming agent processing
+            async for progress_update in self.stream_agent_with_progress(messages, config):
+                yield progress_update
             
             total_time = time.time() - start_time
             logger.info(f"✅ GRADIO: Query completed successfully in {total_time:.2f}s total")
-            print(f"DEBUG GRADIO: Total query time {total_time:.2f}s (extract: {extract_time:.3f}s)", file=sys.stderr)
-            
-            # Ensure the response is safe for JSON serialization
-            response_content = final_message.content
-            if response_content is None:
-                response_content = "No response generated."
-            
-            # Convert to string and clean up any problematic characters
-            response_content = str(response_content)
-            
-            # Log response for debugging
-            logger.info(f"📤 Response length: {len(response_content)} characters")
-            logger.debug(f"📤 Response preview: {response_content[:200]}...")
-            
-            return response_content
             
         except asyncio.TimeoutError:
             total_time = time.time() - start_time
-            error_msg = f"⏰ GRADIO: Query timed out after {total_time:.2f}s. The dance agent took too long to process your request. Please try a simpler query or try again later."
+            error_msg = f"⏰ **Query Timeout**\n\nThe dance agent took too long to process your request ({total_time:.1f}s). Please try a simpler query or try again later."
             logger.error(error_msg)
-            print(f"DEBUG GRADIO: TIMEOUT after {total_time:.2f}s", file=sys.stderr)
-            return error_msg
+            yield (error_msg, "error")
         except Exception as e:
             total_time = time.time() - start_time
-            error_msg = f"❌ GRADIO: Error processing query after {total_time:.2f}s: {str(e)}"
+            error_msg = f"❌ **Processing Error**\n\nAn error occurred after {total_time:.1f}s: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            print(f"DEBUG GRADIO: ERROR after {total_time:.2f}s - {str(e)}", file=sys.stderr)
-            return error_msg
+            yield (error_msg, "error")
+    
+    async def stream_agent_with_progress(self, messages: List, config: Dict[str, Any]) -> AsyncIterator[Tuple[str, str]]:
+        """Stream agent processing with progress updates by monitoring tool calls."""
+        agent_start = time.time()
+        
+        try:
+            # Start the agent processing
+            response_stream = self.agent.astream({"messages": messages}, config)
+            
+            tool_call_count = 0
+            current_tool = None
+            thinking_steps = []
+            
+            async for chunk in response_stream:
+                # Debug: Print comprehensive chunk structure
+                print(f"DEBUG: Chunk keys: {list(chunk.keys()) if isinstance(chunk, dict) else type(chunk)}", file=sys.stderr)
+                for key, value in chunk.items() if isinstance(chunk, dict) else []:
+                    if key == "messages" and value:
+                        print(f"DEBUG: {key} has {len(value)} messages", file=sys.stderr)
+                    elif isinstance(value, dict) and "messages" in value:
+                        print(f"DEBUG: {key}.messages has {len(value['messages'])} messages", file=sys.stderr)
+                
+                # Handle different chunk types for final responses
+                final_response_detected = False
+                
+                # Only check for final responses in agent chunks, not tool chunks
+                # Tool chunks contain JSON data, not final natural language responses
+                
+                # Check direct messages chunk
+                if "messages" in chunk and chunk["messages"]:
+                    latest_message = chunk["messages"][-1]
+                    print(f"DEBUG: Message type: {type(latest_message)}, has tool_calls: {hasattr(latest_message, 'tool_calls')}", file=sys.stderr)
+                    
+                    # Check for tool calls in message
+                    if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
+                        print(f"DEBUG: Found {len(latest_message.tool_calls)} tool calls", file=sys.stderr)
+                        for tool_call in latest_message.tool_calls:
+                            tool_name = tool_call['name']
+                            tool_args = tool_call.get('args', {})
+                            tool_call_count += 1
+                            current_tool = tool_name
+                            
+                            print(f"DEBUG: Tool call {tool_call_count}: {tool_name} with args {tool_args}", file=sys.stderr)
+                            
+                            # Generate progress message based on tool being called
+                            progress_msg = self.get_tool_progress_message(tool_name, tool_args, tool_call_count)
+                            thinking_steps.append(progress_msg)
+                            
+                            # Show progress with thinking trace
+                            trace_display = "\n".join([f"✓ {step}" for step in thinking_steps[:-1]])
+                            if trace_display:
+                                trace_display += "\n"
+                            trace_display += f"⏳ {progress_msg}"
+                            
+                            full_progress = f"🔍 **Database Search in Progress** (Step {tool_call_count})\n\n{trace_display}\n\n_Please wait while I search the dance database..._"
+                            print(f"DEBUG: Yielding progress update: {full_progress[:100]}...", file=sys.stderr)
+                            yield (full_progress, "progress")
+                            # Force UI update by yielding control
+                            await asyncio.sleep(0.01)
+                
+                # Also check if chunk contains agent action directly
+                elif "agent" in chunk and "messages" in chunk["agent"]:
+                    agent_messages = chunk["agent"]["messages"]
+                    if agent_messages:
+                        latest_message = agent_messages[-1]
+                        if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
+                            print(f"DEBUG: Found tool calls in agent chunk", file=sys.stderr)
+                            # Same tool call processing logic
+                            for tool_call in latest_message.tool_calls:
+                                tool_name = tool_call['name']
+                                tool_args = tool_call.get('args', {})
+                                tool_call_count += 1
+                                
+                                progress_msg = self.get_tool_progress_message(tool_name, tool_args, tool_call_count)
+                                thinking_steps.append(progress_msg)
+                                
+                                trace_display = "\n".join([f"✓ {step}" for step in thinking_steps[:-1]])
+                                if trace_display:
+                                    trace_display += "\n"
+                                trace_display += f"⏳ {progress_msg}"
+                                
+                                full_progress = f"🔍 **Database Search in Progress** (Step {tool_call_count})\n\n{trace_display}\n\n_Please wait while I search the dance database..._"
+                                yield (full_progress, "progress")
+                                await asyncio.sleep(0.01)
+                    
+                    # Check for tool responses
+                    elif hasattr(latest_message, 'content') and current_tool:
+                        # Tool call completed
+                        if current_tool and len(thinking_steps) > 0:
+                            thinking_steps[-1] = thinking_steps[-1].replace("⏳", "✅")
+                        
+                        # Show completed steps
+                        if thinking_steps:
+                            trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
+                            full_progress = f"🔍 **Database Search Progress** (Step {tool_call_count} completed)\n\n{trace_display}\n\n_Processing results..._"
+                            yield (full_progress, "progress")
+                            # Force UI update
+                            await asyncio.sleep(0.01)
+                    
+                    # Check for final response (only from agent, not tools)
+                    elif hasattr(latest_message, 'content') and latest_message.content:
+                        content_str = str(latest_message.content)
+                        print(f"DEBUG: Checking potential final response, length: {len(content_str)}, type: {type(latest_message).__name__}", file=sys.stderr)
+                        print(f"DEBUG: Content preview: {content_str[:200]}", file=sys.stderr)
+                        
+                        # Only accept natural language responses from the agent, not JSON tool outputs  
+                        is_json_array = content_str.strip().startswith('[{') and content_str.strip().endswith('}]')
+                        is_json_object = content_str.strip().startswith('{') and content_str.strip().endswith('}')
+                        is_tool_message = type(latest_message).__name__ == 'ToolMessage'
+                        has_tool_calls = hasattr(latest_message, 'tool_calls') and latest_message.tool_calls
+                        
+                        if (len(content_str) > 50 and
+                            not has_tool_calls and
+                            not is_json_array and 
+                            not is_json_object and 
+                            not is_tool_message):
+                            print(f"DEBUG: Detected final response in messages chunk!", file=sys.stderr)
+                            final_response_detected = True
+                            
+                            if thinking_steps:
+                                trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
+                                yield (f"✅ **Search Complete!**\n\n{trace_display}\n\n_Preparing final response..._", "progress")
+                            
+                            yield (content_str, "final")
+                            return
+                
+                # Check agent chunk for final response
+                elif "agent" in chunk:
+                    print(f"DEBUG: Processing agent chunk", file=sys.stderr)
+                    
+                    # Handle agent messages
+                    if "messages" in chunk["agent"] and chunk["agent"]["messages"]:
+                        agent_messages = chunk["agent"]["messages"]
+                        latest_message = agent_messages[-1]
+                        print(f"DEBUG: Agent message type: {type(latest_message).__name__}", file=sys.stderr)
+                        
+                        # Check for tool calls first
+                        if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
+                            print(f"DEBUG: Found tool calls in agent chunk", file=sys.stderr)
+                            # [Tool call processing - keeping existing logic]
+                            for tool_call in latest_message.tool_calls:
+                                tool_name = tool_call['name']
+                                tool_args = tool_call.get('args', {})
+                                tool_call_count += 1
+                                current_tool = tool_name
+                                
+                                progress_msg = self.get_tool_progress_message(tool_name, tool_args, tool_call_count)
+                                thinking_steps.append(progress_msg)
+                                
+                                trace_display = "\n".join([f"✓ {step}" for step in thinking_steps[:-1]])
+                                if trace_display:
+                                    trace_display += "\n"
+                                trace_display += f"⏳ {progress_msg}"
+                                
+                                full_progress = f"🔍 **Database Search in Progress** (Step {tool_call_count})\n\n{trace_display}\n\n_Please wait while I search the dance database..._"
+                                yield (full_progress, "progress")
+                                await asyncio.sleep(0.01)
+                        
+                        # Check for final response in agent message (natural language, not JSON)
+                        elif hasattr(latest_message, 'content') and latest_message.content:
+                            content_str = str(latest_message.content)
+                            print(f"DEBUG: Agent message content length: {len(content_str)}", file=sys.stderr)
+                            print(f"DEBUG: Agent content preview: {content_str[:200]}", file=sys.stderr)
+                            print(f"DEBUG: Message class: {type(latest_message).__name__}", file=sys.stderr)
+                            
+                            # Accept agent responses that are natural language (exclude raw JSON lists/objects from tools)
+                            is_json_array = content_str.strip().startswith('[{') and content_str.strip().endswith('}]')
+                            is_json_object = content_str.strip().startswith('{') and content_str.strip().endswith('}')
+                            is_tool_message = type(latest_message).__name__ == 'ToolMessage'
+                            
+                            if (len(content_str) > 50 and 
+                                not is_json_array and 
+                                not is_json_object and 
+                                not is_tool_message):
+                                print(f"DEBUG: Detected final response in agent chunk!", file=sys.stderr)
+                                final_response_detected = True
+                                
+                                if thinking_steps:
+                                    trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
+                                    yield (f"✅ **Search Complete!**\n\n{trace_display}\n\n_Preparing final response..._", "progress")
+                                
+                                yield (content_str, "final")
+                                return
+                
+                # Handle tools chunks (tool responses)
+                elif "tools" in chunk and "messages" in chunk["tools"]:
+                    tools_messages = chunk["tools"]["messages"]
+                    if tools_messages:
+                        latest_message = tools_messages[-1]
+                        print(f"DEBUG: Tools message type: {type(latest_message).__name__}", file=sys.stderr)
+                        
+                        # Tool call completed - update progress
+                        if current_tool and len(thinking_steps) > 0:
+                            thinking_steps[-1] = thinking_steps[-1].replace("⏳", "✅")
+                        
+                        # Show completed steps
+                        if thinking_steps:
+                            trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
+                            full_progress = f"🔍 **Database Search Progress** (Step {tool_call_count} completed)\n\n{trace_display}\n\n_Processing results..._"
+                            yield (full_progress, "progress")
+                            await asyncio.sleep(0.01)
+                        
+                        current_tool = None  # Reset current tool
+                
+                # If no final response detected, continue to next chunk
+                if final_response_detected:
+                    return
+            
+            # Fallback - try to get the last response from the agent  
+            print(f"DEBUG: Reached fallback - no final response detected through streaming", file=sys.stderr)
+            
+            # Try to get the final state directly from the agent
+            try:
+                print(f"DEBUG: Attempting to get final response from agent state", file=sys.stderr)
+                # Get the final state after streaming completes
+                final_state = await self.agent.aget_state(config)
+                if final_state and "messages" in final_state.values:
+                    messages = final_state.values["messages"]
+                    if messages:
+                        # Get the last AI message
+                        for msg in reversed(messages):
+                            if hasattr(msg, 'content') and msg.content and not (hasattr(msg, 'tool_calls') and msg.tool_calls):
+                                content_str = str(msg.content)
+                                if len(content_str) > 50:
+                                    print(f"DEBUG: Found final message in state: {content_str[:100]}", file=sys.stderr)
+                                    
+                                    if thinking_steps:
+                                        trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
+                                        yield (f"✅ **Search Complete!**\n\n{trace_display}\n\n_Preparing final response..._", "progress")
+                                    
+                                    yield (content_str, "final")
+                                    return
+                        
+                print(f"DEBUG: No suitable final message found in state", file=sys.stderr)
+                yield ("I apologize, but I encountered an issue retrieving the final response. Please try your query again.", "error")
+                
+            except Exception as e:
+                print(f"DEBUG: Error getting agent state: {e}", file=sys.stderr)
+                yield (f"I encountered an error while processing your request: {str(e)}", "error")
+                
+        except Exception as e:
+            print(f"DEBUG: Error in process_query_with_progress: {e}", file=sys.stderr)
+            yield (f"I encountered an unexpected error: {str(e)}", "error")
+                
+    def get_tool_progress_message(self, tool_name: str, tool_args: Dict[str, Any], step_count: int) -> str:
+        """Generate human-readable progress messages for different tool calls."""
+        if tool_name == "find_dances":
+            criteria = []
+            if tool_args.get('name_contains'):
+                criteria.append(f"name contains '{tool_args['name_contains']}'")
+            if tool_args.get('kind'):
+                criteria.append(f"type '{tool_args['kind']}'")
+            if tool_args.get('metaform_contains'):
+                criteria.append(f"formation '{tool_args['metaform_contains']}'")
+            if tool_args.get('max_bars'):
+                criteria.append(f"max {tool_args['max_bars']} bars")
+            if tool_args.get('official_rscds_dances') is True:
+                criteria.append("RSCDS official only")
+            elif tool_args.get('official_rscds_dances') is False:
+                criteria.append("community dances only")
+            
+            criteria_text = ", ".join(criteria) if criteria else "all dances"
+            limit = tool_args.get('limit', 25)
+            return f"Searching database for dances ({criteria_text}, limit {limit})"
+            
+        elif tool_name == "get_dance_detail":
+            dance_id = tool_args.get('dance_id')
+            return f"Getting detailed information for dance ID {dance_id}"
+            
+        elif tool_name == "search_cribs":
+            query = tool_args.get('query', '')
+            limit = tool_args.get('limit', 20)
+            return f"Searching dance instructions for '{query}' (limit {limit})"
+        
+        else:
+            return f"Calling tool {tool_name}"
 
 
 # Global UI instance
 ui = DanceAgentUI()
 
 
-def sync_process_query(message: str, history: List[Tuple[str, str]], session_id: str = None) -> str:
-    """Synchronous wrapper for the async query processing."""
-    sync_start = time.time()
-    logger.info(f"🌐 GRADIO: Starting sync wrapper for query: '{message[:30]}{'...' if len(message) > 30 else ''}'")
-    print(f"DEBUG GRADIO: sync_process_query started at {sync_start} for session {session_id}", file=sys.stderr)
-    
-    loop_start = time.time()
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop_setup_time = time.time() - loop_start
-    print(f"DEBUG GRADIO: Event loop setup took {loop_setup_time:.3f}s", file=sys.stderr)
+async def stream_process_query(message: str, history: List[Tuple[str, str]], session_id: str = None):
+    """Streaming wrapper for the async query processing with progress updates."""
+    logger.info(f"🌐 GRADIO: Starting streaming query for: '{message[:30]}{'...' if len(message) > 30 else ''}'")
     
     try:
-        async_start = time.time()
-        result = loop.run_until_complete(ui.process_query(message, history, session_id))
-        async_end = time.time()
-        async_time = async_end - async_start
-        total_sync_time = async_end - sync_start
-        
-        print(f"DEBUG GRADIO: Async execution took {async_time:.2f}s, total sync wrapper {total_sync_time:.2f}s", file=sys.stderr)
-        return result
+        async for progress_update in ui.process_query_with_progress(message, history, session_id):
+            yield progress_update
     except Exception as e:
-        error_time = time.time() - sync_start
-        error_msg = f"❌ GRADIO: Sync wrapper error after {error_time:.2f}s: {str(e)}"
+        error_msg = f"❌ GRADIO: Streaming wrapper error: {str(e)}"
         logger.error(error_msg, exc_info=True)
-        print(f"DEBUG GRADIO: Sync wrapper failed after {error_time:.2f}s", file=sys.stderr)
-        return error_msg
-    finally:
-        loop.close()
-        close_time = time.time() - sync_start
-        print(f"DEBUG GRADIO: Loop closed, total sync_process_query time: {close_time:.2f}s", file=sys.stderr)
+        yield (error_msg, "error")
 
 
 def create_interface():
@@ -472,9 +687,8 @@ def create_interface():
                 </div>
                 """)
         
-        # Event handlers with browser-scoped session management
+        # Event handlers with browser-scoped session management and streaming progress
         def respond(message, chat_history, session_state):
-            respond_start = time.time()
             if not message.strip():
                 return "", chat_history, session_state
             
@@ -485,63 +699,160 @@ def create_interface():
             
             session_id = session_state["session_id"]
             logger.info(f"💬 GRADIO: Message from browser session {session_id[:8]}...: '{message[:50]}{'...' if len(message) > 50 else ''}'")
-            print(f"DEBUG GRADIO: respond() called at {respond_start} for browser session {session_id}", file=sys.stderr)
             
-            # Add user message to history
-            history_start = time.time()
-            chat_history.append([message, None])
-            history_time = time.time() - history_start
-            print(f"DEBUG GRADIO: Chat history update took {history_time:.3f}s", file=sys.stderr)
+            # Add user message to history immediately
+            chat_history.append([message, "🔧 **Starting...**\n\nInitializing your request..."])
+            yield "", chat_history, session_state
             
-            # Get bot response
+            # Create async runner for streaming updates
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
             try:
-                query_start = time.time()
-                bot_response = sync_process_query(message, chat_history, session_id)
-                query_end = time.time()
-                query_time = query_end - query_start
-                print(f"DEBUG GRADIO: sync_process_query returned after {query_time:.2f}s", file=sys.stderr)
+                # Run the async streaming process
+                async def run_streaming():
+                    try:
+                        async for progress_update in stream_process_query(message, chat_history, session_id):
+                            content, update_type = progress_update
+                            
+                            # Update the bot response in real-time
+                            if update_type in ["progress", "error"]:
+                                chat_history[-1][1] = content
+                                return "", chat_history, session_state
+                            elif update_type == "final":
+                                # Final response - clean and format
+                                if content is None:
+                                    content = "No response generated."
+                                
+                                # Ensure it's a string and clean up formatting
+                                final_response = str(content)
+                                
+                                # Basic HTML cleanup while preserving markdown
+                                import re
+                                final_response = re.sub(r'<(?!/?(?:b|i|u|strong|em|code|pre|br|p|ul|ol|li|h[1-6])\b)[^>]*>', '', final_response)
+                                
+                                # Update with final response
+                                chat_history[-1][1] = final_response
+                                return "", chat_history, session_state
+                        
+                        # Fallback
+                        if chat_history[-1][1] == "🔧 **Starting...**\n\nInitializing your request...":
+                            chat_history[-1][1] = "❌ No response was generated. Please try again."
+                        
+                        return "", chat_history, session_state
+                        
+                    except Exception as e:
+                        error_msg = f"❌ **Processing Error**\n\nAn unexpected error occurred: {str(e)}"
+                        logger.error(f"Streaming error: {e}", exc_info=True)
+                        chat_history[-1][1] = error_msg
+                        return "", chat_history, session_state
                 
-                # Validate and sanitize response for JSON serialization
-                if bot_response is None:
-                    bot_response = "No response received."
-                
-                # Ensure it's a string
-                bot_response = str(bot_response)
-                
-                # Remove any HTML tags that might cause JSON parsing issues
-                import re
-                # Basic HTML tag removal (but preserve markdown formatting)
-                bot_response = re.sub(r'<(?!/?(?:b|i|u|strong|em|code|pre|br|p|ul|ol|li|h[1-6])\b)[^>]*>', '', bot_response)
-                
-                # Ensure response doesn't start with HTML
-                if bot_response.strip().startswith('<'):
-                    logger.warning("⚠️ Response starts with HTML, wrapping in text")
-                    bot_response = f"Response: {bot_response}"
-                
-                logger.debug(f"✅ Sanitized response length: {len(bot_response)}")
+                # Run and return result
+                result = loop.run_until_complete(run_streaming())
+                return result
                 
             except Exception as e:
-                bot_response = f"❌ Unexpected error in response handler: {str(e)}"
-                logger.error(f"Response handler error: {e}", exc_info=True)
+                error_msg = f"❌ **Processing Error**\n\nAn unexpected error occurred: {str(e)}"
+                logger.error(f"Respond handler error: {e}", exc_info=True)
+                chat_history[-1][1] = error_msg
+                return "", chat_history, session_state
+            finally:
+                loop.close()
+        
+        # Simplified streaming function that forces immediate updates
+        def respond_stream(message, chat_history, session_state):
+            if not message.strip():
+                yield "", chat_history, session_state
+                return
             
-            # Final validation before returning
-            try:
-                # Test JSON serialization
-                import json
-                json.dumps(bot_response)
-            except (TypeError, ValueError) as e:
-                logger.error(f"JSON serialization failed: {e}")
-                bot_response = "❌ Response formatting error. Please try again."
+            # Ensure session_state is properly initialized
+            if session_state is None or not isinstance(session_state, dict) or "session_id" not in session_state:
+                session_state = {"session_id": f"browser_{str(uuid.uuid4())}"}
+                logger.info(f"🆕 GRADIO: Creating new browser session: {session_state['session_id']}")
             
-            # Update the last message with bot response
-            update_start = time.time()
-            chat_history[-1][1] = bot_response
-            update_time = time.time() - update_start
-            total_respond_time = time.time() - respond_start
+            session_id = session_state["session_id"]
             
-            print(f"DEBUG GRADIO: Chat history update took {update_time:.3f}s, total respond() time: {total_respond_time:.2f}s", file=sys.stderr)
+            # Add user message to history with IMMEDIATE initial progress
+            chat_history.append([message, "🤔 **Analyzing Your Question**\n\nInitializing the dance assistant..."])
+            yield "", chat_history, session_state
             
-            return "", chat_history, session_state
+            # Immediate second update to confirm UI responsiveness
+            import time
+            time.sleep(0.1)  # Brief pause to ensure first update is rendered
+            chat_history[-1][1] = "🔧 **Initializing Dance Agent**\n\nStarting database connection..."
+            yield "", chat_history, session_state
+            
+            # Run the query with progress updates in a separate thread
+            import threading
+            import queue
+            import time
+            
+            progress_queue = queue.Queue()
+            result_ready = threading.Event()
+            
+            def run_query():
+                try:
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                    async def async_query():
+                        # Put an immediate update to start the flow
+                        progress_queue.put(("🔍 **Starting Search**\n\nConnecting to dance database...", "progress"))
+                        
+                        async for progress_update in stream_process_query(message, chat_history, session_id):
+                            progress_queue.put(progress_update)
+                            # Don't wait for final - put all updates immediately
+                            if progress_update[1] == "final":
+                                break
+                        result_ready.set()
+                    
+                    loop.run_until_complete(async_query())
+                    loop.close()
+                    
+                except Exception as e:
+                    progress_queue.put((f"❌ **Error**: {str(e)}", "error"))
+                    result_ready.set()
+            
+            # Start query in background
+            query_thread = threading.Thread(target=run_query)
+            query_thread.daemon = True
+            query_thread.start()
+            
+            # Poll for updates and yield them immediately with aggressive responsiveness
+            last_content = ""
+            final_yielded = False
+            update_count = 0
+            
+            while not result_ready.is_set() or not progress_queue.empty():
+                try:
+                    # Check for new progress with very short timeout for immediate response
+                    content, update_type = progress_queue.get(timeout=0.05)
+                    
+                    if content != last_content:
+                        chat_history[-1][1] = content
+                        last_content = content
+                        update_count += 1
+                        
+                        # Yield immediately
+                        yield "", chat_history, session_state
+                        
+                        # Force a tiny delay to ensure UI rendering
+                        time.sleep(0.01)
+                        
+                        if update_type == "final":
+                            final_yielded = True
+                            break
+                            
+                except queue.Empty:
+                    # No new updates, continue polling
+                    continue
+            
+            # Ensure we have a final response
+            if not final_yielded and chat_history[-1][1].startswith("🔧"):
+                chat_history[-1][1] = "❌ **Timeout** - No response received. Please try again."
+                yield "", chat_history, session_state
         
         def clear_chat(session_state):
             # Keep the same browser session but start a new conversation thread
@@ -557,9 +868,9 @@ def create_interface():
                 logger.info(f"🧹 GRADIO: Chat cleared, new session: {session_state['session_id']}")
             return [], session_state
         
-        # Wire up the events with session state - enable queue for long-running requests
-        msg.submit(respond, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
-        submit_btn.click(respond, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
+        # Wire up the events with session state - enable streaming for progress updates
+        msg.submit(respond_stream, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
+        submit_btn.click(respond_stream, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)  
         clear_btn.click(clear_chat, [session_state], [chatbot, session_state], queue=False)
         
         # Footer
