@@ -1,936 +1,736 @@
 #!/usr/bin/env python3
-"""
-Gradio web interface for the Scottish Country Dance Agent.
+"""Gradio UI for the Scottish Country Dance agent."""
 
-This creates a web UI that can be hosted on a VPS for public access.
-"""
+from __future__ import annotations
 
 import asyncio
-import hashlib
+import json
 import logging
 import os
 import sys
 import time
 import uuid
 from pathlib import Path
-from typing import List, Tuple, AsyncIterator, Dict, Any
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import gradio as gr
 from dotenv import load_dotenv
-
-# Import our existing dance agent
-from dance_agent import create_dance_agent, mcp_client
 from langchain_core.messages import HumanMessage
 
-# Setup logging
+from dance_agent import create_dance_agent, mcp_client
+
+# ---------------------------------------------------------------------------
+# Logging configuration
+# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('dance_gradio.log')
-    ]
+        logging.FileHandler("dance_gradio.log")
+    ],
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("dance-ui")
 
+# ---------------------------------------------------------------------------
+# Constants and helpers
+# ---------------------------------------------------------------------------
+SYSTEM_PROMPT = (
+    "You are ChatSCD, an expert Scottish Country Dance teacher with full access "
+    "to the Scottish Country Dance Database (SCDDB). Use the available tools to "
+    "search dances, retrieve details, and explore crib instructions. When you "
+    "present dances, include useful teaching details such as formation, number "
+    "of bars, and any teaching tips. Format responses with clear headings and "
+    "bullet lists so dancers can scan the results quickly."
+)
 
+TOOL_DISPLAY_NAMES = {
+    "find_dances": "Find Dances",
+    "get_dance_detail": "Dance Detail",
+    "search_cribs": "Search Cribs",
+}
+
+# ---------------------------------------------------------------------------
+# Agent streaming utilities
+# ---------------------------------------------------------------------------
 class DanceAgentUI:
-    """Gradio UI wrapper for the dance agent."""
-    
-    def __init__(self):
+    """Wrapper that manages the LangGraph agent and streams structured events."""
+
+    def __init__(self) -> None:
         self.agent = None
-        self.setup_complete = False
-        self.session_counter = 0
-        self.active_threads = {}
-    
-    async def initialize_agent(self):
-        """Initialize the dance agent asynchronously."""
-        if self.setup_complete:
+        self._ready = False
+
+    async def ensure_ready(self) -> None:
+        if self._ready:
             return
-        
+
+        load_dotenv()
+        self.agent = await create_dance_agent()
+        await mcp_client.setup()
+        self._ready = True
+        logger.info("Dance agent and MCP client ready")
+
+    async def stream_events(
+        self,
+        user_text: str,
+        session_id: str,
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """Stream structured events describing the agent's progress."""
+
+        await self.ensure_ready()
+
+        system_and_user = HumanMessage(
+            content=f"{SYSTEM_PROMPT}\n\nUser question: {user_text}"
+        )
+        config = {
+            "configurable": {"thread_id": session_id},
+            "recursion_limit": 50,
+        }
+
+        tool_runs: Dict[str, Dict[str, Any]] = {}
+
+        yield {
+            "event": "status",
+            "title": "Analyzing question",
+            "body": "Getting the dance floor ready and understanding your request.",
+        }
+
+        start_time = time.perf_counter()
         try:
-            # Load environment variables
-            load_dotenv()
-            
-            # Create and setup the agent
-            self.agent = await create_dance_agent()
-            await mcp_client.setup()
-            
-            self.setup_complete = True
-            return "✅ Dance agent initialized successfully!"
-        
-        except Exception as e:
-            return f"❌ Failed to initialize agent: {str(e)}"
-    
-    async def process_query_with_progress(self, message: str, history: List[Tuple[str, str]], session_id: str = None) -> AsyncIterator[Tuple[str, str]]:
-        """Process a query with real-time progress updates."""
-        print(f"DEBUG GRADIO: Starting process_query at {time.time()} for session {session_id}", file=sys.stderr)
-        
-        # Yield initial progress IMMEDIATELY
-        yield ("🤔 **Analyzing Your Question**\n\n_Initializing the dance assistant and preparing your search..._", "progress")
-        await asyncio.sleep(0.01)  # Force immediate UI update
-        
-        try:
-            # Initialize agent if not done yet
-            if self.agent is None:
-                yield ("🔧 **Initializing Dance Agent**\n\n_Setting up the Scottish Country Dance database connection..._", "progress")
-                await asyncio.sleep(0.01)  # Force UI update before initialization
-                await self.initialize_agent()
-                yield ("🔧 **Dance Agent Ready**\n\n_Agent initialized successfully, preparing database search..._", "progress")
-                await asyncio.sleep(0.01)  # Force UI update after initialization
-            
-            # Prepare the conversation
-            messages = [
-                HumanMessage(content=(
-                    "You are a Scottish Country Dance expert assistant with access to the Scottish Country Dance Database (SCDDB). "
-                    "You can help users find dances, get detailed information about specific dances, and search through dance cribs. "
-                    "When helping users:\n"
-                    "1. Use find_dances to search for dances by type, formation, or other criteria\n"
-                    "2. Use get_dance_detail to get full information about a specific dance\n"
-                    "3. Use search_cribs to search for specific moves or terms in dance instructions\n"
-                    "Always be helpful and provide clear, well-structured responses. "
-                    "When presenting dance information, include relevant details like the dance name, type, formation, and key moves. "
-                    "Format your responses nicely for web display.\n\n"
-                    f"User question: {message}"
-                ))
-            ]
-            
-            # Process through the agent with streaming progress updates
-            yield ("🤖 **AI Agent Thinking**\n\nAnalyzing your request and planning database searches...", "progress")
-            
-            # Create config for conversation memory
-            if not session_id:
-                session_id = f"gradio_session_{self.session_counter}"
-                self.session_counter += 1
-            
-            config = {
-                "configurable": {"thread_id": session_id},
-                "recursion_limit": 50  # Increase from default 25 to handle complex queries
+            async for chunk in self.agent.astream({"messages": [system_and_user]}, config):
+                if not isinstance(chunk, dict):
+                    continue
+
+                if "agent" in chunk:
+                    await self._handle_agent_chunk(chunk["agent"], tool_runs, start_time)
+                    async for event in self._convert_agent_chunk(chunk["agent"], tool_runs):
+                        yield event
+
+                if "tools" in chunk:
+                    async for event in self._convert_tool_chunk(chunk["tools"], tool_runs):
+                        yield event
+
+                if "messages" in chunk:
+                    async for event in self._convert_message_chunk(chunk["messages"], tool_runs):
+                        yield event
+
+            # Try to fetch the latest assistant message as a fallback
+            final_state = await self.agent.aget_state(config)
+            final_msg = self._extract_final_message(final_state)
+            if final_msg:
+                yield {"event": "final", "message": final_msg}
+            else:
+                yield {
+                    "event": "error",
+                    "message": "I couldn't find a final answer. Please try again.",
+                }
+
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception("Agent streaming error: %s", exc)
+            yield {
+                "event": "error",
+                "message": f"I ran into an error: {exc}",
             }
-            
-            # Use the new streaming agent processing
-            async for progress_update in self.stream_agent_with_progress(messages, config):
-                yield progress_update
-            
-            total_time = time.time() - start_time
-            logger.info(f"✅ GRADIO: Query completed successfully in {total_time:.2f}s total")
-            
-        except asyncio.TimeoutError:
-            total_time = time.time() - start_time
-            error_msg = f"⏰ **Query Timeout**\n\nThe dance agent took too long to process your request ({total_time:.1f}s). Please try a simpler query or try again later."
-            logger.error(error_msg)
-            yield (error_msg, "error")
-        except Exception as e:
-            total_time = time.time() - start_time
-            error_msg = f"❌ **Processing Error**\n\nAn error occurred after {total_time:.1f}s: {str(e)}"
-            logger.error(error_msg, exc_info=True)
-            yield (error_msg, "error")
-    
-    async def stream_agent_with_progress(self, messages: List, config: Dict[str, Any]) -> AsyncIterator[Tuple[str, str]]:
-        """Stream agent processing with progress updates by monitoring tool calls."""
-        agent_start = time.time()
-        
-        try:
-            # Start the agent processing
-            response_stream = self.agent.astream({"messages": messages}, config)
-            
-            tool_call_count = 0
-            current_tool = None
-            thinking_steps = []
-            
-            async for chunk in response_stream:
-                # Debug: Print comprehensive chunk structure
-                print(f"DEBUG: Chunk keys: {list(chunk.keys()) if isinstance(chunk, dict) else type(chunk)}", file=sys.stderr)
-                for key, value in chunk.items() if isinstance(chunk, dict) else []:
-                    if key == "messages" and value:
-                        print(f"DEBUG: {key} has {len(value)} messages", file=sys.stderr)
-                    elif isinstance(value, dict) and "messages" in value:
-                        print(f"DEBUG: {key}.messages has {len(value['messages'])} messages", file=sys.stderr)
-                
-                # Handle different chunk types for final responses
-                final_response_detected = False
-                
-                # Only check for final responses in agent chunks, not tool chunks
-                # Tool chunks contain JSON data, not final natural language responses
-                
-                # Check direct messages chunk
-                if "messages" in chunk and chunk["messages"]:
-                    latest_message = chunk["messages"][-1]
-                    print(f"DEBUG: Message type: {type(latest_message)}, has tool_calls: {hasattr(latest_message, 'tool_calls')}", file=sys.stderr)
-                    
-                    # Check for tool calls in message
-                    if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
-                        print(f"DEBUG: Found {len(latest_message.tool_calls)} tool calls", file=sys.stderr)
-                        for tool_call in latest_message.tool_calls:
-                            tool_name = tool_call['name']
-                            tool_args = tool_call.get('args', {})
-                            tool_call_count += 1
-                            current_tool = tool_name
-                            
-                            print(f"DEBUG: Tool call {tool_call_count}: {tool_name} with args {tool_args}", file=sys.stderr)
-                            
-                            # Generate progress message based on tool being called
-                            progress_msg = self.get_tool_progress_message(tool_name, tool_args, tool_call_count)
-                            thinking_steps.append(progress_msg)
-                            
-                            # Show progress with thinking trace
-                            trace_display = "\n".join([f"✓ {step}" for step in thinking_steps[:-1]])
-                            if trace_display:
-                                trace_display += "\n"
-                            trace_display += f"⏳ {progress_msg}"
-                            
-                            full_progress = f"🔍 **Database Search in Progress** (Step {tool_call_count})\n\n{trace_display}\n\n_Please wait while I search the dance database..._"
-                            print(f"DEBUG: Yielding progress update: {full_progress[:100]}...", file=sys.stderr)
-                            yield (full_progress, "progress")
-                            # Force UI update by yielding control
-                            await asyncio.sleep(0.01)
-                
-                # Also check if chunk contains agent action directly
-                elif "agent" in chunk and "messages" in chunk["agent"]:
-                    agent_messages = chunk["agent"]["messages"]
-                    if agent_messages:
-                        latest_message = agent_messages[-1]
-                        if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
-                            print(f"DEBUG: Found tool calls in agent chunk", file=sys.stderr)
-                            # Same tool call processing logic
-                            for tool_call in latest_message.tool_calls:
-                                tool_name = tool_call['name']
-                                tool_args = tool_call.get('args', {})
-                                tool_call_count += 1
-                                
-                                progress_msg = self.get_tool_progress_message(tool_name, tool_args, tool_call_count)
-                                thinking_steps.append(progress_msg)
-                                
-                                trace_display = "\n".join([f"✓ {step}" for step in thinking_steps[:-1]])
-                                if trace_display:
-                                    trace_display += "\n"
-                                trace_display += f"⏳ {progress_msg}"
-                                
-                                full_progress = f"🔍 **Database Search in Progress** (Step {tool_call_count})\n\n{trace_display}\n\n_Please wait while I search the dance database..._"
-                                yield (full_progress, "progress")
-                                await asyncio.sleep(0.01)
-                    
-                    # Check for tool responses
-                    elif hasattr(latest_message, 'content') and current_tool:
-                        # Tool call completed
-                        if current_tool and len(thinking_steps) > 0:
-                            thinking_steps[-1] = thinking_steps[-1].replace("⏳", "✅")
-                        
-                        # Show completed steps
-                        if thinking_steps:
-                            trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
-                            full_progress = f"🔍 **Database Search Progress** (Step {tool_call_count} completed)\n\n{trace_display}\n\n_Processing results..._"
-                            yield (full_progress, "progress")
-                            # Force UI update
-                            await asyncio.sleep(0.01)
-                    
-                    # Check for final response (only from agent, not tools)
-                    elif hasattr(latest_message, 'content') and latest_message.content:
-                        content_str = str(latest_message.content)
-                        print(f"DEBUG: Checking potential final response, length: {len(content_str)}, type: {type(latest_message).__name__}", file=sys.stderr)
-                        print(f"DEBUG: Content preview: {content_str[:200]}", file=sys.stderr)
-                        
-                        # Only accept natural language responses from the agent, not JSON tool outputs  
-                        is_json_array = content_str.strip().startswith('[{') and content_str.strip().endswith('}]')
-                        is_json_object = content_str.strip().startswith('{') and content_str.strip().endswith('}')
-                        is_tool_message = type(latest_message).__name__ == 'ToolMessage'
-                        has_tool_calls = hasattr(latest_message, 'tool_calls') and latest_message.tool_calls
-                        
-                        if (len(content_str) > 50 and
-                            not has_tool_calls and
-                            not is_json_array and 
-                            not is_json_object and 
-                            not is_tool_message):
-                            print(f"DEBUG: Detected final response in messages chunk!", file=sys.stderr)
-                            final_response_detected = True
-                            
-                            if thinking_steps:
-                                trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
-                                yield (f"✅ **Search Complete!**\n\n{trace_display}\n\n_Preparing final response..._", "progress")
-                            
-                            yield (content_str, "final")
-                            return
-                
-                # Check agent chunk for final response
-                elif "agent" in chunk:
-                    print(f"DEBUG: Processing agent chunk", file=sys.stderr)
-                    
-                    # Handle agent messages
-                    if "messages" in chunk["agent"] and chunk["agent"]["messages"]:
-                        agent_messages = chunk["agent"]["messages"]
-                        latest_message = agent_messages[-1]
-                        print(f"DEBUG: Agent message type: {type(latest_message).__name__}", file=sys.stderr)
-                        
-                        # Check for tool calls first
-                        if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
-                            print(f"DEBUG: Found tool calls in agent chunk", file=sys.stderr)
-                            # [Tool call processing - keeping existing logic]
-                            for tool_call in latest_message.tool_calls:
-                                tool_name = tool_call['name']
-                                tool_args = tool_call.get('args', {})
-                                tool_call_count += 1
-                                current_tool = tool_name
-                                
-                                progress_msg = self.get_tool_progress_message(tool_name, tool_args, tool_call_count)
-                                thinking_steps.append(progress_msg)
-                                
-                                trace_display = "\n".join([f"✓ {step}" for step in thinking_steps[:-1]])
-                                if trace_display:
-                                    trace_display += "\n"
-                                trace_display += f"⏳ {progress_msg}"
-                                
-                                full_progress = f"🔍 **Database Search in Progress** (Step {tool_call_count})\n\n{trace_display}\n\n_Please wait while I search the dance database..._"
-                                yield (full_progress, "progress")
-                                await asyncio.sleep(0.01)
-                        
-                        # Check for final response in agent message (natural language, not JSON)
-                        elif hasattr(latest_message, 'content') and latest_message.content:
-                            content_str = str(latest_message.content)
-                            print(f"DEBUG: Agent message content length: {len(content_str)}", file=sys.stderr)
-                            print(f"DEBUG: Agent content preview: {content_str[:200]}", file=sys.stderr)
-                            print(f"DEBUG: Message class: {type(latest_message).__name__}", file=sys.stderr)
-                            
-                            # Accept agent responses that are natural language (exclude raw JSON lists/objects from tools)
-                            is_json_array = content_str.strip().startswith('[{') and content_str.strip().endswith('}]')
-                            is_json_object = content_str.strip().startswith('{') and content_str.strip().endswith('}')
-                            is_tool_message = type(latest_message).__name__ == 'ToolMessage'
-                            
-                            if (len(content_str) > 50 and 
-                                not is_json_array and 
-                                not is_json_object and 
-                                not is_tool_message):
-                                print(f"DEBUG: Detected final response in agent chunk!", file=sys.stderr)
-                                final_response_detected = True
-                                
-                                if thinking_steps:
-                                    trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
-                                    yield (f"✅ **Search Complete!**\n\n{trace_display}\n\n_Preparing final response..._", "progress")
-                                
-                                yield (content_str, "final")
-                                return
-                
-                # Handle tools chunks (tool responses)
-                elif "tools" in chunk and "messages" in chunk["tools"]:
-                    tools_messages = chunk["tools"]["messages"]
-                    if tools_messages:
-                        latest_message = tools_messages[-1]
-                        print(f"DEBUG: Tools message type: {type(latest_message).__name__}", file=sys.stderr)
-                        
-                        # Tool call completed - update progress
-                        if current_tool and len(thinking_steps) > 0:
-                            thinking_steps[-1] = thinking_steps[-1].replace("⏳", "✅")
-                        
-                        # Show completed steps
-                        if thinking_steps:
-                            trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
-                            full_progress = f"🔍 **Database Search Progress** (Step {tool_call_count} completed)\n\n{trace_display}\n\n_Processing results..._"
-                            yield (full_progress, "progress")
-                            await asyncio.sleep(0.01)
-                        
-                        current_tool = None  # Reset current tool
-                
-                # If no final response detected, continue to next chunk
-                if final_response_detected:
-                    return
-            
-            # Fallback - try to get the last response from the agent  
-            print(f"DEBUG: Reached fallback - no final response detected through streaming", file=sys.stderr)
-            
-            # Try to get the final state directly from the agent
-            try:
-                print(f"DEBUG: Attempting to get final response from agent state", file=sys.stderr)
-                # Get the final state after streaming completes
-                final_state = await self.agent.aget_state(config)
-                if final_state and "messages" in final_state.values:
-                    messages = final_state.values["messages"]
-                    if messages:
-                        # Get the last AI message
-                        for msg in reversed(messages):
-                            if hasattr(msg, 'content') and msg.content and not (hasattr(msg, 'tool_calls') and msg.tool_calls):
-                                content_str = str(msg.content)
-                                if len(content_str) > 50:
-                                    print(f"DEBUG: Found final message in state: {content_str[:100]}", file=sys.stderr)
-                                    
-                                    if thinking_steps:
-                                        trace_display = "\n".join([f"✓ {step.replace('⏳ ', '').replace('✅ ', '')}" for step in thinking_steps])
-                                        yield (f"✅ **Search Complete!**\n\n{trace_display}\n\n_Preparing final response..._", "progress")
-                                    
-                                    yield (content_str, "final")
-                                    return
-                        
-                print(f"DEBUG: No suitable final message found in state", file=sys.stderr)
-                yield ("I apologize, but I encountered an issue retrieving the final response. Please try your query again.", "error")
-                
-            except Exception as e:
-                print(f"DEBUG: Error getting agent state: {e}", file=sys.stderr)
-                yield (f"I encountered an error while processing your request: {str(e)}", "error")
-                
-        except Exception as e:
-            print(f"DEBUG: Error in process_query_with_progress: {e}", file=sys.stderr)
-            yield (f"I encountered an unexpected error: {str(e)}", "error")
-                
-    def get_tool_progress_message(self, tool_name: str, tool_args: Dict[str, Any], step_count: int) -> str:
-        """Generate human-readable progress messages for different tool calls."""
+
+    async def _handle_agent_chunk(
+        self,
+        agent_chunk: Dict[str, Any],
+        tool_runs: Dict[str, Dict[str, Any]],
+        start_time: float,
+    ) -> None:
+        """Capture timing information for debugging."""
+        if agent_chunk.get("messages"):
+            elapsed = time.perf_counter() - start_time
+            logger.debug("Agent chunk after %.2fs: %s", elapsed, agent_chunk.keys())
+
+    async def _convert_agent_chunk(
+        self,
+        agent_chunk: Dict[str, Any],
+        tool_runs: Dict[str, Dict[str, Any]],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        messages = agent_chunk.get("messages") or []
+        for msg in messages:
+            tool_calls = getattr(msg, "tool_calls", None)
+            if tool_calls:
+                for call in tool_calls:
+                    call_id = call.get("id") or str(uuid.uuid4())
+                    tool_runs[call_id] = {
+                        "name": call.get("name", "tool"),
+                        "args": call.get("args", {}),
+                    }
+                    yield {
+                        "event": "tool_start",
+                        "tool": tool_runs[call_id]["name"],
+                        "call_id": call_id,
+                        "args": tool_runs[call_id]["args"],
+                    }
+            else:
+                content = self._stringify_content(getattr(msg, "content", ""))
+                if content:
+                    yield {"event": "assistant_update", "message": content}
+
+    async def _convert_tool_chunk(
+        self,
+        tool_chunk: Dict[str, Any],
+        tool_runs: Dict[str, Dict[str, Any]],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        for msg in tool_chunk.get("messages", []):
+            call_id = getattr(msg, "tool_call_id", None)
+            run_meta = tool_runs.get(call_id, {})
+            tool_name = run_meta.get("name", "tool")
+            parsed = self._parse_tool_output(tool_name, getattr(msg, "content", ""))
+            yield {
+                "event": "tool_result",
+                "tool": tool_name,
+                "call_id": call_id,
+                "result": parsed,
+            }
+
+    async def _convert_message_chunk(
+        self,
+        messages: List[Any],
+        tool_runs: Dict[str, Dict[str, Any]],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        for msg in messages:
+            tool_calls = getattr(msg, "tool_calls", None)
+            if tool_calls:
+                for call in tool_calls:
+                    call_id = call.get("id") or str(uuid.uuid4())
+                    tool_runs[call_id] = {
+                        "name": call.get("name", "tool"),
+                        "args": call.get("args", {}),
+                    }
+                    yield {
+                        "event": "tool_start",
+                        "tool": tool_runs[call_id]["name"],
+                        "call_id": call_id,
+                        "args": tool_runs[call_id]["args"],
+                    }
+            else:
+                content = self._stringify_content(getattr(msg, "content", ""))
+                if content:
+                    yield {"event": "assistant_update", "message": content}
+
+    @staticmethod
+    def _stringify_content(raw: Any) -> str:
+        if isinstance(raw, str):
+            return raw
+        if isinstance(raw, list):
+            parts: List[str] = []
+            for block in raw:
+                if isinstance(block, dict) and "text" in block:
+                    parts.append(block["text"])
+                else:
+                    parts.append(str(block))
+            return "\n\n".join(parts).strip()
+        return str(raw).strip()
+
+    @staticmethod
+    def _parse_tool_output(tool_name: str, raw: Any) -> Dict[str, Any]:
+        def coerce_to_objects(value: Any) -> Any:
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except json.JSONDecodeError:
+                    return value
+            if isinstance(value, list):
+                coerced = []
+                for item in value:
+                    if isinstance(item, (str, dict)):
+                        coerced.append(coerce_to_objects(item))
+                    else:
+                        coerced.append(str(item))
+                return coerced
+            return value
+
+        parsed = coerce_to_objects(raw)
+        dances: List[Dict[str, Any]] = []
+
         if tool_name == "find_dances":
-            criteria = []
-            if tool_args.get('name_contains'):
-                criteria.append(f"name contains '{tool_args['name_contains']}'")
-            if tool_args.get('kind'):
-                criteria.append(f"type '{tool_args['kind']}'")
-            if tool_args.get('metaform_contains'):
-                criteria.append(f"formation '{tool_args['metaform_contains']}'")
-            if tool_args.get('max_bars'):
-                criteria.append(f"max {tool_args['max_bars']} bars")
-            if tool_args.get('official_rscds_dances') is True:
-                criteria.append("RSCDS official only")
-            elif tool_args.get('official_rscds_dances') is False:
-                criteria.append("community dances only")
-            
-            criteria_text = ", ".join(criteria) if criteria else "all dances"
-            limit = tool_args.get('limit', 25)
-            return f"Searching database for dances ({criteria_text}, limit {limit})"
-            
-        elif tool_name == "get_dance_detail":
-            dance_id = tool_args.get('dance_id')
-            return f"Getting detailed information for dance ID {dance_id}"
-            
-        elif tool_name == "search_cribs":
-            query = tool_args.get('query', '')
-            limit = tool_args.get('limit', 20)
-            return f"Searching dance instructions for '{query}' (limit {limit})"
-        
-        else:
-            return f"Calling tool {tool_name}"
+            if isinstance(parsed, list):
+                for entry in parsed:
+                    if isinstance(entry, dict):
+                        dances.append(
+                            {
+                                "id": entry.get("id"),
+                                "name": entry.get("name"),
+                                "kind": entry.get("kind"),
+                                "metaform": entry.get("metaform"),
+                                "bars": entry.get("bars"),
+                                "progression": entry.get("progression"),
+                            }
+                        )
+        elif tool_name == "get_dance_detail" and isinstance(parsed, dict):
+            primary = parsed.get("dance") or parsed
+            if primary:
+                dances.append(
+                    {
+                        "id": primary.get("id") or primary.get("dance_id"),
+                        "name": primary.get("name"),
+                        "kind": primary.get("kind"),
+                        "metaform": primary.get("metaform"),
+                        "bars": primary.get("bars"),
+                        "progression": primary.get("progression"),
+                    }
+                )
+
+        summary = raw if isinstance(raw, str) else json.dumps(parsed, ensure_ascii=False, indent=2)
+
+        return {
+            "raw": raw,
+            "parsed": parsed,
+            "dances": dances,
+            "summary": summary,
+        }
+
+    @staticmethod
+    def _extract_final_message(state: Optional[Any]) -> Optional[str]:
+        if not state:
+            return None
+        values = getattr(state, "values", {})
+        messages = values.get("messages")
+        if not messages:
+            return None
+        for msg in reversed(messages):
+            tool_calls = getattr(msg, "tool_calls", None)
+            if tool_calls:
+                continue
+            content = DanceAgentUI._stringify_content(getattr(msg, "content", ""))
+            if content:
+                return content
+        return None
 
 
-# Global UI instance
+# ---------------------------------------------------------------------------
+# Presentation helpers
+# ---------------------------------------------------------------------------
 ui = DanceAgentUI()
+def format_activity_timeline(events: List[Dict[str, str]]) -> str:
+    if not events:
+        return "_No activity yet — ask the assistant to begin._"
+
+    lines = ["### 🛰️ Agent Activity"]
+    for entry in events[-12:]:
+        stamp = entry.get("time", "")
+        text = entry.get("text", "")
+        lines.append(f"- **{stamp}** — {text}")
+    return "\n".join(lines)
 
 
-async def stream_process_query(message: str, history: List[Tuple[str, str]], session_id: str = None):
-    """Streaming wrapper for the async query processing with progress updates."""
-    logger.info(f"🌐 GRADIO: Starting streaming query for: '{message[:30]}{'...' if len(message) > 30 else ''}'")
-    
-    try:
-        async for progress_update in ui.process_query_with_progress(message, history, session_id):
-            yield progress_update
-    except Exception as e:
-        error_msg = f"❌ GRADIO: Streaming wrapper error: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        yield (error_msg, "error")
+def render_dance_cards(dances: List[Dict[str, Any]]) -> str:
+    if not dances:
+        return """
+        <div class="dance-placeholder">
+            <p>No dances selected yet. Tool results will appear here.</p>
+        </div>
+        """
+
+    cards = []
+    for dance in dances:
+        if not dance:
+            continue
+        cards.append(
+            f"""
+            <div class="dance-card">
+                <div class="dance-heading">{dance.get('name', 'Unknown Dance')}</div>
+                <div class="dance-meta">
+                    <span>{dance.get('kind', 'Unknown type')}</span>
+                    <span>{dance.get('metaform', 'Unknown formation')}</span>
+                </div>
+                <div class="dance-details">
+                    <span>Bars: {dance.get('bars', '–')}</span>
+                    <span>Progression: {dance.get('progression', '–')}</span>
+                    <span>ID: {dance.get('id', '–')}</span>
+                </div>
+            </div>
+            """
+        )
+
+    return "<div class=\"dance-grid\">" + "".join(cards) + "</div>"
 
 
-def create_interface():
-    """Create the Gradio interface."""
-    
-    # Custom CSS for ChatSCD theme - enhanced for readability
+def timestamp() -> str:
+    return time.strftime("%H:%M:%S")
+
+
+# ---------------------------------------------------------------------------
+# Gradio application
+# ---------------------------------------------------------------------------
+def build_interface() -> gr.Blocks:
+    agent_ui = ui
+
     css = """
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
-    .gradio-container {
-        background: linear-gradient(135deg, #f8faff 0%, #e8f2ff 100%);
+    :root {
+        color-scheme: dark;
+    }
+
+    body {
+        background: radial-gradient(circle at top, #020617 0%, #0b1220 45%, #050a16 100%);
+        color: #e2e8f0;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-    
-    /* Enhanced chat message styling */
-    .chatbot .message {
-        font-size: 15px !important;
-        line-height: 1.6 !important;
-        padding: 16px 20px !important;
-        margin: 8px 0 !important;
-        border-radius: 12px !important;
-        max-width: none !important;
+
+    .gradio-container {
+        background: transparent;
+        color: #e2e8f0;
     }
-    
-    .chatbot .message.user {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        border: none !important;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+
+    .chat-container .message.user .message-content {
+        background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%);
+        color: #f8fafc;
+        border: 1px solid rgba(96, 165, 250, 0.6);
+        box-shadow: 0 12px 30px rgba(76, 29, 149, 0.35);
     }
-    
-    .chatbot .message.bot {
-        background: white !important;
-        color: #2c3e50 !important;
-        border: 1px solid #e1e8ed !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+
+    .chat-container .message.bot .message-content {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: inset 0 0 12px rgba(30, 64, 175, 0.15), 0 14px 28px rgba(2, 6, 23, 0.5);
+        color: #e2e8f0;
     }
-    
-    /* Better text formatting in bot messages */
-    .chatbot .message.bot p {
-        margin: 8px 0 !important;
-        line-height: 1.7 !important;
+
+    .chat-container .message.bot .message-content * {
+        color: inherit;
     }
-    
-    .chatbot .message.bot ul, .chatbot .message.bot ol {
-        padding-left: 24px !important;
-        margin: 12px 0 !important;
-    }
-    
-    .chatbot .message.bot li {
-        margin: 6px 0 !important;
-        line-height: 1.6 !important;
-    }
-    
-    .chatbot .message.bot h1, .chatbot .message.bot h2, .chatbot .message.bot h3 {
-        color: #2c3e50 !important;
-        margin: 16px 0 8px 0 !important;
-        font-weight: 600 !important;
-    }
-    
-    .chatbot .message.bot h1 { font-size: 20px !important; }
-    .chatbot .message.bot h2 { font-size: 18px !important; }
-    .chatbot .message.bot h3 { font-size: 16px !important; }
-    
-    .chatbot .message.bot strong {
-        color: #1a365d !important;
-        font-weight: 600 !important;
-    }
-    
-    .chatbot .message.bot code {
-        background: #f1f5f9 !important;
-        padding: 2px 6px !important;
-        border-radius: 4px !important;
-        font-family: 'Monaco', 'Menlo', monospace !important;
-        font-size: 13px !important;
-    }
-    
-    .chatbot .message.bot pre {
-        background: #f8fafc !important;
-        padding: 12px !important;
-        border-radius: 8px !important;
-        border-left: 4px solid #3b82f6 !important;
-        margin: 12px 0 !important;
-        overflow-x: auto !important;
-    }
-    
-    /* Enhanced input styling */
+
     .gradio-textbox textarea {
-        font-size: 15px !important;
-        line-height: 1.5 !important;
-        padding: 12px 16px !important;
-        border: 2px solid #e2e8f0 !important;
-        border-radius: 10px !important;
-        font-family: 'Inter', sans-serif !important;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #e2e8f0;
     }
-    
-    .gradio-textbox textarea:focus {
-        border-color: #667eea !important;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+
+    .gradio-textbox textarea::placeholder {
+        color: rgba(226, 232, 240, 0.45);
     }
-    
-    /* Enhanced button styling */
-    .gradio-button {
-        font-family: 'Inter', sans-serif !important;
-        font-weight: 500 !important;
-        border-radius: 8px !important;
-        padding: 10px 20px !important;
-        transition: all 0.2s ease !important;
-    }
-    
+
     .gradio-button.primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border: none !important;
-        color: white !important;
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        border: none;
+        color: #f8fafc;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
     }
-    
-    .gradio-button.primary:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+
+    .gradio-button.secondary {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #e2e8f0;
     }
-    
-    /* Sidebar styling */
-    .sidebar-content {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-        padding: 24px !important;
-        margin: 10px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+
+    .dance-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
     }
-    
-    .sidebar-title {
-        color: #1a365d !important;
-        font-weight: 600 !important;
-        font-size: 16px !important;
-        margin: 0 0 12px 0 !important;
+
+    .dance-card {
+        background: rgba(15, 23, 42, 0.85);
+        border-radius: 16px;
+        padding: 18px;
+        border: 1px solid rgba(96, 165, 250, 0.35);
+        box-shadow: inset 0 0 18px rgba(96, 165, 250, 0.05), 0 18px 40px rgba(2, 6, 23, 0.45);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        color: #e2e8f0;
     }
-    
-    .example-list, .capability-list {
-        padding-left: 0 !important;
-        list-style: none !important;
-        margin: 0 !important;
+
+    .dance-card:hover {
+        transform: translateY(-6px);
+        box-shadow: inset 0 0 18px rgba(96, 165, 250, 0.08), 0 24px 50px rgba(37, 99, 235, 0.25);
     }
-    
-    .example-item, .capability-item {
-        background: #f8fafc !important;
-        padding: 10px 14px !important;
-        margin: 6px 0 !important;
-        border-radius: 8px !important;
-        border-left: 3px solid #667eea !important;
-        color: #2c3e50 !important;
-        font-size: 14px !important;
-        line-height: 1.4 !important;
-        transition: all 0.2s ease !important;
+
+    .dance-heading {
+        font-weight: 600;
+        font-size: 17px;
+        color: #f1f5f9;
     }
-    
-    .example-item:hover, .capability-item:hover {
-        background: #f1f5f9 !important;
-        transform: translateX(2px) !important;
+
+    .dance-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(59, 130, 246, 0.25);
+        color: #bfdbfe;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
     }
-    
-    .highlight-text {
-        color: #667eea !important;
-        font-weight: 600 !important;
+
+    .dance-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: #cbd5f5;
     }
-    
-    /* Header styling */
+
+    .dance-placeholder {
+        border: 1px dashed rgba(148, 163, 184, 0.35);
+        border-radius: 14px;
+        padding: 24px;
+        text-align: center;
+        color: rgba(226, 232, 240, 0.65);
+        background: rgba(15, 23, 42, 0.6);
+    }
+
+    .activity-card {
+        background: rgba(15, 23, 42, 0.85);
+        border-radius: 18px;
+        padding: 22px;
+        border: 1px solid rgba(59, 130, 246, 0.22);
+        box-shadow: inset 0 0 18px rgba(59, 130, 246, 0.06), 0 20px 44px rgba(2, 6, 23, 0.5);
+        color: #e2e8f0;
+    }
+
+    .activity-card p,
+    .activity-card li {
+        color: rgba(226, 232, 240, 0.9);
+    }
+
     .main-header {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-        margin: 0 10px 20px 10px !important;
-        padding: 24px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        text-align: center;
+        padding: 32px 12px 18px;
     }
-    
-    .brand-title {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        background-clip: text !important;
-        font-size: 32px !important;
-        font-weight: 700 !important;
-        margin-bottom: 8px !important;
+
+    .main-header h1 {
+        margin: 0;
+        font-size: 34px;
+        background: linear-gradient(135deg, #60a5fa 0%, #c084fc 40%, #f472b6 100%);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-weight: 700;
+        text-shadow: 0 10px 30px rgba(96, 165, 250, 0.35);
     }
-    
-    .brand-subtitle {
-        color: #64748b !important;
-        font-size: 18px !important;
-        font-weight: 400 !important;
-        margin: 0 !important;
+
+    .main-header p {
+        margin-top: 10px;
+        color: rgba(226, 232, 240, 0.75);
     }
     """
-    
-    with gr.Blocks(
-        css=css,
-        title="ChatSCD - Scottish Country Dance Assistant",
-        theme=gr.themes.Soft()
-    ) as demo:
-        
-        # Header
-        gr.HTML("""
-        <div class="main-header" style="text-align: center;">
-            <h1 class="brand-title">
-                🏴󠁧󠁢󠁳󠁣󠁴󠁿 ChatSCD
-            </h1>
-            <p class="brand-subtitle">
-                Your AI assistant for Scottish Country Dancing
-            </p>
-        </div>
-        """)
-        
-        # Generate unique session ID per browser tab/window
-        def get_browser_session_id():
-            """Generate a unique session ID for each browser session."""
-            return str(uuid.uuid4())
-        
-        # Session state to maintain conversation memory - unique per browser session
-        session_state = gr.State(lambda: {"session_id": f"browser_{get_browser_session_id()}"})
-        
-        # Main chat interface
-        with gr.Row():
-            with gr.Column(scale=4):
+
+    with gr.Blocks(css=css, theme=gr.themes.Soft()) as demo:
+        gr.HTML(
+            """
+            <div class="main-header">
+                <h1>ChatSCD Studio</h1>
+                <p>Your Scottish Country Dance planning partner</p>
+            </div>
+            """
+        )
+
+        chat_state = gr.State([])
+        activity_state = gr.State([])
+        selection_state = gr.State([])
+        session_state = gr.State({})
+
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=7):
                 chatbot = gr.Chatbot(
-                    height=600,
+                    type="messages",
                     show_label=False,
-                    container=True,
-                    bubble_full_width=False,
-                    avatar_images=("👤", "🏴󠁧󠁢󠁳󠁣󠁴󠁿"),
-                    elem_classes=["chat-container"]
+                    height=600,
+                    elem_classes=["chat-container"],
                 )
-                
+
                 with gr.Row():
-                    msg = gr.Textbox(
-                        placeholder="Ask me about Scottish Country Dances, lesson plans, or specific moves...",
-                        show_label=False,
-                        scale=4,
-                        container=False,
+                    user_message = gr.Textbox(
+                        placeholder="Ask about dances, lesson plans, or formations...",
                         lines=2,
-                        max_lines=5
+                        scale=8,
                     )
-                    submit_btn = gr.Button("Send", variant="primary", scale=1)
-                
-                with gr.Row():
-                    clear_btn = gr.Button("Clear Chat", variant="secondary")
-            
-            with gr.Column(scale=1):
-                gr.HTML("""
-                <div class="sidebar-content">
-                    <h3 class="sidebar-title">💡 Try asking:</h3>
-                    <ul class="example-list">
-                        <li class="example-item">"Create a lesson plan for beginners"</li>
-                        <li class="example-item">"Find me some 32-bar reels"</li>
-                        <li class="example-item">"What dances have poussette moves?"</li>
-                        <li class="example-item">"Show me longwise dances for 3 couples"</li>
-                        <li class="example-item">"Plan a workshop on strathspeys"</li>
-                        <li class="example-item">"Find RSCDS published jigs"</li>
-                    </ul>
-                    
-                    <h3 class="sidebar-title">🎯 What I can do:</h3>
-                    <ul class="capability-list">
-                        <li class="capability-item"><span class="highlight-text">Lesson Planning:</span> Create structured dance lessons</li>
-                        <li class="capability-item"><span class="highlight-text">Dance Search:</span> Find by type, formation, length</li>
-                        <li class="capability-item"><span class="highlight-text">Move Analysis:</span> Search for specific techniques</li>
-                        <li class="capability-item"><span class="highlight-text">RSCDS Filter:</span> Official vs community dances</li>
-                    </ul>
-                </div>
-                """)
-        
-        # Event handlers with browser-scoped session management and streaming progress
-        def respond(message, chat_history, session_state):
+                    send_btn = gr.Button("Send", variant="primary", scale=1)
+                    clear_btn = gr.Button("Reset", variant="secondary", scale=1)
+
+            with gr.Column(scale=5):
+                activity_panel = gr.Markdown(
+                    format_activity_timeline([]),
+                    elem_classes=["activity-card"],
+                )
+                dance_panel = gr.HTML(render_dance_cards([]))
+
+        async def handle_message(
+            message: str,
+            chat_history: Optional[List[Dict[str, str]]],
+            activity_history: Optional[List[Dict[str, str]]],
+            dance_history: Optional[List[Dict[str, Any]]],
+            session_info: Optional[Dict[str, str]],
+        ):
             if not message.strip():
-                return "", chat_history, session_state
-            
-            # Ensure session_state is properly initialized for this browser session
-            if session_state is None or not isinstance(session_state, dict) or "session_id" not in session_state:
-                session_state = {"session_id": f"browser_{str(uuid.uuid4())}"}
-                logger.info(f"🆕 GRADIO: Creating new browser session: {session_state['session_id']}")
-            
-            session_id = session_state["session_id"]
-            logger.info(f"💬 GRADIO: Message from browser session {session_id[:8]}...: '{message[:50]}{'...' if len(message) > 50 else ''}'")
-            
-            # Add user message to history immediately
-            chat_history.append([message, "🔧 **Starting...**\n\nInitializing your request..."])
-            yield "", chat_history, session_state
-            
-            # Create async runner for streaming updates
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            try:
-                # Run the async streaming process
-                async def run_streaming():
-                    try:
-                        async for progress_update in stream_process_query(message, chat_history, session_id):
-                            content, update_type = progress_update
-                            
-                            # Update the bot response in real-time
-                            if update_type in ["progress", "error"]:
-                                chat_history[-1][1] = content
-                                return "", chat_history, session_state
-                            elif update_type == "final":
-                                # Final response - clean and format
-                                if content is None:
-                                    content = "No response generated."
-                                
-                                # Ensure it's a string and clean up formatting
-                                final_response = str(content)
-                                
-                                # Basic HTML cleanup while preserving markdown
-                                import re
-                                final_response = re.sub(r'<(?!/?(?:b|i|u|strong|em|code|pre|br|p|ul|ol|li|h[1-6])\b)[^>]*>', '', final_response)
-                                
-                                # Update with final response
-                                chat_history[-1][1] = final_response
-                                return "", chat_history, session_state
-                        
-                        # Fallback
-                        if chat_history[-1][1] == "🔧 **Starting...**\n\nInitializing your request...":
-                            chat_history[-1][1] = "❌ No response was generated. Please try again."
-                        
-                        return "", chat_history, session_state
-                        
-                    except Exception as e:
-                        error_msg = f"❌ **Processing Error**\n\nAn unexpected error occurred: {str(e)}"
-                        logger.error(f"Streaming error: {e}", exc_info=True)
-                        chat_history[-1][1] = error_msg
-                        return "", chat_history, session_state
-                
-                # Run and return result
-                result = loop.run_until_complete(run_streaming())
-                return result
-                
-            except Exception as e:
-                error_msg = f"❌ **Processing Error**\n\nAn unexpected error occurred: {str(e)}"
-                logger.error(f"Respond handler error: {e}", exc_info=True)
-                chat_history[-1][1] = error_msg
-                return "", chat_history, session_state
-            finally:
-                loop.close()
-        
-        # Simplified streaming function that forces immediate updates
-        def respond_stream(message, chat_history, session_state):
-            if not message.strip():
-                yield "", chat_history, session_state
+                yield (
+                    chat_history or [],
+                    format_activity_timeline(activity_history or []),
+                    render_dance_cards(dance_history or []),
+                    chat_history or [],
+                    activity_history or [],
+                    dance_history or [],
+                    session_info or {},
+                )
                 return
-            
-            # Ensure session_state is properly initialized
-            if session_state is None or not isinstance(session_state, dict) or "session_id" not in session_state:
-                session_state = {"session_id": f"browser_{str(uuid.uuid4())}"}
-                logger.info(f"🆕 GRADIO: Creating new browser session: {session_state['session_id']}")
-            
-            session_id = session_state["session_id"]
-            
-            # Add user message to history with IMMEDIATE initial progress
-            chat_history.append([message, "🤔 **Analyzing Your Question**\n\nInitializing the dance assistant..."])
-            yield "", chat_history, session_state
-            
-            # Immediate second update to confirm UI responsiveness
-            import time
-            time.sleep(0.1)  # Brief pause to ensure first update is rendered
-            chat_history[-1][1] = "🔧 **Initializing Dance Agent**\n\nStarting database connection..."
-            yield "", chat_history, session_state
-            
-            # Run the query with progress updates in a separate thread
-            import threading
-            import queue
-            import time
-            
-            progress_queue = queue.Queue()
-            result_ready = threading.Event()
-            
-            def run_query():
-                try:
-                    import asyncio
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    
-                    async def async_query():
-                        # Put an immediate update to start the flow
-                        progress_queue.put(("🔍 **Starting Search**\n\nConnecting to dance database...", "progress"))
-                        
-                        async for progress_update in stream_process_query(message, chat_history, session_id):
-                            progress_queue.put(progress_update)
-                            # Don't wait for final - put all updates immediately
-                            if progress_update[1] == "final":
-                                break
-                        result_ready.set()
-                    
-                    loop.run_until_complete(async_query())
-                    loop.close()
-                    
-                except Exception as e:
-                    progress_queue.put((f"❌ **Error**: {str(e)}", "error"))
-                    result_ready.set()
-            
-            # Start query in background
-            query_thread = threading.Thread(target=run_query)
-            query_thread.daemon = True
-            query_thread.start()
-            
-            # Poll for updates and yield them immediately with aggressive responsiveness
-            last_content = ""
-            final_yielded = False
-            update_count = 0
-            
-            while not result_ready.is_set() or not progress_queue.empty():
-                try:
-                    # Check for new progress with very short timeout for immediate response
-                    content, update_type = progress_queue.get(timeout=0.05)
-                    
-                    if content != last_content:
-                        chat_history[-1][1] = content
-                        last_content = content
-                        update_count += 1
-                        
-                        # Yield immediately
-                        yield "", chat_history, session_state
-                        
-                        # Force a tiny delay to ensure UI rendering
-                        time.sleep(0.01)
-                        
-                        if update_type == "final":
-                            final_yielded = True
-                            break
-                            
-                except queue.Empty:
-                    # No new updates, continue polling
-                    continue
-            
-            # Ensure we have a final response
-            if not final_yielded and chat_history[-1][1].startswith("🔧"):
-                chat_history[-1][1] = "❌ **Timeout** - No response received. Please try again."
-                yield "", chat_history, session_state
-        
-        def clear_chat(session_state):
-            # Keep the same browser session but start a new conversation thread
-            if session_state and "session_id" in session_state:
-                # Create a new conversation thread within the same browser session
-                base_session = session_state["session_id"].split("_conv_")[0]
-                new_conversation = f"{base_session}_conv_{int(time.time() * 1000)}"
-                session_state["session_id"] = new_conversation
-                logger.info(f"🧹 GRADIO: Chat cleared, new conversation thread: {new_conversation}")
-            else:
-                # Fallback: create entirely new session
-                session_state = {"session_id": f"browser_{str(uuid.uuid4())}_conv_{int(time.time() * 1000)}"}
-                logger.info(f"🧹 GRADIO: Chat cleared, new session: {session_state['session_id']}")
-            return [], session_state
-        
-        # Wire up the events with session state - enable streaming for progress updates
-        msg.submit(respond_stream, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)
-        submit_btn.click(respond_stream, [msg, chatbot, session_state], [msg, chatbot, session_state], queue=True)  
-        clear_btn.click(clear_chat, [session_state], [chatbot, session_state], queue=False)
-        
-        # Footer
-        gr.HTML("""
-        <div style="text-align: center; padding: 20px; color: #2c3e50; background: white; border-radius: 12px; margin: 20px 10px 0 10px; border: 1px solid #e2e8f0;">
-            <p style="margin: 8px 0; font-weight: 500; color: #1a365d;">Powered by the Scottish Country Dance Database (SCDDB)</p>
-            <p style="font-size: 14px; margin: 4px 0; color: #4a5568;">
-                ChatSCD helps you explore thousands of Scottish Country Dances with AI assistance
-            </p>
-        </div>
-        """)
-    
+
+            chat_history = list(chat_history or [])
+            activity_history = list(activity_history or [])
+            dance_history = list(dance_history or [])
+            session_info = dict(session_info or {})
+
+            if "session_id" not in session_info:
+                session_info["session_id"] = f"browser_{uuid.uuid4()}"
+
+            session_id = session_info["session_id"]
+
+            chat_history.append({"role": "user", "content": message})
+            chat_history.append({"role": "assistant", "content": "Starting the search..."})
+
+            activity_history.append(
+                {
+                    "time": timestamp(),
+                    "text": "User request received.",
+                }
+            )
+
+            yield (
+                chat_history,
+                format_activity_timeline(activity_history),
+                render_dance_cards(dance_history),
+                chat_history,
+                activity_history,
+                dance_history,
+                session_info,
+            )
+
+            async for event in agent_ui.stream_events(message, session_id):
+                if event["event"] == "status":
+                    activity_history.append(
+                        {
+                            "time": timestamp(),
+                            "text": event["title"],
+                        }
+                    )
+                    chat_history[-1]["content"] = event["body"]
+
+                elif event["event"] == "tool_start":
+                    human_name = TOOL_DISPLAY_NAMES.get(event["tool"], event["tool"].title())
+                    args = event.get("args", {})
+                    pretty_args = ", ".join(f"{k}={v}" for k, v in args.items() if v)
+                    activity_history.append(
+                        {
+                            "time": timestamp(),
+                            "text": f"Initiated {human_name} ({pretty_args or 'no filters'})",
+                        }
+                    )
+                    chat_history[-1]["content"] = f"🔍 Running {human_name}..."
+
+                elif event["event"] == "tool_result":
+                    human_name = TOOL_DISPLAY_NAMES.get(event["tool"], event["tool"].title())
+                    activity_history.append(
+                        {
+                            "time": timestamp(),
+                            "text": f"Completed {human_name} tool call.",
+                        }
+                    )
+                    new_dances = event.get("result", {}).get("dances", [])
+                    if new_dances:
+                        merged = {d.get("id"): d for d in dance_history if d.get("id")}
+                        for dance in new_dances:
+                            if dance and dance.get("id") not in merged:
+                                merged[dance.get("id")] = dance
+                        dance_history = [v for v in merged.values() if v]
+                    chat_history[-1]["content"] = f"✅ {human_name} returned results."
+
+                elif event["event"] == "assistant_update":
+                    chat_history[-1]["content"] = event["message"]
+
+                elif event["event"] == "final":
+                    chat_history[-1]["content"] = event["message"]
+                    activity_history.append(
+                        {
+                            "time": timestamp(),
+                            "text": "Prepared final response for the user.",
+                        }
+                    )
+
+                elif event["event"] == "error":
+                    chat_history[-1]["content"] = event["message"]
+                    activity_history.append(
+                        {
+                            "time": timestamp(),
+                            "text": "Encountered an error.",
+                        }
+                    )
+                    break
+
+                yield (
+                    chat_history,
+                    format_activity_timeline(activity_history),
+                    render_dance_cards(dance_history),
+                    chat_history,
+                    activity_history,
+                    dance_history,
+                    session_info,
+                )
+
+        async def reset_conversation(
+            _session_info: Optional[Dict[str, str]] = None,
+        ):
+            return (
+                [],
+                format_activity_timeline([]),
+                render_dance_cards([]),
+                [],
+                [],
+                [],
+                _session_info or {},
+            )
+
+        msg_event = user_message.submit(
+            handle_message,
+            [user_message, chat_state, activity_state, selection_state, session_state],
+            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state],
+            queue=True,
+            show_progress=False,
+        )
+        send_btn.click(
+            handle_message,
+            [user_message, chat_state, activity_state, selection_state, session_state],
+            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state],
+            queue=True,
+            show_progress=False,
+        )
+        send_btn.click(lambda: "", None, user_message, queue=False)
+        msg_event.then(lambda: "", None, user_message, queue=False)
+
+        clear_btn.click(
+            reset_conversation,
+            [session_state],
+            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state],
+            queue=False,
+        )
+
     return demo
 
 
-def main():
-    """Main entry point for the Gradio app."""
-    
-    # Check for required environment variables
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+def main() -> None:
     load_dotenv()
-    
-    # Set environment variables for extended timeouts
-    os.environ['GRADIO_CLIENT_TIMEOUT'] = '650'  # 10+ minutes for client timeout
-    os.environ['HTTPX_TIMEOUT'] = '650'  # Extended HTTP timeout
-    
+
     if not os.getenv("OPENAI_API_KEY"):
-        print("❌ Error: OPENAI_API_KEY environment variable not set.")
-        print("Please set your OpenAI API key in a .env file or as an environment variable.")
+        print("❌ OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
-    
-    # Check for database
+
     db_path = os.environ.get("SCDDB_SQLITE", "data/scddb/scddb.sqlite")
     if not Path(db_path).exists():
-        print(f"❌ Error: Database not found at {db_path}")
-        print("Please run refresh_scddb.py first to download the database.")
+        print(f"❌ Database not found at {db_path}. Run refresh_scddb.py first.")
         sys.exit(1)
-    
-    print("🏴󠁧󠁢󠁳󠁣󠁴󠁿 Starting ChatSCD - Scottish Country Dance Assistant Web UI...")
-    
-    # Create and launch the interface
-    demo = create_interface()
-    
-    # Launch with settings appropriate for VPS hosting
-    logger.info("🚀 Launching Gradio interface...")
-    # Configure queue with extended timeout to match server timeout
-    demo.queue(
-        default_concurrency_limit=10,  # Allow 10 concurrent requests
-        max_size=50,  # Queue up to 50 requests
-        api_open=True  # Allow API access
-    )
+
+    demo = build_interface()
+    demo.queue(max_size=50, default_concurrency_limit=10)
     demo.launch(
-        server_name="0.0.0.0",  # Allow external connections
-        server_port=7860,       # Default Gradio port
-        share=False,            # Don't create a public gradio.app link
-        show_error=True,        # Show detailed errors
-        quiet=False,            # Show startup info
-        max_threads=10,         # Allow more concurrent requests
-        # Configure timeouts to match server settings
-        favicon_path=None,
-        ssl_verify=False
+        server_name="0.0.0.0",
+        server_port=7860,
+        show_error=True,
+        share=False,
     )
 
 
