@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import logging
 import os
@@ -329,18 +330,19 @@ def render_dance_cards(dances: List[Dict[str, Any]]) -> str:
     for dance in dances:
         if not dance:
             continue
+        payload = html.escape(json.dumps(dance, ensure_ascii=False))
         cards.append(
             f"""
-            <div class="dance-card">
-                <div class="dance-heading">{dance.get('name', 'Unknown Dance')}</div>
+            <div class="dance-card" tabindex="0" data-dance="{payload}">
+                <div class="dance-heading">{html.escape(str(dance.get('name', 'Unknown Dance')))}</div>
                 <div class="dance-meta">
-                    <span>{dance.get('kind', 'Unknown type')}</span>
-                    <span>{dance.get('metaform', 'Unknown formation')}</span>
+                    <span>{html.escape(str(dance.get('kind', 'Unknown type')))}</span>
+                    <span>{html.escape(str(dance.get('metaform', 'Unknown formation')))}</span>
                 </div>
                 <div class="dance-details">
-                    <span>Bars: {dance.get('bars', '–')}</span>
-                    <span>Progression: {dance.get('progression', '–')}</span>
-                    <span>ID: {dance.get('id', '–')}</span>
+                    <span>Bars: {html.escape(str(dance.get('bars', '–')))}</span>
+                    <span>Progression: {html.escape(str(dance.get('progression', '–')))}</span>
+                    <span>ID: {html.escape(str(dance.get('id', '–')))}</span>
                 </div>
             </div>
             """
@@ -433,11 +435,17 @@ def build_interface() -> gr.Blocks:
         gap: 10px;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         color: #e2e8f0;
+        cursor: pointer;
     }
 
     .dance-card:hover {
         transform: translateY(-6px);
         box-shadow: inset 0 0 18px rgba(96, 165, 250, 0.08), 0 24px 50px rgba(37, 99, 235, 0.25);
+    }
+
+    .dance-card:focus-visible {
+        outline: 2px solid rgba(96, 165, 250, 0.9);
+        outline-offset: 3px;
     }
 
     .dance-heading {
@@ -507,6 +515,13 @@ def build_interface() -> gr.Blocks:
         margin-top: 10px;
         color: rgba(226, 232, 240, 0.75);
     }
+
+    .dance-signal-hidden {
+        display: none !important;
+        visibility: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+    }
     """
 
     with gr.Blocks(css=css, theme=gr.themes.Soft()) as demo:
@@ -548,45 +563,35 @@ def build_interface() -> gr.Blocks:
                     elem_classes=["activity-card"],
                 )
                 dance_panel = gr.HTML(render_dance_cards([]))
-
-        async def handle_message(
-            message: str,
-            chat_history: Optional[List[Dict[str, str]]],
-            activity_history: Optional[List[Dict[str, str]]],
-            dance_history: Optional[List[Dict[str, Any]]],
-            session_info: Optional[Dict[str, str]],
-        ):
-            if not message.strip():
-                yield (
-                    chat_history or [],
-                    format_activity_timeline(activity_history or []),
-                    render_dance_cards(dance_history or []),
-                    chat_history or [],
-                    activity_history or [],
-                    dance_history or [],
-                    session_info or {},
+                dance_signal = gr.Textbox(
+                    value="",
+                    visible=True,
+                    elem_id="dance-click-target",
+                    interactive=False,
+                    container=False,
+                    show_label=False,
+                    elem_classes=["dance-signal-hidden"],
                 )
-                return
 
-            chat_history = list(chat_history or [])
-            activity_history = list(activity_history or [])
-            dance_history = list(dance_history or [])
-            session_info = dict(session_info or {})
-
+        async def execute_agent_flow(
+            agent_prompt: str,
+            user_display: str,
+            activity_text: str,
+            chat_history: List[Dict[str, str]],
+            activity_history: List[Dict[str, str]],
+            dance_history: List[Dict[str, Any]],
+            session_info: Dict[str, str],
+            assistant_placeholder: str = "Starting the search...",
+        ):
             if "session_id" not in session_info:
                 session_info["session_id"] = f"browser_{uuid.uuid4()}"
 
             session_id = session_info["session_id"]
 
-            chat_history.append({"role": "user", "content": message})
-            chat_history.append({"role": "assistant", "content": "Starting the search..."})
+            chat_history.append({"role": "user", "content": user_display})
+            chat_history.append({"role": "assistant", "content": assistant_placeholder})
 
-            activity_history.append(
-                {
-                    "time": timestamp(),
-                    "text": "User request received.",
-                }
-            )
+            activity_history.append({"time": timestamp(), "text": activity_text})
 
             yield (
                 chat_history,
@@ -598,7 +603,7 @@ def build_interface() -> gr.Blocks:
                 session_info,
             )
 
-            async for event in agent_ui.stream_events(message, session_id):
+            async for event in agent_ui.stream_events(agent_prompt, session_id):
                 if event["event"] == "status":
                     activity_history.append(
                         {
@@ -630,11 +635,15 @@ def build_interface() -> gr.Blocks:
                     )
                     new_dances = event.get("result", {}).get("dances", [])
                     if new_dances:
-                        merged = {d.get("id"): d for d in dance_history if d.get("id")}
+                        merged = {d.get("id"): d for d in dance_history if d and d.get("id")}
                         for dance in new_dances:
-                            if dance and dance.get("id") not in merged:
-                                merged[dance.get("id")] = dance
-                        dance_history = [v for v in merged.values() if v]
+                            if not dance:
+                                continue
+                            dance_id = dance.get("id")
+                            if dance_id:
+                                merged[dance_id] = dance
+                        dance_history.clear()
+                        dance_history.extend(merged.values())
                     chat_history[-1]["content"] = f"✅ {human_name} returned results."
 
                 elif event["event"] == "assistant_update":
@@ -657,6 +666,15 @@ def build_interface() -> gr.Blocks:
                             "text": "Encountered an error.",
                         }
                     )
+                    yield (
+                        chat_history,
+                        format_activity_timeline(activity_history),
+                        render_dance_cards(dance_history),
+                        chat_history,
+                        activity_history,
+                        dance_history,
+                        session_info,
+                    )
                     break
 
                 yield (
@@ -669,6 +687,115 @@ def build_interface() -> gr.Blocks:
                     session_info,
                 )
 
+        async def handle_message(
+            message: str,
+            chat_history: Optional[List[Dict[str, str]]],
+            activity_history: Optional[List[Dict[str, str]]],
+            dance_history: Optional[List[Dict[str, Any]]],
+            session_info: Optional[Dict[str, str]],
+        ):
+            chat_history = list(chat_history or [])
+            activity_history = list(activity_history or [])
+            dance_history = list(dance_history or [])
+            session_info = dict(session_info or {})
+
+            if not message.strip():
+                yield (
+                    chat_history,
+                    format_activity_timeline(activity_history),
+                    render_dance_cards(dance_history),
+                    chat_history,
+                    activity_history,
+                    dance_history,
+                    session_info,
+                    "",
+                )
+                return
+
+            async for update in execute_agent_flow(
+                agent_prompt=message,
+                user_display=message,
+                activity_text="User request received.",
+                chat_history=chat_history,
+                activity_history=activity_history,
+                dance_history=dance_history,
+                session_info=session_info,
+            ):
+                yield (*update, "")
+
+        async def handle_dance_card_click(
+            selection_json: str,
+            chat_history: Optional[List[Dict[str, str]]],
+            activity_history: Optional[List[Dict[str, str]]],
+            dance_history: Optional[List[Dict[str, Any]]],
+            session_info: Optional[Dict[str, str]],
+        ):
+            chat_history = list(chat_history or [])
+            activity_history = list(activity_history or [])
+            dance_history = list(dance_history or [])
+            session_info = dict(session_info or {})
+
+            if not selection_json:
+                yield (
+                    chat_history,
+                    format_activity_timeline(activity_history),
+                    render_dance_cards(dance_history),
+                    chat_history,
+                    activity_history,
+                    dance_history,
+                    session_info,
+                    "",
+                )
+                return
+
+            try:
+                payload = json.loads(selection_json)
+                if isinstance(payload, dict) and "dance" in payload:
+                    dance = payload.get("dance")
+                else:
+                    dance = payload
+            except json.JSONDecodeError:
+                logger.warning("Unable to parse dance selection payload: %s", selection_json)
+                yield (
+                    chat_history,
+                    format_activity_timeline(activity_history),
+                    render_dance_cards(dance_history),
+                    chat_history,
+                    activity_history,
+                    dance_history,
+                    session_info,
+                    "",
+                )
+                return
+
+            dance_name = str(dance.get("name", "the selected dance"))
+            dance_id = dance.get("id")
+
+            agent_prompt = (
+                "Provide detailed crib instructions for the Scottish Country Dance "
+                f"'{dance_name}'. Include the formation, phrasing, and any notable teaching tips."
+            )
+            if dance_id is not None:
+                agent_prompt += f" The dance's SCDDB ID is {dance_id}."
+
+            user_display = (
+                f"📄 Request crib for {dance_name}"
+                + (f" (ID {dance_id})" if dance_id is not None else "")
+            )
+            activity_text = f"Crib requested for {dance_name}."
+
+            async for update in execute_agent_flow(
+                agent_prompt=agent_prompt,
+                user_display=user_display,
+                activity_text=activity_text,
+                chat_history=chat_history,
+                activity_history=activity_history,
+                dance_history=dance_history,
+                session_info=session_info,
+                assistant_placeholder="Fetching crib instructions...",
+            ):
+                yield (*update, "")
+
         async def reset_conversation(
             _session_info: Optional[Dict[str, str]] = None,
         ):
@@ -680,30 +807,119 @@ def build_interface() -> gr.Blocks:
                 [],
                 [],
                 _session_info or {},
+                "",
             )
 
         msg_event = user_message.submit(
             handle_message,
             [user_message, chat_state, activity_state, selection_state, session_state],
-            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state],
+            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state, dance_signal],
             queue=True,
             show_progress=False,
         )
         send_btn.click(
             handle_message,
             [user_message, chat_state, activity_state, selection_state, session_state],
-            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state],
+            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state, dance_signal],
             queue=True,
             show_progress=False,
         )
         send_btn.click(lambda: "", None, user_message, queue=False)
         msg_event.then(lambda: "", None, user_message, queue=False)
 
+        dance_signal.change(
+            handle_dance_card_click,
+            [dance_signal, chat_state, activity_state, selection_state, session_state],
+            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state, dance_signal],
+            queue=True,
+            show_progress=False,
+        )
+
         clear_btn.click(
             reset_conversation,
             [session_state],
-            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state],
+            [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state, dance_signal],
             queue=False,
+        )
+
+        demo.load(
+            None,
+            None,
+            None,
+            js="""
+            () => {
+                if (window.__danceCardListenersAttached) return null;
+                window.__danceCardListenersAttached = true;
+
+                const app = window.gradioApp ? window.gradioApp() : document;
+
+                const getSignal = () => {
+                    // Try multiple ways to find the signal element
+                    return app.querySelector('#dance-click-target textarea') ||
+                           app.querySelector('#dance-click-target input') ||
+                           app.querySelector('textarea[data-testid*="dance-click-target"]') ||
+                           app.querySelector('input[data-testid*="dance-click-target"]') ||
+                           app.querySelector('.dance-signal-hidden textarea') ||
+                           app.querySelector('.dance-signal-hidden input') ||
+                           document.querySelector('#dance-click-target textarea') ||
+                           document.querySelector('#dance-click-target input');
+                };
+
+                const dispatchSelection = (card) => {
+                    if (!card) {
+                        console.warn('Dance card click: No card provided');
+                        return;
+                    }
+                    const raw = card.getAttribute('data-dance');
+                    if (!raw) {
+                        console.warn('Dance card click: No data-dance attribute found');
+                        return;
+                    }
+                    let danceData = null;
+                    try {
+                        danceData = JSON.parse(raw);
+                        console.log('Dance card click: Parsed dance data', danceData);
+                    } catch (err) {
+                        console.warn('Unable to parse dance data', err);
+                        return;
+                    }
+                    const signal = getSignal();
+                    if (!signal) {
+                        console.error('Dance card click: Signal element not found!');
+                        console.log('Available textareas:', document.querySelectorAll('textarea').length);
+                        console.log('Available inputs:', document.querySelectorAll('input').length);
+                        return;
+                    }
+                    console.log('Dance card click: Signal element found', signal);
+                    const payload = JSON.stringify({ dance: danceData, ts: Date.now() });
+                    signal.value = payload;
+                    signal.dispatchEvent(new Event('input', { bubbles: true }));
+                    signal.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log('Dance card click: Events dispatched with payload', payload);
+                };
+
+                const findCard = (target) => target && target.closest('.dance-card[data-dance]');
+
+                app.addEventListener('click', (event) => {
+                    const card = findCard(event.target);
+                    if (card) {
+                        event.preventDefault();
+                        dispatchSelection(card);
+                    }
+                });
+
+                app.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    const card = findCard(event.target);
+                    if (card) {
+                        event.preventDefault();
+                        dispatchSelection(card);
+                    }
+                });
+
+                return null;
+            }
+            """,
         )
 
     return demo
