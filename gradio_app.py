@@ -18,7 +18,8 @@ import gradio as gr
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 
-from dance_agent import create_dance_agent, mcp_client
+from scd_agent import SCDAgent
+from dance_tools import mcp_client
 
 # ---------------------------------------------------------------------------
 # Logging configuration
@@ -66,10 +67,10 @@ class DanceAgentUI:
             return
 
         load_dotenv()
-        self.agent = await create_dance_agent()
+        self.agent = SCDAgent()
         await mcp_client.setup()
         self._ready = True
-        logger.info("Dance agent and MCP client ready")
+        logger.info("SCD multi-agent and MCP client ready")
 
     async def stream_events(
         self,
@@ -80,9 +81,6 @@ class DanceAgentUI:
 
         await self.ensure_ready()
 
-        system_and_user = HumanMessage(
-            content=f"{SYSTEM_PROMPT}\n\nUser question: {user_text}"
-        )
         config = {
             "configurable": {"thread_id": session_id},
             "recursion_limit": 50,
@@ -92,31 +90,89 @@ class DanceAgentUI:
 
         yield {
             "event": "status",
-            "title": "Analyzing question",
-            "body": "Getting the dance floor ready and understanding your request.",
+            "title": "Checking query relevance",
+            "body": "Validating your question with the prompt checker...",
         }
 
         start_time = time.perf_counter()
         try:
-            async for chunk in self.agent.astream({"messages": [system_and_user]}, config):
+            # Stream from the multi-agent graph
+            async for chunk in self.agent.graph.astream(
+                {
+                    "messages": [HumanMessage(content=user_text)],
+                    "is_scd_query": False,
+                    "route": ""
+                },
+                config
+            ):
                 if not isinstance(chunk, dict):
                     continue
 
-                if "agent" in chunk:
-                    await self._handle_agent_chunk(chunk["agent"], tool_runs, start_time)
-                    async for event in self._convert_agent_chunk(chunk["agent"], tool_runs):
-                        yield event
+                # Handle different node outputs
+                if "prompt_checker" in chunk:
+                    checker_data = chunk["prompt_checker"]
+                    if checker_data.get("route") == "reject":
+                        yield {
+                            "event": "status",
+                            "title": "Query rejected",
+                            "body": "This query doesn't appear to be about Scottish Country Dancing.",
+                        }
+                    else:
+                        yield {
+                            "event": "status",
+                            "title": "Query accepted",
+                            "body": "Great! Processing your Scottish Country Dance question...",
+                        }
 
-                if "tools" in chunk:
-                    async for event in self._convert_tool_chunk(chunk["tools"], tool_runs):
-                        yield event
+                if "dance_planner" in chunk:
+                    planner_data = chunk["dance_planner"]
+                    messages = planner_data.get("messages", [])
+                    for msg in messages:
+                        tool_calls = getattr(msg, "tool_calls", None)
+                        if tool_calls:
+                            for call in tool_calls:
+                                call_id = call.get("id") or str(uuid.uuid4())
+                                tool_runs[call_id] = {
+                                    "name": call.get("name", "tool"),
+                                    "args": call.get("args", {}),
+                                }
+                                yield {
+                                    "event": "tool_start",
+                                    "tool": tool_runs[call_id]["name"],
+                                    "call_id": call_id,
+                                    "args": tool_runs[call_id]["args"],
+                                }
+                        else:
+                            content = self._stringify_content(getattr(msg, "content", ""))
+                            if content and not content.startswith("You are a Scottish Country Dance"):
+                                yield {"event": "assistant_update", "message": content}
 
-                if "messages" in chunk:
-                    async for event in self._convert_message_chunk(chunk["messages"], tool_runs):
-                        yield event
+                if "tool_executor" in chunk:
+                    executor_data = chunk["tool_executor"]
+                    messages = executor_data.get("messages", [])
+                    for msg in messages:
+                        call_id = getattr(msg, "tool_call_id", None)
+                        run_meta = tool_runs.get(call_id, {})
+                        tool_name = run_meta.get("name", "tool")
+                        parsed = self._parse_tool_output(tool_name, getattr(msg, "content", ""))
+                        yield {
+                            "event": "tool_result",
+                            "tool": tool_name,
+                            "call_id": call_id,
+                            "result": parsed,
+                        }
+
+                if "rejection_handler" in chunk:
+                    rejection_data = chunk["rejection_handler"]
+                    messages = rejection_data.get("messages", [])
+                    for msg in messages:
+                        content = self._stringify_content(getattr(msg, "content", ""))
+                        if content:
+                            yield {"event": "final", "message": content}
+                            return
 
             # Try to fetch the latest assistant message as a fallback
-            final_state = await self.agent.aget_state(config)
+            final_state = await self.agent.graph.aget_state(config)
             final_msg = self._extract_final_message(final_state)
             if final_msg:
                 yield {"event": "final", "message": final_msg}
@@ -133,84 +189,6 @@ class DanceAgentUI:
                 "message": f"I ran into an error: {exc}",
             }
 
-    async def _handle_agent_chunk(
-        self,
-        agent_chunk: Dict[str, Any],
-        tool_runs: Dict[str, Dict[str, Any]],
-        start_time: float,
-    ) -> None:
-        """Capture timing information for debugging."""
-        if agent_chunk.get("messages"):
-            elapsed = time.perf_counter() - start_time
-            logger.debug("Agent chunk after %.2fs: %s", elapsed, agent_chunk.keys())
-
-    async def _convert_agent_chunk(
-        self,
-        agent_chunk: Dict[str, Any],
-        tool_runs: Dict[str, Dict[str, Any]],
-    ) -> AsyncIterator[Dict[str, Any]]:
-        messages = agent_chunk.get("messages") or []
-        for msg in messages:
-            tool_calls = getattr(msg, "tool_calls", None)
-            if tool_calls:
-                for call in tool_calls:
-                    call_id = call.get("id") or str(uuid.uuid4())
-                    tool_runs[call_id] = {
-                        "name": call.get("name", "tool"),
-                        "args": call.get("args", {}),
-                    }
-                    yield {
-                        "event": "tool_start",
-                        "tool": tool_runs[call_id]["name"],
-                        "call_id": call_id,
-                        "args": tool_runs[call_id]["args"],
-                    }
-            else:
-                content = self._stringify_content(getattr(msg, "content", ""))
-                if content:
-                    yield {"event": "assistant_update", "message": content}
-
-    async def _convert_tool_chunk(
-        self,
-        tool_chunk: Dict[str, Any],
-        tool_runs: Dict[str, Dict[str, Any]],
-    ) -> AsyncIterator[Dict[str, Any]]:
-        for msg in tool_chunk.get("messages", []):
-            call_id = getattr(msg, "tool_call_id", None)
-            run_meta = tool_runs.get(call_id, {})
-            tool_name = run_meta.get("name", "tool")
-            parsed = self._parse_tool_output(tool_name, getattr(msg, "content", ""))
-            yield {
-                "event": "tool_result",
-                "tool": tool_name,
-                "call_id": call_id,
-                "result": parsed,
-            }
-
-    async def _convert_message_chunk(
-        self,
-        messages: List[Any],
-        tool_runs: Dict[str, Dict[str, Any]],
-    ) -> AsyncIterator[Dict[str, Any]]:
-        for msg in messages:
-            tool_calls = getattr(msg, "tool_calls", None)
-            if tool_calls:
-                for call in tool_calls:
-                    call_id = call.get("id") or str(uuid.uuid4())
-                    tool_runs[call_id] = {
-                        "name": call.get("name", "tool"),
-                        "args": call.get("args", {}),
-                    }
-                    yield {
-                        "event": "tool_start",
-                        "tool": tool_runs[call_id]["name"],
-                        "call_id": call_id,
-                        "args": tool_runs[call_id]["args"],
-                    }
-            else:
-                content = self._stringify_content(getattr(msg, "content", ""))
-                if content:
-                    yield {"event": "assistant_update", "message": content}
 
     @staticmethod
     def _stringify_content(raw: Any) -> str:
@@ -529,7 +507,7 @@ def build_interface() -> gr.Blocks:
             """
             <div class="main-header">
                 <h1>ChatSCD Studio</h1>
-                <p>Your Scottish Country Dance planning partner</p>
+                <p>Your Scottish Country Dance planning partner • Multi-Agent Architecture</p>
             </div>
             """
         )
