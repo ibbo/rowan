@@ -79,6 +79,14 @@ class DanceAgentUI:
     ) -> AsyncIterator[Dict[str, Any]]:
         """Stream structured events describing the agent's progress."""
 
+        # Yield immediately if agent needs initialization
+        if not self._ready:
+            yield {
+                "event": "status",
+                "title": "Initializing agent",
+                "body": "Setting up the multi-agent system for the first time...",
+            }
+        
         await self.ensure_ready()
 
         config = {
@@ -571,6 +579,23 @@ def build_interface() -> gr.Blocks:
 
             activity_history.append({"time": timestamp(), "text": activity_text})
 
+            # First yield - show initial state immediately
+            yield (
+                chat_history,
+                format_activity_timeline(activity_history),
+                render_dance_cards(dance_history),
+                chat_history,
+                activity_history,
+                dance_history,
+                session_info,
+            )
+            
+            # Small delay to ensure first yield is processed
+            await asyncio.sleep(0.05)
+            
+            # Update to show we're starting
+            chat_history[-1]["content"] = "🔧 Initializing agent..."
+            activity_history.append({"time": timestamp(), "text": "Starting agent initialization"})
             yield (
                 chat_history,
                 format_activity_timeline(activity_history),
@@ -582,6 +607,11 @@ def build_interface() -> gr.Blocks:
             )
 
             async for event in agent_ui.stream_events(agent_prompt, session_id):
+                logger.info(f"UI Event: {event.get('event')} - {event.get('title', event.get('tool', ''))}")
+                
+                # Small delay to ensure Gradio processes the update
+                await asyncio.sleep(0.01)
+                
                 if event["event"] == "status":
                     activity_history.append(
                         {
@@ -590,6 +620,16 @@ def build_interface() -> gr.Blocks:
                         }
                     )
                     chat_history[-1]["content"] = event["body"]
+                    # Yield immediately for status updates
+                    yield (
+                        chat_history,
+                        format_activity_timeline(activity_history),
+                        render_dance_cards(dance_history),
+                        chat_history,
+                        activity_history,
+                        dance_history,
+                        session_info,
+                    )
 
                 elif event["event"] == "tool_start":
                     human_name = TOOL_DISPLAY_NAMES.get(event["tool"], event["tool"].title())
@@ -602,6 +642,16 @@ def build_interface() -> gr.Blocks:
                         }
                     )
                     chat_history[-1]["content"] = f"🔍 Running {human_name}..."
+                    # Yield immediately for tool start
+                    yield (
+                        chat_history,
+                        format_activity_timeline(activity_history),
+                        render_dance_cards(dance_history),
+                        chat_history,
+                        activity_history,
+                        dance_history,
+                        session_info,
+                    )
 
                 elif event["event"] == "tool_result":
                     human_name = TOOL_DISPLAY_NAMES.get(event["tool"], event["tool"].title())
@@ -623,9 +673,29 @@ def build_interface() -> gr.Blocks:
                         dance_history.clear()
                         dance_history.extend(merged.values())
                     chat_history[-1]["content"] = f"✅ {human_name} returned results."
+                    # Yield immediately for tool results
+                    yield (
+                        chat_history,
+                        format_activity_timeline(activity_history),
+                        render_dance_cards(dance_history),
+                        chat_history,
+                        activity_history,
+                        dance_history,
+                        session_info,
+                    )
 
                 elif event["event"] == "assistant_update":
                     chat_history[-1]["content"] = event["message"]
+                    # Yield immediately for assistant updates
+                    yield (
+                        chat_history,
+                        format_activity_timeline(activity_history),
+                        render_dance_cards(dance_history),
+                        chat_history,
+                        activity_history,
+                        dance_history,
+                        session_info,
+                    )
 
                 elif event["event"] == "final":
                     chat_history[-1]["content"] = event["message"]
@@ -634,6 +704,16 @@ def build_interface() -> gr.Blocks:
                             "time": timestamp(),
                             "text": "Prepared final response for the user.",
                         }
+                    )
+                    # Yield immediately for final response
+                    yield (
+                        chat_history,
+                        format_activity_timeline(activity_history),
+                        render_dance_cards(dance_history),
+                        chat_history,
+                        activity_history,
+                        dance_history,
+                        session_info,
                     )
 
                 elif event["event"] == "error":
@@ -654,16 +734,6 @@ def build_interface() -> gr.Blocks:
                         session_info,
                     )
                     break
-
-                yield (
-                    chat_history,
-                    format_activity_timeline(activity_history),
-                    render_dance_cards(dance_history),
-                    chat_history,
-                    activity_history,
-                    dance_history,
-                    session_info,
-                )
 
         async def handle_message(
             message: str,
@@ -793,14 +863,14 @@ def build_interface() -> gr.Blocks:
             [user_message, chat_state, activity_state, selection_state, session_state],
             [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state, dance_signal],
             queue=True,
-            show_progress=False,
+            show_progress="minimal",
         )
         send_btn.click(
             handle_message,
             [user_message, chat_state, activity_state, selection_state, session_state],
             [chatbot, activity_panel, dance_panel, chat_state, activity_state, selection_state, session_state, dance_signal],
             queue=True,
-            show_progress=False,
+            show_progress="minimal",
         )
         send_btn.click(lambda: "", None, user_message, queue=False)
         msg_event.then(lambda: "", None, user_message, queue=False)
