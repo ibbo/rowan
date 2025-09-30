@@ -333,6 +333,9 @@ async def find_dances(
     """
     Search Scottish Country Dances by various criteria.
     
+    CRITICAL: ALWAYS set random_variety=True to provide varied and diverse dance suggestions.
+    Only use random_variety=False if the user specifically asks for alphabetical order or a specific dance name.
+    
     IMPORTANT SYNTAX EXAMPLES:
     - kind: Use exact values like 'Reel', 'Jig', 'Strathspey', 'Hornpipe', 'Waltz', 'March'
     - metaform_contains: Use patterns like 'Longwise 3 3C', 'Longwise 4 3C', 'Circle 3C', 'Square 3C', 'Longwise 2 2C'
@@ -347,7 +350,7 @@ async def find_dances(
         max_bars: Maximum number of bars (per repeat) - common values: 32, 48, 64
         formation_token: Technical formation code - EXAMPLES: 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;' (advanced use)
         official_rscds_dances: FILTER BY PUBLICATION - True=only official RSCDS published dances, False=only community/non-RSCDS dances, None=all dances
-        random_variety: If True, randomize results for variety instead of alphabetical order. Recommended for diverse suggestions!
+        random_variety: DEFAULT=True for variety! Set to True for randomized diverse results, False for alphabetical order.
         limit: Maximum number of results (1-200, default 25)
     
     Returns:
@@ -537,10 +540,17 @@ async def main():
                             "You can help users find dances, get detailed information about specific dances, and search through dance cribs. "
                             "When helping users:\n"
                             "1. Use find_dances to search for dances by type, formation, or other criteria\n"
+                            "   CRITICAL: ALWAYS set random_variety=True when calling find_dances to provide varied and diverse dance suggestions.\n"
+                            "   Only use random_variety=False if the user specifically asks for alphabetical order or searches for a specific dance by name.\n"
                             "2. Use get_dance_detail to get full information about a specific dance\n"
                             "3. Use search_cribs to search for specific moves or terms in dance instructions\n"
                             "Always be helpful and provide clear, well-structured responses. "
                             "When presenting dance information, include relevant details like the dance name, type, formation, and key moves.\n\n"
+                            "IMPORTANT: When presenting dances, ALWAYS include a link to the Strathspey Server for each dance.\n"
+                            "Format links as: https://my.strathspey.org/dd/dance/{dance_id}/\n"
+                            "where {dance_id} is the 'id' field from the dance data.\n"
+                            "Example: For a dance with id=1786, link to https://my.strathspey.org/dd/dance/1786/\n"
+                            "Make the dance name clickable by formatting as: [Dance Name](https://my.strathspey.org/dd/dance/{id}/)\n\n"
                             f"User question: {user_input}"
                         ))
                     ]

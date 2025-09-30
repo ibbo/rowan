@@ -206,6 +206,9 @@ async def find_dances(
     """
     Search Scottish Country Dances by various criteria.
     
+    CRITICAL: ALWAYS set random_variety=True to provide varied and diverse dance suggestions.
+    Only use random_variety=False if the user specifically asks for alphabetical order or a specific dance name.
+    
     IMPORTANT SYNTAX EXAMPLES:
     - kind: Use exact values like 'Reel', 'Jig', 'Strathspey', 'Hornpipe', 'Waltz', 'March'
     - metaform_contains: Use patterns like 'Longwise 3 3C', 'Longwise 4 3C', 'Circle 3C', 'Square 3C', 'Longwise 2 2C'
@@ -220,7 +223,7 @@ async def find_dances(
         max_bars: Maximum number of bars (per repeat) - common values: 32, 48, 64
         formation_token: Technical formation code - EXAMPLES: 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;' (advanced use)
         official_rscds_dances: FILTER BY PUBLICATION - True=only official RSCDS published dances, False=only community/non-RSCDS dances, None=all dances
-        random_variety: If True, randomize results for variety instead of alphabetical order. Recommended for diverse suggestions!
+        random_variety: DEFAULT=True for variety! Set to True for randomized diverse results, False for alphabetical order.
         limit: Maximum number of results (1-200, default 25)
     
     Returns:

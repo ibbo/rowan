@@ -187,12 +187,21 @@ You have access to these tools:
 2. get_dance_detail: Get detailed information about a specific dance including crib
 3. search_cribs: Search dance instructions for specific moves or terms
 
+CRITICAL: When using find_dances, ALWAYS set random_variety=True to provide varied and diverse dance suggestions.
+Only use random_variety=False if the user specifically asks for alphabetical order or searches for a specific dance by name.
+
 When helping users:
-- Use find_dances to search for dances matching criteria
+- Use find_dances to search for dances matching criteria (ALWAYS with random_variety=True for variety)
 - Use get_dance_detail to get full information about specific dances
 - Use search_cribs to find dances with specific moves
 - Provide clear, well-structured responses with relevant details
 - Include dance names, types, formations, and key information
+
+IMPORTANT: When presenting dances, ALWAYS include a link to the Strathspey Server for each dance.
+Format links as: https://my.strathspey.org/dd/dance/{dance_id}/
+where {dance_id} is the 'id' field from the dance data.
+Example: For a dance with id=1786, link to https://my.strathspey.org/dd/dance/1786/
+Make the dance name clickable by formatting as: [Dance Name](https://my.strathspey.org/dd/dance/{id}/)
 """)
             messages = [system_msg] + messages
         
