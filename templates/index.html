@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatSCD - Scottish Country Dance Assistant</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+            min-height: 500px;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .message.system .message-content {
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 0.9rem;
+            max-width: 100%;
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .status-processing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .dance-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .dance-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.2s;
+        }
+
+        .dance-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .dance-card h4 {
+            color: #1f2937;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .dance-card p {
+            color: #6b7280;
+            font-size: 0.85rem;
+            margin: 4px 0;
+        }
+
+        .input-container {
+            padding: 20px;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .input-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #message-input:focus {
+            border-color: #667eea;
+        }
+
+        #send-button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        #send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 18px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9ca3af;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .timestamp {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .examples {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .example-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            border-color: #667eea;
+            background: #f3f4f6;
+        }
+
+        /* Markdown styling */
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .message-content h1 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        .message-content h2 {
+            font-size: 1.3rem;
+        }
+
+        .message-content h3 {
+            font-size: 1.1rem;
+        }
+
+        .message-content h4 {
+            font-size: 1rem;
+        }
+
+        .message-content p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            margin: 8px 0;
+            padding-left: 24px;
+        }
+
+        .message-content li {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+
+        .message-content strong {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .message-content em {
+            font-style: italic;
+        }
+
+        .message-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 16px;
+            margin: 12px 0;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .message-content a {
+            color: #667eea;
+            text-decoration: none;
+            border-bottom: 1px solid #667eea;
+        }
+
+        .message-content a:hover {
+            color: #764ba2;
+            border-bottom-color: #764ba2;
+        }
+
+        .message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        .message-content th,
+        .message-content td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .message-content th {
+            background: #f3f4f6;
+            font-weight: 600;
+        }
+
+        .message-content hr {
+            border: none;
+            border-top: 2px solid #e5e7eb;
+            margin: 16px 0;
+        }
+
+        pre {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            margin: 12px 0;
+        }
+
+        code {
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+            color: #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏴󠁧󠁢󠁳󠁣󠁴󠁿 ChatSCD</h1>
+            <p>Your Scottish Country Dance Planning Partner</p>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                <div class="message system">
+                    <div class="message-content">
+                        <strong>Welcome!</strong> Ask me about Scottish Country Dances, and I'll help you find dances, get details, or plan your class.
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="examples">
+                    <button class="example-btn" onclick="setMessage('Find me some 32-bar reels')">32-bar reels</button>
+                    <button class="example-btn" onclick="setMessage('What dances have poussette moves?')">Poussette dances</button>
+                    <button class="example-btn" onclick="setMessage('Show me RSCDS published jigs')">RSCDS jigs</button>
+                </div>
+                <form class="input-form" onsubmit="sendMessage(event)">
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="Ask about Scottish Country Dances..." 
+                        autocomplete="off"
+                        required
+                    >
+                    <button type="submit" id="send-button">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = crypto.randomUUID();
+        let isProcessing = false;
+
+        // Configure marked.js
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: false,
+            mangle: false
+        });
+
+        function setMessage(text) {
+            document.getElementById('message-input').value = text;
+            document.getElementById('message-input').focus();
+        }
+
+        function renderMarkdown(text) {
+            try {
+                return marked.parse(text);
+            } catch (e) {
+                console.error('Markdown parsing error:', e);
+                return text;
+            }
+        }
+
+        function addMessage(type, content, timestamp = null, isMarkdown = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // Render markdown for assistant messages
+            if (isMarkdown && type === 'assistant') {
+                contentDiv.innerHTML = renderMarkdown(content);
+            } else {
+                contentDiv.innerHTML = content;
+            }
+            
+            if (timestamp) {
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'timestamp';
+                timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
+                contentDiv.appendChild(timeDiv);
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        function addTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'message assistant';
+            indicator.id = 'typing-indicator';
+            indicator.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            document.getElementById('messages').appendChild(indicator);
+            return indicator;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) indicator.remove();
+        }
+
+        function formatDanceCards(dances) {
+            if (!dances || dances.length === 0) return '';
+            
+            let html = '<div class="dance-cards">';
+            dances.forEach(dance => {
+                html += `
+                    <div class="dance-card">
+                        <h4>${dance.name || 'Unknown'}</h4>
+                        <p><strong>Type:</strong> ${dance.kind || 'N/A'}</p>
+                        <p><strong>Bars:</strong> ${dance.bars || 'N/A'}</p>
+                        <p><strong>Formation:</strong> ${dance.metaform || 'N/A'}</p>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        async function sendMessage(event) {
+            event.preventDefault();
+            
+            if (isProcessing) return;
+            
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage('user', message);
+            input.value = '';
+            
+            // Disable input
+            isProcessing = true;
+            document.getElementById('send-button').disabled = true;
+            input.disabled = true;
+            
+            // Add typing indicator
+            const typingIndicator = addTypingIndicator();
+            
+            // Create assistant message placeholder
+            let assistantMessage = null;
+            let currentContent = '';
+            
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                
+                                // Remove typing indicator on first real event
+                                if (typingIndicator && typingIndicator.parentNode) {
+                                    removeTypingIndicator();
+                                }
+                                
+                                if (data.type === 'status') {
+                                    addMessage('system', `<span class="status-badge status-processing">⏳</span>${data.message}`, data.timestamp);
+                                }
+                                else if (data.type === 'tool_start') {
+                                    const argsStr = Object.entries(data.args || {}).map(([k, v]) => `${k}=${v}`).join(', ');
+                                    addMessage('system', `<span class="status-badge status-processing">🔧</span>Running <strong>${data.tool}</strong>${argsStr ? ` (${argsStr})` : ''}`, data.timestamp);
+                                }
+                                else if (data.type === 'tool_result') {
+                                    if (data.dances && data.dances.length > 0) {
+                                        const danceHtml = formatDanceCards(data.dances);
+                                        addMessage('system', `<span class="status-badge status-success">✅</span>Found ${data.dances.length} dances${danceHtml}`, data.timestamp);
+                                    } else {
+                                        addMessage('system', `<span class="status-badge status-success">✅</span>Tool completed`, data.timestamp);
+                                    }
+                                }
+                                else if (data.type === 'assistant' || data.type === 'final') {
+                                    if (!assistantMessage) {
+                                        assistantMessage = addMessage('assistant', data.message, data.timestamp, true);
+                                        currentContent = data.message;
+                                    } else {
+                                        currentContent = data.message;
+                                        const contentDiv = assistantMessage.querySelector('.message-content');
+                                        contentDiv.innerHTML = renderMarkdown(currentContent);
+                                        
+                                        // Re-add timestamp if it exists
+                                        const existingTimestamp = contentDiv.querySelector('.timestamp');
+                                        if (data.timestamp && !existingTimestamp) {
+                                            const timeDiv = document.createElement('div');
+                                            timeDiv.className = 'timestamp';
+                                            timeDiv.textContent = new Date(data.timestamp).toLocaleTimeString();
+                                            contentDiv.appendChild(timeDiv);
+                                        }
+                                    }
+                                }
+                                else if (data.type === 'error') {
+                                    addMessage('system', `<span class="status-badge status-error">❌</span>${data.message}`, data.timestamp);
+                                }
+                                else if (data.type === 'complete') {
+                                    console.log('Stream complete');
+                                }
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage('system', `<span class="status-badge status-error">❌</span>Error: ${error.message}`);
+            } finally {
+                // Re-enable input
+                isProcessing = false;
+                document.getElementById('send-button').disabled = false;
+                input.disabled = false;
+                input.focus();
+                removeTypingIndicator();
+            }
+        }
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            document.getElementById('message-input').focus();
+        });
+    </script>
+</body>
+</html>
