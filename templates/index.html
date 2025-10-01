@@ -253,6 +253,37 @@
             text-align: center;
         }
 
+        .progress-box {
+            background: #f0f9ff;
+            border: 2px solid #bae6fd;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 10px 0;
+            max-width: 100%;
+        }
+
+        .progress-box .progress-title {
+            font-weight: 600;
+            color: #0c4a6e;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-box .progress-content {
+            color: #075985;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .progress-box .progress-step {
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .status-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -696,6 +727,52 @@
             return messageDiv;
         }
 
+        function getOrCreateProgressBox() {
+            let progressBox = document.getElementById('progress-box');
+            if (!progressBox) {
+                const messagesDiv = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message assistant';
+                messageDiv.id = 'progress-container';
+                
+                progressBox = document.createElement('div');
+                progressBox.className = 'progress-box';
+                progressBox.id = 'progress-box';
+                progressBox.innerHTML = `
+                    <div class="progress-title">
+                        <span id="progress-icon">⏳</span>
+                        <span id="progress-title-text">Processing...</span>
+                    </div>
+                    <div class="progress-content" id="progress-content"></div>
+                `;
+                
+                messageDiv.appendChild(progressBox);
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+            return progressBox;
+        }
+
+        function updateProgressBox(icon, title, content) {
+            const progressBox = getOrCreateProgressBox();
+            const iconEl = document.getElementById('progress-icon');
+            const titleEl = document.getElementById('progress-title-text');
+            const contentEl = document.getElementById('progress-content');
+            
+            if (iconEl) iconEl.textContent = icon;
+            if (titleEl) titleEl.textContent = title;
+            if (contentEl) contentEl.innerHTML = content;
+            
+            // Scroll to bottom
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeProgressBox() {
+            const container = document.getElementById('progress-container');
+            if (container) container.remove();
+        }
+
         function addTypingIndicator() {
             const indicator = document.createElement('div');
             indicator.className = 'message assistant';
@@ -753,6 +830,7 @@
             // Create assistant message placeholder
             let assistantMessage = null;
             let currentContent = '';
+            let progressSteps = [];
             
             try {
                 const response = await fetch('/api/query', {
@@ -787,21 +865,27 @@
                                 }
                                 
                                 if (data.type === 'status') {
-                                    addMessage('system', `<span class="status-badge status-processing">⏳</span>${data.message}`, data.timestamp);
+                                    progressSteps.push(`<div class="progress-step">⏳ ${data.message}</div>`);
+                                    updateProgressBox('⏳', 'Processing', progressSteps.join(''));
                                 }
                                 else if (data.type === 'tool_start') {
                                     const argsStr = Object.entries(data.args || {}).map(([k, v]) => `${k}=${v}`).join(', ');
-                                    addMessage('system', `<span class="status-badge status-processing">🔧</span>Running <strong>${data.tool}</strong>${argsStr ? ` (${argsStr})` : ''}`, data.timestamp);
+                                    progressSteps.push(`<div class="progress-step">🔧 Running <strong>${data.tool}</strong>${argsStr ? ` (${argsStr})` : ''}</div>`);
+                                    updateProgressBox('🔧', 'Running Tools', progressSteps.join(''));
                                 }
                                 else if (data.type === 'tool_result') {
                                     if (data.dances && data.dances.length > 0) {
-                                        const danceHtml = formatDanceCards(data.dances);
-                                        addMessage('system', `<span class="status-badge status-success">✅</span>Found ${data.dances.length} dances${danceHtml}`, data.timestamp);
+                                        progressSteps.push(`<div class="progress-step">✅ Found ${data.dances.length} dances</div>`);
+                                        updateProgressBox('✅', 'Search Complete', progressSteps.join(''));
                                     } else {
-                                        addMessage('system', `<span class="status-badge status-success">✅</span>Tool completed`, data.timestamp);
+                                        progressSteps.push(`<div class="progress-step">✅ Tool completed</div>`);
+                                        updateProgressBox('✅', 'Complete', progressSteps.join(''));
                                     }
                                 }
                                 else if (data.type === 'assistant' || data.type === 'final') {
+                                    // Remove progress box when we get the final response
+                                    removeProgressBox();
+                                    
                                     if (!assistantMessage) {
                                         assistantMessage = addMessage('assistant', data.message, data.timestamp, true);
                                         currentContent = data.message;
@@ -821,9 +905,11 @@
                                     }
                                 }
                                 else if (data.type === 'error') {
+                                    removeProgressBox();
                                     addMessage('system', `<span class="status-badge status-error">❌</span>${data.message}`, data.timestamp);
                                 }
                                 else if (data.type === 'complete') {
+                                    removeProgressBox();
                                     console.log('Stream complete');
                                 }
                             } catch (e) {
@@ -835,6 +921,7 @@
             } catch (error) {
                 console.error('Error:', error);
                 removeTypingIndicator();
+                removeProgressBox();
                 addMessage('system', `<span class="status-badge status-error">❌</span>Error: ${error.message}`);
             } finally {
                 // Re-enable input
