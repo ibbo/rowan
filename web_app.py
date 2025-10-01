@@ -7,6 +7,7 @@ Uses Server-Sent Events (SSE) for real-time streaming updates.
 import asyncio
 import json
 import os
+import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -36,8 +37,190 @@ templates = Jinja2Templates(directory="templates")
 agent: Optional[SCDAgent] = None
 agent_ready = False
 
-# Session storage (in production, use Redis or similar)
-sessions: Dict[str, Dict] = {}
+# Chat history database path
+CHAT_DB_PATH = "data/chat_history.db"
+
+
+def init_chat_db():
+    """Initialize the chat history database."""
+    os.makedirs(os.path.dirname(CHAT_DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(CHAT_DB_PATH)
+    cursor = conn.cursor()
+    
+    # Create sessions table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sessions (
+            session_id TEXT PRIMARY KEY,
+            title TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Add title column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute("ALTER TABLE sessions ADD COLUMN title TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    # Create messages table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+        )
+    """)
+    
+    # Create index for faster lookups
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_messages_session 
+        ON messages(session_id, timestamp)
+    """)
+    
+    conn.commit()
+    conn.close()
+    print(f"✅ Chat history database initialized at {CHAT_DB_PATH}")
+
+
+def save_message(session_id: str, role: str, content: str):
+    """Save a message to the chat history."""
+    conn = sqlite3.connect(CHAT_DB_PATH)
+    cursor = conn.cursor()
+    
+    # Ensure session exists
+    cursor.execute("""
+        INSERT OR IGNORE INTO sessions (session_id) VALUES (?)
+    """, (session_id,))
+    
+    # Update last active time
+    cursor.execute("""
+        UPDATE sessions SET last_active = CURRENT_TIMESTAMP WHERE session_id = ?
+    """, (session_id,))
+    
+    # Insert message
+    cursor.execute("""
+        INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)
+    """, (session_id, role, content))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_chat_history(session_id: str, limit: int = 100) -> List[Dict]:
+    """Retrieve chat history for a session."""
+    conn = sqlite3.connect(CHAT_DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT role, content, timestamp 
+        FROM messages 
+        WHERE session_id = ? 
+        ORDER BY timestamp ASC
+        LIMIT ?
+    """, (session_id, limit))
+    
+    messages = []
+    for row in cursor.fetchall():
+        messages.append({
+            "role": row[0],
+            "content": row[1],
+            "timestamp": row[2]
+        })
+    
+    conn.close()
+    return messages
+
+
+def clear_chat_history(session_id: str):
+    """Clear chat history for a session."""
+    conn = sqlite3.connect(CHAT_DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+    cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_all_sessions() -> List[Dict]:
+    """Get all chat sessions with metadata."""
+    conn = sqlite3.connect(CHAT_DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT 
+            s.session_id,
+            s.title,
+            s.created_at,
+            s.last_active,
+            COUNT(m.id) as message_count,
+            (
+                SELECT content 
+                FROM messages 
+                WHERE session_id = s.session_id AND role = 'user'
+                ORDER BY timestamp ASC 
+                LIMIT 1
+            ) as first_message
+        FROM sessions s
+        LEFT JOIN messages m ON s.session_id = m.session_id
+        GROUP BY s.session_id
+        ORDER BY s.last_active DESC
+    """)
+    
+    sessions = []
+    for row in cursor.fetchall():
+        # Generate title from first message if not set
+        title = row[1]
+        if not title and row[5]:  # If no title but has first message
+            # Use first 50 chars of first message as title
+            title = row[5][:50] + ("..." if len(row[5]) > 50 else "")
+        elif not title:
+            title = "New Chat"
+        
+        sessions.append({
+            "session_id": row[0],
+            "title": title,
+            "created_at": row[2],
+            "last_active": row[3],
+            "message_count": row[4],
+            "preview": row[5][:100] if row[5] else "No messages yet"
+        })
+    
+    conn.close()
+    return sessions
+
+
+def update_session_title(session_id: str, title: str):
+    """Update the title of a session."""
+    conn = sqlite3.connect(CHAT_DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE sessions SET title = ? WHERE session_id = ?
+    """, (title, session_id))
+    
+    conn.commit()
+    conn.close()
+
+
+def create_new_session() -> str:
+    """Create a new chat session and return its ID."""
+    session_id = str(uuid.uuid4())
+    conn = sqlite3.connect(CHAT_DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO sessions (session_id, title) VALUES (?, ?)
+    """, (session_id, "New Chat"))
+    
+    conn.commit()
+    conn.close()
+    return session_id
 
 
 @app.on_event("startup")
@@ -45,6 +228,7 @@ async def startup_event():
     """Initialize the agent on startup."""
     global agent, agent_ready
     print("🔧 Initializing SCD Agent...")
+    init_chat_db()
     agent = SCDAgent()
     await mcp_client.setup()
     agent_ready = True
@@ -86,6 +270,9 @@ async def query_stream(request: Request):
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the agent."""
         try:
+            # Save user message to history
+            save_message(session_id, "user", message)
+            
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': 'Processing your query...', 'timestamp': datetime.now().isoformat()})}\n\n"
             
@@ -173,6 +360,7 @@ async def query_stream(request: Request):
             
             # Get final state
             final_state = await agent.graph.aget_state(config)
+            final_response = ""
             if final_state and hasattr(final_state, "values"):
                 messages = final_state.values.get("messages", [])
                 for msg in reversed(messages):
@@ -180,15 +368,19 @@ async def query_stream(request: Request):
                         continue
                     content = getattr(msg, "content", "")
                     if isinstance(content, str) and content:
+                        final_response = content
                         yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
                         break
+            
+            # Save assistant response to history
+            if final_response:
+                save_message(session_id, "assistant", final_response)
             
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
             
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
-    
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -198,6 +390,58 @@ async def query_stream(request: Request):
             "X-Accel-Buffering": "no",  # Disable nginx buffering
         }
     )
+
+
+@app.get("/api/history/{session_id}")
+async def get_history(session_id: str):
+    """Get chat history for a session."""
+    try:
+        history = get_chat_history(session_id)
+        return {"history": history}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.delete("/api/history/{session_id}")
+async def delete_history(session_id: str):
+    """Clear chat history for a session."""
+    try:
+        clear_chat_history(session_id)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/sessions")
+async def list_sessions():
+    """Get all chat sessions."""
+    try:
+        sessions = get_all_sessions()
+        return {"sessions": sessions}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/sessions/new")
+async def new_session():
+    """Create a new chat session."""
+    try:
+        session_id = create_new_session()
+        return {"session_id": session_id}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.put("/api/sessions/{session_id}/title")
+async def update_title(session_id: str, request: Request):
+    """Update session title."""
+    try:
+        data = await request.json()
+        title = data.get("title", "")
+        update_session_title(session_id, title)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/health")
