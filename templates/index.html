@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChatSCD - Scottish Country Dance Assistant</title>
+    <link rel="icon" type="image/png" href="/assets/chatscd_logo.png">
+    <link rel="apple-touch-icon" href="/assets/chatscd_logo.png">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
@@ -182,6 +184,16 @@
             font-size: 2rem;
             margin-bottom: 8px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            height: 64px;
+            width: auto;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
         }
 
         .header p {
@@ -550,6 +562,10 @@
                 font-size: 1.5rem;
             }
 
+            .header-logo {
+                height: 48px;
+            }
+
             .header {
                 margin-bottom: 10px;
             }
@@ -723,7 +739,10 @@
         <!-- Main chat area -->
         <div class="main-content">
             <div class="header">
-                <h1>🏴󠁧󠁢󠁳󠁣󠁴󠁿 ChatSCD</h1>
+                <h1>
+                    <img src="/assets/chatscd_logo.png" alt="ChatSCD Logo" class="header-logo">
+                    ChatSCD
+                </h1>
                 <p>Your Scottish Country Dance Planning Partner</p>
             </div>
 

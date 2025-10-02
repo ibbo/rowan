@@ -30,6 +30,9 @@ load_dotenv()
 # Initialize FastAPI
 app = FastAPI(title="ChatSCD - Scottish Country Dance Assistant")
 
+# Static files
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
 # Templates
 templates = Jinja2Templates(directory="templates")
 
