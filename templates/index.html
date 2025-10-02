@@ -666,6 +666,14 @@
     </div>
 
     <script>
+        // Get or create browser ID from localStorage (persistent across sessions)
+        let browserId = localStorage.getItem('chatSCD_browserId');
+        if (!browserId) {
+            browserId = crypto.randomUUID();
+            localStorage.setItem('chatSCD_browserId', browserId);
+        }
+        console.log('Browser ID:', browserId);
+        
         // Get or create session ID from localStorage
         let sessionId = localStorage.getItem('chatSCD_sessionId');
         if (!sessionId) {
@@ -840,7 +848,8 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        session_id: sessionId
+                        session_id: sessionId,
+                        browser_id: browserId
                     })
                 });
                 
@@ -939,7 +948,7 @@
 
         async function loadSessions() {
             try {
-                const response = await fetch('/api/sessions');
+                const response = await fetch(`/api/sessions?browser_id=${encodeURIComponent(browserId)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -1028,7 +1037,13 @@
         async function createNewChat() {
             try {
                 const response = await fetch('/api/sessions/new', {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        browser_id: browserId
+                    })
                 });
                 const data = await response.json();
                 

@@ -51,11 +51,18 @@ def init_chat_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS sessions (
             session_id TEXT PRIMARY KEY,
+            browser_id TEXT,
             title TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    
+    # Add browser_id column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute("ALTER TABLE sessions ADD COLUMN browser_id TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Add title column if it doesn't exist (for existing databases)
     try:
@@ -86,15 +93,24 @@ def init_chat_db():
     print(f"✅ Chat history database initialized at {CHAT_DB_PATH}")
 
 
-def save_message(session_id: str, role: str, content: str):
+def save_message(session_id: str, role: str, content: str, browser_id: str = None):
     """Save a message to the chat history."""
     conn = sqlite3.connect(CHAT_DB_PATH)
     cursor = conn.cursor()
     
     # Ensure session exists
-    cursor.execute("""
-        INSERT OR IGNORE INTO sessions (session_id) VALUES (?)
-    """, (session_id,))
+    if browser_id:
+        cursor.execute("""
+            INSERT OR IGNORE INTO sessions (session_id, browser_id) VALUES (?, ?)
+        """, (session_id, browser_id))
+        # Update browser_id if session exists but browser_id is null
+        cursor.execute("""
+            UPDATE sessions SET browser_id = ? WHERE session_id = ? AND browser_id IS NULL
+        """, (browser_id, session_id))
+    else:
+        cursor.execute("""
+            INSERT OR IGNORE INTO sessions (session_id) VALUES (?)
+        """, (session_id,))
     
     # Update last active time
     cursor.execute("""
@@ -147,30 +163,52 @@ def clear_chat_history(session_id: str):
     conn.close()
 
 
-def get_all_sessions() -> List[Dict]:
-    """Get all chat sessions with metadata."""
+def get_all_sessions(browser_id: str = None) -> List[Dict]:
+    """Get all chat sessions with metadata, optionally filtered by browser_id."""
     conn = sqlite3.connect(CHAT_DB_PATH)
     cursor = conn.cursor()
     
-    cursor.execute("""
-        SELECT 
-            s.session_id,
-            s.title,
-            s.created_at,
-            s.last_active,
-            COUNT(m.id) as message_count,
-            (
-                SELECT content 
-                FROM messages 
-                WHERE session_id = s.session_id AND role = 'user'
-                ORDER BY timestamp ASC 
-                LIMIT 1
-            ) as first_message
-        FROM sessions s
-        LEFT JOIN messages m ON s.session_id = m.session_id
-        GROUP BY s.session_id
-        ORDER BY s.last_active DESC
-    """)
+    if browser_id:
+        cursor.execute("""
+            SELECT 
+                s.session_id,
+                s.title,
+                s.created_at,
+                s.last_active,
+                COUNT(m.id) as message_count,
+                (
+                    SELECT content 
+                    FROM messages 
+                    WHERE session_id = s.session_id AND role = 'user'
+                    ORDER BY timestamp ASC 
+                    LIMIT 1
+                ) as first_message
+            FROM sessions s
+            LEFT JOIN messages m ON s.session_id = m.session_id
+            WHERE s.browser_id = ?
+            GROUP BY s.session_id
+            ORDER BY s.last_active DESC
+        """, (browser_id,))
+    else:
+        cursor.execute("""
+            SELECT 
+                s.session_id,
+                s.title,
+                s.created_at,
+                s.last_active,
+                COUNT(m.id) as message_count,
+                (
+                    SELECT content 
+                    FROM messages 
+                    WHERE session_id = s.session_id AND role = 'user'
+                    ORDER BY timestamp ASC 
+                    LIMIT 1
+                ) as first_message
+            FROM sessions s
+            LEFT JOIN messages m ON s.session_id = m.session_id
+            GROUP BY s.session_id
+            ORDER BY s.last_active DESC
+        """)
     
     sessions = []
     for row in cursor.fetchall():
@@ -208,15 +246,15 @@ def update_session_title(session_id: str, title: str):
     conn.close()
 
 
-def create_new_session() -> str:
+def create_new_session(browser_id: str = None) -> str:
     """Create a new chat session and return its ID."""
     session_id = str(uuid.uuid4())
     conn = sqlite3.connect(CHAT_DB_PATH)
     cursor = conn.cursor()
     
     cursor.execute("""
-        INSERT INTO sessions (session_id, title) VALUES (?, ?)
-    """, (session_id, "New Chat"))
+        INSERT INTO sessions (session_id, browser_id, title) VALUES (?, ?, ?)
+    """, (session_id, browser_id, "New Chat"))
     
     conn.commit()
     conn.close()
@@ -257,12 +295,14 @@ async def query_stream(request: Request):
     Expected JSON body:
     {
         "message": "Find me some 32-bar reels",
-        "session_id": "optional-session-id"
+        "session_id": "optional-session-id",
+        "browser_id": "optional-browser-id"
     }
     """
     data = await request.json()
     message = data.get("message", "").strip()
     session_id = data.get("session_id") or str(uuid.uuid4())
+    browser_id = data.get("browser_id")
     
     if not message:
         return {"error": "Message is required"}
@@ -271,7 +311,7 @@ async def query_stream(request: Request):
         """Generate SSE events from the agent."""
         try:
             # Save user message to history
-            save_message(session_id, "user", message)
+            save_message(session_id, "user", message, browser_id)
             
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': 'Processing your query...', 'timestamp': datetime.now().isoformat()})}\n\n"
@@ -374,7 +414,7 @@ async def query_stream(request: Request):
             
             # Save assistant response to history
             if final_response:
-                save_message(session_id, "assistant", final_response)
+                save_message(session_id, "assistant", final_response, browser_id)
             
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
@@ -413,20 +453,24 @@ async def delete_history(session_id: str):
 
 
 @app.get("/api/sessions")
-async def list_sessions():
-    """Get all chat sessions."""
+async def list_sessions(request: Request):
+    """Get chat sessions for the current browser."""
     try:
-        sessions = get_all_sessions()
+        # Get browser_id from query parameter
+        browser_id = request.query_params.get("browser_id")
+        sessions = get_all_sessions(browser_id)
         return {"sessions": sessions}
     except Exception as e:
         return {"error": str(e)}
 
 
 @app.post("/api/sessions/new")
-async def new_session():
+async def new_session(request: Request):
     """Create a new chat session."""
     try:
-        session_id = create_new_session()
+        data = await request.json()
+        browser_id = data.get("browser_id")
+        session_id = create_new_session(browser_id)
         return {"session_id": session_id}
     except Exception as e:
         return {"error": str(e)}
