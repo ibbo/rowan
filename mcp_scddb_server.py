@@ -124,6 +124,24 @@ async def handle_list_tools() -> List[Tool]:
                 "required":["query"]
             },
         ),
+        Tool(
+            name="list_formations",
+            description=(
+                "List all Scottish Country Dance formations (dance figures/movements) available in the database. "
+                "Returns formation names, search tokens, and usage statistics. "
+                "Useful for discovering what formations exist before searching for dances with specific formations. "
+                "Can filter by name substring and sort by popularity (most used) or alphabetically."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "name_contains":{"type":["string","null"], "description":"Substring to search for in formation name (case-insensitive)"},
+                    "sort_by":{"type":"string","enum":["popularity","alphabetical"],"default":"popularity", "description":"Sort results by popularity (most used formations first) or alphabetically"},
+                    "limit":{"type":"integer","minimum":1,"maximum":500,"default":50, "description":"Maximum number of formations to return"}
+                },
+                "required":[]
+            },
+        ),
     ]
 
 @server.call_tool()
@@ -274,6 +292,54 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
             total_tool_time = (tool_end - tool_start_time) * 1000
             
             logger.info(f"search_cribs TOOL PERF: Total={total_tool_time:.2f}ms, FTSQuery={search_time:.2f}ms, Results={len(rows)}")
+            return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
+
+        if name == "list_formations":
+            name_contains = arguments.get("name_contains")
+            sort_by = arguments.get("sort_by", "popularity")
+            limit = int(arguments.get("limit", 50))
+            
+            logger.info("list_formations called with: name_contains=%s, sort_by=%s, limit=%s", 
+                       name_contains, sort_by, limit)
+            
+            # Build SQL query with optional name filtering and usage count
+            sql = """
+            SELECT 
+                f.id,
+                f.name,
+                f.searchid as formation_token,
+                f.napiername,
+                COUNT(dfm.dance_id) as usage_count
+            FROM formation f
+            LEFT JOIN dancesformationsmap dfm ON f.id = dfm.formation_id
+            """
+            
+            args: List[Any] = []
+            if name_contains:
+                sql += " WHERE f.name LIKE ? COLLATE NOCASE"
+                args.append(f"%{name_contains}%")
+            
+            sql += " GROUP BY f.id, f.name, f.searchid, f.napiername"
+            
+            # Add sorting
+            if sort_by == "popularity":
+                sql += " ORDER BY usage_count DESC, f.name"
+            else:  # alphabetical
+                sql += " ORDER BY f.name"
+            
+            sql += " LIMIT ?"
+            args.append(limit)
+            
+            logger.debug("Executing SQL: %s with args: %s", sql, args)
+            query_start = time.perf_counter()
+            rows = q(sql, tuple(args))
+            query_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            query_time = (query_end - query_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"list_formations TOOL PERF: Total={total_tool_time:.2f}ms, Query={query_time:.2f}ms, Results={len(rows)}")
             return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
 
         # Unknown tool

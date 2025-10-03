@@ -316,3 +316,40 @@ async def search_cribs(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     print(f"DEBUG: search_cribs completed - {total_time:.2f}ms", file=sys.stderr)
     
     return result
+
+
+@tool
+async def list_formations(
+    name_contains: Optional[str] = None,
+    sort_by: str = "popularity",
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+    """
+    List all Scottish Country Dance formations (dance figures/movements) available in the database.
+    Returns formation names, search tokens, and usage statistics.
+    Useful for discovering what formations exist before searching for dances with specific formations.
+    
+    Args:
+        name_contains: Optional substring to search for in formation name (case-insensitive)
+        sort_by: Sort results by 'popularity' (most used formations first) or 'alphabetical' (default: popularity)
+        limit: Maximum number of formations to return (1-500, default 50)
+    
+    Returns:
+        List of formations with their names, tokens, and usage counts
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: list_formations tool called with name_contains: '{name_contains}', sort_by: '{sort_by}', limit: {limit}", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    arguments = {"sort_by": sort_by, "limit": limit}
+    if name_contains:
+        arguments["name_contains"] = name_contains
+    
+    result = await mcp_client.call_tool("list_formations", arguments)
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: list_formations completed - {total_time:.2f}ms", file=sys.stderr)
+    
+    return result

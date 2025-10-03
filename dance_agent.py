@@ -7,6 +7,7 @@ Usage:
     uv run dance_agent.py
 
 The agent can:
+- List available dance formations/figures with usage statistics
 - Search for dances by name, kind, or metaform
 - Get detailed information about specific dances
 - Search dance cribs for specific moves or terms
@@ -445,6 +446,43 @@ async def search_cribs(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     return result
 
 
+@tool
+async def list_formations(
+    name_contains: Optional[str] = None,
+    sort_by: str = "popularity",
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+    """
+    List all Scottish Country Dance formations (dance figures/movements) available in the database.
+    Returns formation names, search tokens, and usage statistics.
+    Useful for discovering what formations exist before searching for dances with specific formations.
+    
+    Args:
+        name_contains: Optional substring to search for in formation name (case-insensitive)
+        sort_by: Sort results by 'popularity' (most used formations first) or 'alphabetical' (default: popularity)
+        limit: Maximum number of formations to return (1-500, default 50)
+    
+    Returns:
+        List of formations with their names, tokens, and usage counts
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: list_formations tool called with name_contains: '{name_contains}', sort_by: '{sort_by}', limit: {limit}", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    arguments = {"sort_by": sort_by, "limit": limit}
+    if name_contains:
+        arguments["name_contains"] = name_contains
+    
+    result = await mcp_client.call_tool("list_formations", arguments)
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: list_formations completed - {total_time:.2f}ms", file=sys.stderr)
+    
+    return result
+
+
 async def create_dance_agent():
     """Create the LangGraph agent with access to SCDDB tools and conversation memory."""
     agent_create_start = time.perf_counter()
@@ -474,7 +512,7 @@ async def create_dance_agent():
     
     # Create the agent with our SCDDB tools and checkpointer
     agent_setup_start = time.perf_counter()
-    tools = [find_dances, get_dance_detail, search_cribs]
+    tools = [list_formations, find_dances, get_dance_detail, search_cribs]
     agent = create_react_agent(
         llm,
         tools,
@@ -539,11 +577,15 @@ async def main():
                             "You are a Scottish Country Dance expert assistant with access to the Scottish Country Dance Database (SCDDB). "
                             "You can help users find dances, get detailed information about specific dances, and search through dance cribs. "
                             "When helping users:\n"
-                            "1. Use find_dances to search for dances by type, formation, or other criteria\n"
+                            "1. Use list_formations to discover available dance formations/figures (e.g., reels, allemandes, poussettes)\n"
+                            "   This is especially useful when users ask about specific moves or want to explore what formations exist.\n"
+                            "   The tool returns formation names, tokens, and usage statistics sorted by popularity or alphabetically.\n"
+                            "2. Use find_dances to search for dances by type, formation, or other criteria\n"
                             "   CRITICAL: ALWAYS set random_variety=True when calling find_dances to provide varied and diverse dance suggestions.\n"
                             "   Only use random_variety=False if the user specifically asks for alphabetical order or searches for a specific dance by name.\n"
-                            "2. Use get_dance_detail to get full information about a specific dance\n"
-                            "3. Use search_cribs to search for specific moves or terms in dance instructions\n"
+                            "   You can use formation tokens from list_formations with the formation_token parameter for precise searches.\n"
+                            "3. Use get_dance_detail to get full information about a specific dance\n"
+                            "4. Use search_cribs to search for specific moves or terms in dance instructions\n"
                             "Always be helpful and provide clear, well-structured responses. "
                             "When presenting dance information, include relevant details like the dance name, type, formation, and key moves.\n\n"
                             "IMPORTANT: When presenting dances, ALWAYS include a link to the Strathspey Server for each dance.\n"
