@@ -86,7 +86,8 @@ async def handle_list_tools() -> List[Tool]:
                 "Search Scottish Country Dances by various criteria. "
                 "IMPORTANT: Use 'official_rscds_dances=true' to find official RSCDS published dances, "
                 "or 'official_rscds_dances=false' for community/non-RSCDS dances. "
-                "Use 'random_variety=true' for varied results instead of alphabetical order."
+                "Use 'random_variety=true' for varied results instead of alphabetical order. "
+                "FILTER BY DIFFICULTY: Use 'min_intensity' and 'max_intensity' to find dances by difficulty level (1-100 scale)."
             ),
             inputSchema={
                 "type":"object",
@@ -97,6 +98,9 @@ async def handle_list_tools() -> List[Tool]:
                     "max_bars":{"type":["integer","null"], "minimum":1, "description":"Maximum number of bars (per repeat)"},
                     "formation_token":{"type":["string","null"], "description":"Specific formation token like 'REEL;3P;' or 'JIG;4C;'"},
                     "official_rscds_dances":{"type":["boolean","null"], "description":"FILTER BY PUBLICATION: true=only official RSCDS published dances, false=only community/non-RSCDS dances, null=all dances. Use this to distinguish between official and community dances!"},
+                    "min_intensity":{"type":["integer","null"], "minimum":1, "maximum":100, "description":"FILTER BY DIFFICULTY: Minimum difficulty/intensity level (1=easiest, 100=hardest). Use for 'easy dances' (e.g., max 40), 'medium dances' (40-65), or 'hard dances' (65+)."},
+                    "max_intensity":{"type":["integer","null"], "minimum":1, "maximum":100, "description":"FILTER BY DIFFICULTY: Maximum difficulty/intensity level (1=easiest, 100=hardest). Use for 'easy dances' (e.g., max 40), 'medium dances' (40-65), or 'hard dances' (65+)."},
+                    "sort_by_intensity":{"type":["string","null"], "enum":["asc","desc"], "description":"Sort results by difficulty: 'asc'=easiest first, 'desc'=hardest first. Omit for alphabetical (or random if random_variety=true)"},
                     "random_variety":{"type":["boolean","null"], "description":"If true, randomize results for variety instead of alphabetical order. Recommended for diverse suggestions!"},
                     "limit":{"type":"integer","minimum":1,"maximum":200,"default":25}
                 },
@@ -158,17 +162,31 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
             formation_token = arguments.get("formation_token")
             # Support both old and new parameter names for compatibility
             rscds_only = arguments.get("rscds_only") or arguments.get("official_rscds_dances")
+            min_intensity = arguments.get("min_intensity")
+            max_intensity = arguments.get("max_intensity")
+            sort_by_intensity = arguments.get("sort_by_intensity")
             random_variety = arguments.get("random_variety", False)
             limit = int(arguments.get("limit", 25))
 
-            logger.info("find_dances called with: name_contains=%s, kind=%s, metaform_contains=%s, max_bars=%s, formation_token=%s, rscds_only=%s, random_variety=%s, limit=%s", 
-                       name_contains, kind, metaform_contains, max_bars, formation_token, rscds_only, random_variety, limit)
+            logger.info("find_dances called with: name_contains=%s, kind=%s, metaform_contains=%s, max_bars=%s, formation_token=%s, rscds_only=%s, min_intensity=%s, max_intensity=%s, sort_by_intensity=%s, random_variety=%s, limit=%s", 
+                       name_contains, kind, metaform_contains, max_bars, formation_token, rscds_only, min_intensity, max_intensity, sort_by_intensity, random_variety, limit)
 
-            sql = """
-            SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression
-            FROM v_metaform m
-            LEFT JOIN v_dance_has_token t ON t.dance_id = m.id
-            """
+            # Only include intensity field and join dance table if filtering/sorting by it
+            include_intensity = (min_intensity is not None or max_intensity is not None or sort_by_intensity is not None)
+            
+            if include_intensity:
+                sql = """
+                SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression, d.intensity
+                FROM v_metaform m
+                INNER JOIN dance d ON m.id = d.id
+                LEFT JOIN v_dance_has_token t ON t.dance_id = m.id
+                """
+            else:
+                sql = """
+                SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression
+                FROM v_metaform m
+                LEFT JOIN v_dance_has_token t ON t.dance_id = m.id
+                """
             
             # Add RSCDS filtering if requested
             if rscds_only is not None:
@@ -203,9 +221,17 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
                 sql += " AND m.bars <= ?"; args.append(int(max_bars))
             if formation_token:
                 sql += " AND t.formation_tokens LIKE ?"; args.append(f"%{formation_token}%")
+            if min_intensity is not None:
+                sql += " AND d.intensity >= ? AND d.intensity > 0"; args.append(int(min_intensity))
+            if max_intensity is not None:
+                sql += " AND d.intensity <= ? AND d.intensity > 0"; args.append(int(max_intensity))
             
-            # Add ordering - random or alphabetical
-            if random_variety:
+            # Add ordering - by intensity, random, or alphabetical
+            if sort_by_intensity == "asc":
+                sql += " ORDER BY d.intensity ASC, m.name LIMIT ?"
+            elif sort_by_intensity == "desc":
+                sql += " ORDER BY d.intensity DESC, m.name LIMIT ?"
+            elif random_variety:
                 sql += " ORDER BY RANDOM() LIMIT ?"
             else:
                 sql += " ORDER BY m.name LIMIT ?"
@@ -221,6 +247,11 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
             total_tool_time = (tool_end - tool_start_time) * 1000
             
             logger.info(f"find_dances TOOL PERF: Total={total_tool_time:.2f}ms, MainQuery={query_time:.2f}ms, Results={len(rows)}")
+            
+            # Log first few results for debugging
+            if rows:
+                logger.info(f"Sample results: {json.dumps(rows[:3], ensure_ascii=False)}")
+            
             return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
 
         if name == "dance_detail":

@@ -200,6 +200,9 @@ async def find_dances(
     max_bars: Optional[int] = None,
     formation_token: Optional[str] = None,
     official_rscds_dances: Optional[bool] = None,
+    min_intensity: Optional[int] = None,
+    max_intensity: Optional[int] = None,
+    sort_by_intensity: Optional[str] = None,
     random_variety: Optional[bool] = None,
     limit: int = 25
 ) -> List[Dict[str, Any]]:
@@ -216,6 +219,13 @@ async def find_dances(
     - formation_token: Use specific tokens like 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;', 'R&L;3C;', 'REEL;ACROSS;R3;'
       (These are technical formation codes - usually better to use metaform_contains instead)
     
+    FILTER BY DIFFICULTY:
+    - Use min_intensity and max_intensity to filter by difficulty (1-100 scale)
+    - Easy dances: max_intensity=40
+    - Medium dances: min_intensity=40, max_intensity=70
+    - Hard dances: min_intensity=70
+    - Use sort_by_intensity='asc' for easiest first, 'desc' for hardest first
+    
     Args:
         name_contains: Substring to search for in dance name (case-insensitive)
         kind: Dance type - EXACT VALUES: 'Jig', 'Reel', 'Strathspey', 'Hornpipe', 'Waltz', 'March', etc.
@@ -223,11 +233,14 @@ async def find_dances(
         max_bars: Maximum number of bars (per repeat) - common values: 32, 48, 64
         formation_token: Technical formation code - EXAMPLES: 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;' (advanced use)
         official_rscds_dances: FILTER BY PUBLICATION - True=only official RSCDS published dances, False=only community/non-RSCDS dances, None=all dances
+        min_intensity: FILTER BY DIFFICULTY - Minimum difficulty level (1-100, where 1=easiest, 100=hardest)
+        max_intensity: FILTER BY DIFFICULTY - Maximum difficulty level (1-100, where 1=easiest, 100=hardest)
+        sort_by_intensity: Sort by difficulty - 'asc' for easiest first, 'desc' for hardest first
         random_variety: DEFAULT=True for variety! Set to True for randomized diverse results, False for alphabetical order.
         limit: Maximum number of results (1-200, default 25)
     
     Returns:
-        List of dance dictionaries with id, name, kind, metaform, bars, progression
+        List of dance dictionaries with id, name, kind, metaform, bars, progression, and intensity (if filtering by difficulty)
     """
     func_start = time.perf_counter()
     print(f"DEBUG: find_dances tool called", file=sys.stderr)
@@ -250,6 +263,12 @@ async def find_dances(
         arguments["formation_token"] = formation_token
     if official_rscds_dances is not None:
         arguments["official_rscds_dances"] = official_rscds_dances
+    if min_intensity is not None:
+        arguments["min_intensity"] = min_intensity
+    if max_intensity is not None:
+        arguments["max_intensity"] = max_intensity
+    if sort_by_intensity is not None:
+        arguments["sort_by_intensity"] = sort_by_intensity
     if random_variety is not None:
         arguments["random_variety"] = random_variety
     
