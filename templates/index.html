@@ -130,6 +130,8 @@
             cursor: pointer;
             transition: all 0.2s;
             border: 2px solid transparent;
+            position: relative;
+            padding-right: 40px;
         }
 
         .session-item:hover {
@@ -163,6 +165,39 @@
             font-size: 0.75rem;
             color: #9ca3af;
             margin-top: 4px;
+        }
+
+        .session-delete {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: transparent;
+            color: #9ca3af;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+
+        .session-item:hover .session-delete {
+            opacity: 1;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .session-delete:hover {
+            background: #fecaca !important;
+            color: #991b1b !important;
+            transform: translateY(-50%) scale(1.1);
         }
 
         .main-content {
@@ -363,6 +398,24 @@
             border-top: 1px solid #e5e7eb;
         }
 
+        .footer {
+            padding: 12px 20px;
+            background: #f3f4f6;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
         .input-form {
             display: flex;
             gap: 10px;
@@ -445,7 +498,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-top: 10px;
+            margin-bottom: 15px;
         }
 
         .example-btn {
@@ -769,6 +822,11 @@
                         <button type="submit" id="send-button">Send</button>
                     </form>
                 </div>
+                
+                <div class="footer">
+                    Dance data from <a href="https://my.strathspey.org/dd" target="_blank" rel="noopener">The Strathspey Server Dance Database</a>, 
+                    used under <a href="http://creativecommons.org/licenses/by/3.0/de/" target="_blank" rel="noopener">Creative Commons Attribution 3.0 Germany</a> license.
+                </div>
             </div>
         </div>
     </div>
@@ -1080,7 +1138,6 @@
                     data.sessions.forEach(session => {
                         const sessionDiv = document.createElement('div');
                         sessionDiv.className = 'session-item' + (session.session_id === sessionId ? ' active' : '');
-                        sessionDiv.onclick = () => switchToSessionMobile(session.session_id);
                         
                         const timeAgo = formatTimeAgo(session.last_active);
                         
@@ -1091,11 +1148,43 @@
                             return div.innerHTML;
                         };
                         
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'session-delete';
+                        deleteBtn.title = 'Delete chat';
+                        deleteBtn.textContent = '🗑️';
+                        deleteBtn.setAttribute('data-session-id', session.session_id);
+                        
+                        // Attach delete handler directly to button - use once option to prevent multiple calls
+                        deleteBtn.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            
+                            const targetSessionId = e.currentTarget.getAttribute('data-session-id');
+                            console.log('Delete clicked for session:', targetSessionId);
+                            console.log('Current session before delete:', sessionId);
+                            
+                            // Disable button to prevent double-clicks
+                            e.currentTarget.disabled = true;
+                            
+                            await deleteSession(e, targetSessionId);
+                        }, { capture: true, once: false }); // Use capture phase
+                        
+                        // Attach session switch handler
+                        sessionDiv.addEventListener('click', (e) => {
+                            // Don't switch if clicking delete button
+                            if (e.target.classList.contains('session-delete') || e.target.closest('.session-delete')) {
+                                return;
+                            }
+                            switchToSessionMobile(session.session_id);
+                        });
+                        
                         sessionDiv.innerHTML = `
                             <div class="session-title">${escapeHtml(session.title || 'New Chat')}</div>
                             <div class="session-preview">${escapeHtml(session.preview || 'No messages yet')}</div>
                             <div class="session-time">${escapeHtml(timeAgo)}</div>
                         `;
+                        
+                        sessionDiv.appendChild(deleteBtn);
                         
                         sessionsList.appendChild(sessionDiv);
                     });
@@ -1114,7 +1203,9 @@
 
         function formatTimeAgo(timestamp) {
             const now = new Date();
-            const then = new Date(timestamp);
+            // SQLite returns timestamps in UTC format without 'Z' suffix
+            // Append 'Z' to ensure it's parsed as UTC, not local time
+            const then = new Date(timestamp + (timestamp.includes('Z') ? '' : 'Z'));
             const seconds = Math.floor((now - then) / 1000);
             
             if (seconds < 60) return 'Just now';
@@ -1231,6 +1322,45 @@
                 console.log('Chat deleted.');
             } catch (error) {
                 console.error('Error clearing chat:', error);
+                alert('Failed to delete chat. Please try again.');
+            }
+        }
+
+        async function deleteSession(event, sessionIdToDelete) {
+            // Stop propagation to prevent switching to the session
+            event.stopPropagation();
+            
+            try {
+                console.log('Deleting session:', sessionIdToDelete);
+                
+                // Delete from server
+                const response = await fetch(`/api/history/${sessionIdToDelete}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to delete session');
+                }
+                
+                const result = await response.json();
+                console.log('Delete response:', result);
+                
+                // Small delay to ensure database commit completes
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // If we deleted the current session, create a new one
+                if (sessionIdToDelete === sessionId) {
+                    console.log('Deleted current session, creating new chat');
+                    await createNewChat();
+                } else {
+                    console.log('Deleted other session, reloading sessions list');
+                    // Reload the sessions list to reflect the deletion
+                    await loadSessions();
+                }
+                
+                console.log('Session deleted successfully:', sessionIdToDelete);
+            } catch (error) {
+                console.error('Error deleting session:', error);
                 alert('Failed to delete chat. Please try again.');
             }
         }
