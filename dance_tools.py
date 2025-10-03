@@ -8,6 +8,8 @@ import asyncio
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from langchain_core.tools import tool
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
 
 class MCPSCDDBClient:
     """Client wrapper for the MCP SCDDB server with connection pooling."""
@@ -372,3 +374,109 @@ async def list_formations(
     print(f"DEBUG: list_formations completed - {total_time:.2f}ms", file=sys.stderr)
     
     return result
+
+
+# Global vector store instance (lazy loaded)
+_manual_vectorstore: Optional[Chroma] = None
+_manual_vectorstore_lock = asyncio.Lock()
+
+
+def _load_manual_vectorstore() -> Optional[Chroma]:
+    """Load the RSCDS manual vector store (cached after first load)."""
+    global _manual_vectorstore
+    
+    if _manual_vectorstore is not None:
+        return _manual_vectorstore
+    
+    db_path = Path("data/vector_db/rscds_manual")
+    
+    if not db_path.exists():
+        print(f"⚠️  RSCDS manual vector database not found at {db_path}", file=sys.stderr)
+        print(f"   Run 'uv run process_rscds_manual.py' to create it.", file=sys.stderr)
+        return None
+    
+    try:
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        _manual_vectorstore = Chroma(
+            persist_directory=str(db_path),
+            embedding_function=embeddings,
+            collection_name="rscds_manual"
+        )
+        print(f"✅ Loaded RSCDS manual vector database", file=sys.stderr)
+        return _manual_vectorstore
+    except Exception as e:
+        print(f"❌ Error loading RSCDS manual vector database: {e}", file=sys.stderr)
+        return None
+
+
+@tool
+async def search_manual(
+    query: str,
+    num_results: int = 3
+) -> str:
+    """
+    Search the RSCDS (Royal Scottish Country Dance Society) manual for information about formations,
+    teaching points, dance techniques, and general Scottish Country Dancing guidance.
+    
+    Use this tool when:
+    - A user asks about how to teach or explain a specific formation (e.g., "How do I teach poussette?")
+    - A user wants to know proper technique or teaching points for movements
+    - A user asks general questions about Scottish Country Dancing that aren't about specific dances
+    - You need authoritative RSCDS guidance on dance technique or formations
+    
+    Args:
+        query: The search query (e.g., "poussette teaching points", "allemande technique", "rights and lefts")
+        num_results: Number of relevant sections to return (default 3, max 10)
+    
+    Returns:
+        Formatted string with relevant sections from the RSCDS manual, including page numbers
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: search_manual tool called with query: '{query}'", file=sys.stderr)
+    
+    # Load vector store
+    async with _manual_vectorstore_lock:
+        vectorstore = _load_manual_vectorstore()
+    
+    if vectorstore is None:
+        return "⚠️  RSCDS manual database not available. Please contact the administrator to set it up."
+    
+    # Limit num_results to reasonable range
+    num_results = max(1, min(num_results, 10))
+    
+    try:
+        # Perform similarity search
+        search_start = time.perf_counter()
+        results = vectorstore.similarity_search(query, k=num_results)
+        search_end = time.perf_counter()
+        
+        if not results:
+            return f"No relevant information found in the RSCDS manual for: '{query}'"
+        
+        # Format results
+        formatted_results = []
+        formatted_results.append(f"📚 **RSCDS Manual - Relevant Information for '{query}':**\n")
+        
+        for i, doc in enumerate(results, 1):
+            page = doc.metadata.get('page', 'N/A')
+            content = doc.page_content.strip()
+            
+            formatted_results.append(f"\n**Section {i} (Page {page}):**")
+            formatted_results.append(content)
+            formatted_results.append("-" * 50)
+        
+        response = "\n".join(formatted_results)
+        
+        func_end = time.perf_counter()
+        search_time = (search_end - search_start) * 1000
+        total_time = (func_end - func_start) * 1000
+        
+        print(f"DEBUG: search_manual completed - Search: {search_time:.2f}ms, Total: {total_time:.2f}ms", file=sys.stderr)
+        
+        return response
+        
+    except Exception as e:
+        print(f"❌ Error searching RSCDS manual: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        return f"Error searching RSCDS manual: {str(e)}"

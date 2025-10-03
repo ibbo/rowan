@@ -25,7 +25,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-from dance_tools import find_dances, get_dance_detail, search_cribs, list_formations
+from dance_tools import find_dances, get_dance_detail, search_cribs, list_formations, search_manual
 
 
 # Define the state that flows through the graph
@@ -53,7 +53,7 @@ class SCDAgent:
         self.dance_planner_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
         
         # Tools for the dance planner
-        self.tools = [list_formations, find_dances, get_dance_detail, search_cribs]
+        self.tools = [list_formations, find_dances, get_dance_detail, search_cribs, search_manual]
         
         # Bind tools to the dance planner LLM
         self.dance_planner_with_tools = self.dance_planner_llm.bind_tools(self.tools)
@@ -186,6 +186,8 @@ You have access to these tools:
 1. find_dances: Search for dances by name, type (Reel/Jig/Strathspey), formation, bars, RSCDS status
 2. get_dance_detail: Get detailed information about a specific dance including crib
 3. search_cribs: Search dance instructions for specific moves or terms
+4. list_formations: List all available dance formations with usage statistics
+5. search_manual: Search the official RSCDS manual for teaching points, technique guidance, and formation descriptions
 
 CRITICAL: When using find_dances, ALWAYS set random_variety=True to provide varied and diverse dance suggestions.
 Only use random_variety=False if the user specifically asks for alphabetical order or searches for a specific dance by name.
@@ -194,8 +196,11 @@ When helping users:
 - Use find_dances to search for dances matching criteria (ALWAYS with random_variety=True for variety)
 - Use get_dance_detail to get full information about specific dances
 - Use search_cribs to find dances with specific moves
+- Use list_formations to discover available formations
+- Use search_manual when users ask for teaching points, technique guidance, or explanations of formations
 - Provide clear, well-structured responses with relevant details
 - Include dance names, types, formations, and key information
+- When explaining formations, consult the RSCDS manual for authoritative teaching guidance
 
 IMPORTANT: When presenting dances, ALWAYS include a link to the Strathspey Server for each dance.
 Format links as: https://my.strathspey.org/dd/dance/{dance_id}/
