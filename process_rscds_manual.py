@@ -15,11 +15,13 @@ Usage:
 
 import os
 import sys
+import base64
+import fitz  # PyMuPDF
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional, Generator
 
 from dotenv import load_dotenv
-from pypdf import PdfReader
+from openai import OpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -33,8 +35,9 @@ class RSCDSManualProcessor:
         self,
         pdf_path: str = "data/raw/rscds-manual.pdf",
         db_path: str = "data/vector_db/rscds_manual",
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200
+        chunk_size: int = 2000,  # Increased for richer content
+        chunk_overlap: int = 400,
+        vision_model: str = "gpt-4o"
     ):
         """Initialize the processor.
         
@@ -43,11 +46,13 @@ class RSCDSManualProcessor:
             db_path: Path to store the vector database
             chunk_size: Size of text chunks
             chunk_overlap: Overlap between chunks
+            vision_model: The multimodal model to use for analysis
         """
         self.pdf_path = Path(pdf_path)
         self.db_path = Path(db_path)
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.vision_model = vision_model
         
         # Check for OpenAI API key
         if not os.getenv("OPENAI_API_KEY"):
@@ -56,6 +61,9 @@ class RSCDSManualProcessor:
                 "Example: export OPENAI_API_KEY='your-key-here'"
             )
         
+        # Initialize OpenAI client
+        self.openai_client = OpenAI()
+
         # Initialize embeddings
         self.embeddings = OpenAIEmbeddings(
             model="text-embedding-3-small"
@@ -66,41 +74,89 @@ class RSCDSManualProcessor:
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=len,
-            separators=[
-                "\n\n\n",  # Major section breaks
-                "\n\n",    # Paragraph breaks
-                "\n",      # Line breaks
-                ". ",      # Sentence breaks
-                " ",       # Word breaks
-                ""         # Character breaks
-            ]
+            separators=["\n\n\n", "\n\n", "\n", ". ", " ", ""]
         )
     
-    def extract_text_from_pdf(self) -> List[Dict[str, any]]:
-        """Extract text from PDF with page numbers.
-        
-        Returns:
-            List of dicts with 'page', 'text', and 'page_number' keys
+    def process_pages_multimodally(
+        self,
+        start_page: Optional[int] = None,
+        end_page: Optional[int] = None
+    ) -> Generator[Dict[str, any], None, None]:
         """
-        print(f"📖 Extracting text from {self.pdf_path}...")
-        
+        Extracts images and text from each page of a PDF and generates
+        a multimodal description using a vision model.
+
+        Args:
+            start_page: Optional page number to start processing from.
+            end_page: Optional page number to stop processing at.
+
+        Yields:
+            A dictionary for each page with page number, source, and generated description.
+        """
         if not self.pdf_path.exists():
             raise FileNotFoundError(f"PDF not found: {self.pdf_path}")
+
+        print(f"📖 Opening PDF: {self.pdf_path}")
+        doc = fitz.open(self.pdf_path)
+
+        # Determine page range
+        start_idx = (start_page - 1) if start_page else 0
+        end_idx = end_page if end_page else len(doc)
         
-        reader = PdfReader(str(self.pdf_path))
-        pages_data = []
-        
-        for page_num, page in enumerate(reader.pages, start=1):
-            text = page.extract_text()
-            if text.strip():  # Only include pages with text
-                pages_data.append({
-                    "page_number": page_num,
-                    "text": text,
-                    "source": str(self.pdf_path)
-                })
-        
-        print(f"✅ Extracted {len(pages_data)} pages")
-        return pages_data
+        print(f"🧠 Processing pages {start_idx + 1} to {end_idx} using {self.vision_model}...")
+
+        for page_num in range(start_idx, end_idx):
+            page = doc.load_page(page_num)
+
+            # Render page to an image
+            pix = page.get_pixmap(dpi=150)
+            img_bytes = pix.tobytes("png")
+            img_base64 = base64.b64encode(img_bytes).decode("utf-8")
+
+            # Generate description with vision model
+            try:
+                print(f"  - Analyzing page {page_num + 1}...")
+                response = self.openai_client.chat.completions.create(
+                    model=self.vision_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are an expert in Scottish Country Dancing. "
+                                "Your task is to provide a detailed, comprehensive description of the provided page from the RSCDS manual. "
+                                "Transcribe all text content accurately. "
+                                "Describe any figures, diagrams, or images in meticulous detail, explaining their meaning and context within the dance. "
+                                "Preserve the structure of the original content using Markdown. "
+                                "Ensure the final output is a complete and accurate representation of the page's information."
+                            )
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Describe this page from the RSCDS manual."},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{img_base64}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens=4000,
+                )
+                description = response.choices[0].message.content
+
+                yield {
+                    "page_number": page_num + 1,
+                    "source": str(self.pdf_path),
+                    "text": description
+                }
+
+            except Exception as e:
+                print(f"❗️ Error processing page {page_num + 1}: {e}")
+
+        print("✅ Finished multimodal processing.")
     
     def create_documents(self, pages_data: List[Dict]) -> List[Document]:
         """Create LangChain documents from page data.
@@ -162,20 +218,24 @@ class RSCDSManualProcessor:
         print(f"✅ Vector database built with {len(documents)} chunks")
         return vectorstore
     
-    def process(self) -> Chroma:
+    def process(self, start_page: Optional[int] = None, end_page: Optional[int] = None) -> Chroma:
         """Run the full processing pipeline.
         
+        Args:
+            start_page: Optional page to start processing from.
+            end_page: Optional page to end processing at.
+
         Returns:
             Chroma vector store
         """
         print("🏴󠁧󠁢󠁳󠁣󠁴󠁿 Processing RSCDS Manual for RAG")
         print("=" * 50)
         
-        # Extract text from PDF
-        pages_data = self.extract_text_from_pdf()
+        # Process pages multimodally
+        pages_generator = self.process_pages_multimodally(start_page=start_page, end_page=end_page)
         
         # Create and chunk documents
-        documents = self.create_documents(pages_data)
+        documents = self.create_documents(list(pages_generator))
         
         # Build vector database
         vectorstore = self.build_vector_db(documents)
@@ -207,14 +267,21 @@ class RSCDSManualProcessor:
 
 def main():
     """Main function."""
+    import argparse
+    parser = argparse.ArgumentParser(description="Process RSCDS Manual PDF into a vector database.")
+    parser.add_argument("--start-page", type=int, help="Page to start processing from.")
+    parser.add_argument("--end-page", type=int, help="Page to end processing at.")
+    parser.add_argument("--query", type=str, help="Run a test query after processing.")
+    args = parser.parse_args()
+
     load_dotenv()
     
     try:
         # Process the manual
         processor = RSCDSManualProcessor()
-        vectorstore = processor.process()
+        vectorstore = processor.process(start_page=args.start_page, end_page=args.end_page)
         
-        # Run some test searches
+        # Run test searches
         print("\n" + "=" * 50)
         print("Running test searches...")
         print("=" * 50)
@@ -225,6 +292,9 @@ def main():
             "rights and lefts"
         ]
         
+        if args.query:
+            test_queries.append(args.query)
+
         for query in test_queries:
             processor.test_search(vectorstore, query, k=2)
         
