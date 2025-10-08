@@ -214,12 +214,19 @@ async def find_dances(
     CRITICAL: ALWAYS set random_variety=True to provide varied and diverse dance suggestions.
     Only use random_variety=False if the user specifically asks for alphabetical order or a specific dance name.
     
+    ⚠️ IMPORTANT DISTINCTION - Dance Types vs. Formations:
+    - kind='Reel'/'Jig'/'Strathspey' refers to DANCE TYPE (music/tempo), NOT dance figures!
+    - To find dances with formations like "reel of three", "poussette", etc., use search_cribs instead!
+    - "reel of three" is a FORMATION (figure), not a dance type
+    
     IMPORTANT SYNTAX EXAMPLES:
     - kind: Use exact values like 'Reel', 'Jig', 'Strathspey', 'Hornpipe', 'Waltz', 'March'
+      ⚠️ DO NOT use kind='Reel' when looking for "reel of three" formations!
     - metaform_contains: Use patterns like 'Longwise 3 3C', 'Longwise 4 3C', 'Circle 3C', 'Square 3C', 'Longwise 2 2C'
       (NOTE: For 3 couples longwise, use 'Longwise 3 3C' or 'Longwise 4 3C', NOT 'Longwise 3C')
-    - formation_token: Use specific tokens like 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;', 'R&L;3C;', 'REEL;ACROSS;R3;'
-      (These are technical formation codes - usually better to use metaform_contains instead)
+      (NOTE: metaform describes SET FORMATION, not dance figures like "reel of three")
+    - formation_token: Use specific tokens like 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;', 'R&L;3C;', 'REEL;R3;'
+      (These are technical formation codes - for "reel of three" use search_cribs instead)
     
     FILTER BY DIFFICULTY:
     - Use min_intensity and max_intensity to filter by difficulty (1-100 scale)
@@ -230,10 +237,12 @@ async def find_dances(
     
     Args:
         name_contains: Substring to search for in dance name (case-insensitive)
-        kind: Dance type - EXACT VALUES: 'Jig', 'Reel', 'Strathspey', 'Hornpipe', 'Waltz', 'March', etc.
-        metaform_contains: Formation pattern - EXAMPLES: 'Longwise 3 3C', 'Longwise 4 3C', 'Circle 3C', 'Square 3C'
+        kind: Dance TYPE - EXACT VALUES: 'Jig', 'Reel', 'Strathspey', 'Hornpipe', 'Waltz', 'March'
+              ⚠️ This is music/tempo type, NOT dance figures! Don't use kind='Reel' for "reel of three" formations!
+        metaform_contains: SET formation pattern - EXAMPLES: 'Longwise 3 3C', 'Longwise 4 3C', 'Circle 3C', 'Square 3C'
+                           ⚠️ This is SET FORMATION, not dance figures! Don't use for "reel of three" - use search_cribs instead!
         max_bars: Maximum number of bars (per repeat) - common values: 32, 48, 64
-        formation_token: Technical formation code - EXAMPLES: 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;' (advanced use)
+        formation_token: Technical formation code - EXAMPLES: 'POUSS;3C;', 'ALLMND;3C;', 'REEL;R3;' (advanced use)
         official_rscds_dances: FILTER BY PUBLICATION - True=only official RSCDS published dances, False=only community/non-RSCDS dances, None=all dances
         min_intensity: FILTER BY DIFFICULTY - Minimum difficulty level (1-100, where 1=easiest, 100=hardest)
         max_intensity: FILTER BY DIFFICULTY - Maximum difficulty level (1-100, where 1=easiest, 100=hardest)
@@ -318,8 +327,20 @@ async def search_cribs(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     """
     Full-text search the dance cribs for specific moves, terms, or descriptions.
     
+    ⚠️ USE THIS TOOL to find dances with specific FORMATIONS/FIGURES like:
+    - "reel of three" or "reel of 3" (NOT the same as Reel dance type!)
+    - "poussette"
+    - "allemande"
+    - "rights and lefts"
+    - "set and turn"
+    - Any other dance figures or movements
+    
+    This is the PRIMARY tool for finding dances containing specific formations.
+    Don't use find_dances with kind='Reel' when looking for "reel of three" formations!
+    
     Args:
-        query: Search query. Supports FTS5 syntax (e.g., 'poussette OR allemande', 'turn AND right')
+        query: Search query. Common searches: "reel of three", "poussette", "allemande"
+               Supports FTS5 syntax (e.g., 'poussette OR allemande', 'turn AND right')
         limit: Maximum number of results (1-200, default 20)
     
     Returns:
