@@ -120,15 +120,17 @@ def postprocess_views_indexes_fts():
         s.name  AS shape,
         c.name  AS couples,
         p.name  AS progression,
-        d.type_id, d.shape_id, d.couples_id, d.progression_id
+        d.type_id, d.shape_id, d.couples_id, d.progression_id,
+        d.intensity
       FROM dance d
       LEFT JOIN dancetype  dt ON dt.id = d.type_id
       LEFT JOIN shape       s ON s.id  = d.shape_id
       LEFT JOIN couples     c ON c.id  = d.couples_id
       LEFT JOIN progression p ON p.id  = d.progression_id;
 
+    DROP TABLE IF EXISTS v_dance_formations;
     DROP VIEW IF EXISTS v_dance_formations;
-    CREATE VIEW v_dance_formations AS
+    CREATE TABLE v_dance_formations AS
       SELECT
         m.dance_id,
         f.id           AS formation_id,
@@ -156,8 +158,9 @@ def postprocess_views_indexes_fts():
     FROM ranked WHERE rn = 1;
 
     -- Human-friendly metaform
+    DROP TABLE IF EXISTS v_metaform;
     DROP VIEW IF EXISTS v_metaform;
-    CREATE VIEW v_metaform AS
+    CREATE TABLE v_metaform AS
     SELECT
       d.id,
       d.name,
@@ -169,11 +172,13 @@ def postprocess_views_indexes_fts():
              TRIM(REPLACE(d.shape, ' - ', ' ')),
              REPLACE(d.couples, ' couples', 'C')) AS metaform,
       d.progression,
+      d.intensity,
       d.type_id, d.shape_id, d.couples_id, d.progression_id
     FROM v_dances d;
 
+    DROP TABLE IF EXISTS v_dance_has_token;
     DROP VIEW IF EXISTS v_dance_has_token;
-    CREATE VIEW v_dance_has_token AS
+    CREATE TABLE v_dance_has_token AS
     SELECT DISTINCT
       vf.dance_id,
       vf.formation_tokens
@@ -186,6 +191,27 @@ def postprocess_views_indexes_fts():
     CREATE INDEX IF NOT EXISTS idx_dance_prog     ON dance(progression_id);
     CREATE INDEX IF NOT EXISTS idx_map_dance      ON dancesformationsmap(dance_id);
     CREATE INDEX IF NOT EXISTS idx_map_formation  ON dancesformationsmap(formation_id);
+
+    -- Optimizations from optimize_database.py
+    -- Formation token searches (critical for performance)
+    CREATE INDEX IF NOT EXISTS idx_dance_has_token_dance_id ON v_dance_has_token(dance_id);
+    CREATE INDEX IF NOT EXISTS idx_dance_has_token_formation_tokens ON v_dance_has_token(formation_tokens);
+
+    -- RSCDS filtering
+    CREATE INDEX IF NOT EXISTS idx_dancespublicationsmap_dance_id ON dancespublicationsmap(dance_id);
+    CREATE INDEX IF NOT EXISTS idx_dancespublicationsmap_publication_id ON dancespublicationsmap(publication_id);
+    CREATE INDEX IF NOT EXISTS idx_publication_rscds ON publication(rscds);
+
+    -- Common search patterns
+    CREATE INDEX IF NOT EXISTS idx_metaform_name ON v_metaform(name COLLATE NOCASE);
+    CREATE INDEX IF NOT EXISTS idx_metaform_kind ON v_metaform(kind);
+    CREATE INDEX IF NOT EXISTS idx_metaform_bars ON v_metaform(bars);
+    
+    -- Composite indexes
+    CREATE INDEX IF NOT EXISTS idx_metaform_kind_name ON v_metaform(kind, name COLLATE NOCASE);
+
+    -- Dance detail Lookups
+    CREATE INDEX IF NOT EXISTS idx_dance_formations_dance_id ON v_dance_formations(dance_id);
     """
     exec_sql(post_sql)
 

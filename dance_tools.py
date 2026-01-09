@@ -3,6 +3,7 @@ import time
 import sys
 import os
 import json
+import re
 from pathlib import Path
 import asyncio
 from mcp import ClientSession, StdioServerParameters
@@ -401,19 +402,260 @@ async def list_formations(
 _manual_vectorstore: Optional[Chroma] = None
 _manual_vectorstore_lock = asyncio.Lock()
 
+# Formation name patterns for query extraction
+_FORMATION_PATTERNS = [
+    # Multi-word formations
+    r'\b(skip change of step|skip change)\b',
+    r'\b(pas de basque|pas-de-basque)\b',
+    r'\b(slip step)\b',
+    r'\b(strathspey traveling step)\b',
+    r'\b(rights and lefts)\b',
+    r'\b(hands across)\b',
+    r'\b(grand chain)\b',
+    r'\b(ladies[\'\']? chain)\b',
+    r'\b(men[\'\']s chain)\b',
+    r'\b(set and turn)\b',
+    r'\b(set and link)\b',
+    r'\b(advance and retire)\b',
+    r'\b(reels? of three in tandem)\b',
+    r'\b(reels? of three)\b',
+    r'\b(reels? of four)\b',
+    r'\b(inveran reels?)\b',
+    r'\b(corners pass and turn)\b',
+    r'\b(turn corners)\b',
+    r'\b(balance in line)\b',
+    r'\b(petronella turn)\b',
+    r'\b(schiehallion reel)\b',
+    # Single-word formations
+    r'\b(poussette)\b',
+    r'\b(allemande)\b',
+    r'\b(poussin)\b',
+    r'\b(espagnole)\b',
+    r'\b(promenade)\b',
+    r'\b(tournée)\b',
+    r'\b(bourrel)\b',
+    r'\b(cast(?:ing)?)\b',
+]
+
+
+def _extract_formation_from_query(query: str) -> Optional[str]:
+    """Extract formation name from user query.
+    
+    Args:
+        query: User's search query
+        
+    Returns:
+        Extracted formation name or None
+    """
+    query_lower = query.lower()
+    
+    for pattern in _FORMATION_PATTERNS:
+        match = re.search(pattern, query_lower, re.IGNORECASE)
+        if match:
+            formation = match.group(1)
+            # Normalize variations
+            formation = formation.replace('-', ' ')
+            if formation == 'skip change':
+                formation = 'skip change of step'
+            return formation
+    
+    return None
+
+
+def _smart_manual_search(
+    vectorstore: Chroma,
+    query: str,
+    num_results: int = 3,
+    formation_filter: Optional[str] = None
+) -> List[Any]:
+    """Smart search with metadata filtering and re-ranking.
+    
+    Args:
+        vectorstore: Chroma vectorstore
+        query: Search query
+        num_results: Number of final results to return
+        formation_filter: Optional formation name to filter by
+        
+    Returns:
+        List of re-ranked results
+    """
+    # Retrieve more candidates for re-ranking
+    initial_k = min(num_results * 3, 15)
+    
+    # Try metadata-based filtering if we have a formation and enriched metadata
+    candidates = []
+    if formation_filter:
+        try:
+            # Try filtering by primary formation or formations mentioned
+            filter_dict = {
+                "$or": [
+                    {"primary_formation": {"$eq": formation_filter}},
+                ]
+            }
+            candidates = vectorstore.similarity_search(query, k=initial_k, filter=filter_dict)
+            
+            # If we didn't get enough results, try without strict filter
+            if len(candidates) < num_results:
+                candidates = vectorstore.similarity_search(query, k=initial_k)
+                
+        except Exception as e:
+            # Metadata filtering not supported - fall back to standard search
+            print(f"DEBUG: Metadata filtering not available: {e}", file=sys.stderr)
+            candidates = vectorstore.similarity_search(query, k=initial_k)
+    else:
+        candidates = vectorstore.similarity_search(query, k=initial_k)
+    
+    if not candidates:
+        return []
+    
+    # Detect if this is a "how to teach" query
+    is_teaching_query = any(term in query.lower() for term in ['how to teach', 'teaching', 'points to observe', 'teach'])
+    
+    # Re-rank by relevance using metadata
+    if formation_filter or is_teaching_query:
+        scored_results = []
+        for doc in candidates:
+            score = 0.0
+            section_type = doc.metadata.get('section_type', '')
+            
+            # Boost if this is the primary formation
+            if formation_filter:
+                if doc.metadata.get('primary_formation') == formation_filter:
+                    score += 2.0
+                
+                # Boost if formation is mentioned
+                formations_raw = doc.metadata.get('formations_mentioned', '[]')
+                try:
+                    formations_mentioned = json.loads(formations_raw) if isinstance(formations_raw, str) else formations_raw
+                except:
+                    formations_mentioned = []
+                
+                if formation_filter in formations_mentioned:
+                    score += 1.0
+                
+                # Penalize if other formations are also prominent (indicates mixed content)
+                other_formations = [f for f in formations_mentioned if f != formation_filter]
+                if len(other_formations) > 2:
+                    score -= 0.5
+            
+            # For teaching queries, heavily boost points_to_observe and teaching_points sections
+            if is_teaching_query:
+                if section_type in ['points_to_observe', 'teaching_points', 'technique']:
+                    score += 3.0  # Strong boost for teaching content
+                elif section_type in ['main_description', 'description']:
+                    score += 0.5  # Modest boost for descriptions
+                elif section_type in ['variation', 'subsection']:
+                    score -= 0.5  # Lower priority for variations
+            else:
+                # Normal (non-teaching) queries
+                if section_type in ['teaching_points', 'points_to_observe', 'description', 'technique']:
+                    score += 0.5
+                elif section_type == 'example':
+                    score -= 0.3
+            
+            # Penalize generic teaching chapters when looking for specific formations
+            chapter = doc.metadata.get('chapter', '')
+            if chapter == '8' and formation_filter:  # Chapter 8 is general teaching advice
+                score -= 2.0  # Heavily penalize generic teaching content
+            
+            scored_results.append((score, doc))
+        
+        # Sort by score descending
+        scored_results.sort(key=lambda x: x[0], reverse=True)
+        return [doc for score, doc in scored_results[:num_results]]
+    
+    # No filter - just return top k
+    return candidates[:num_results]
+
+
+def _format_manual_results(
+    results: List[Any],
+    query: str,
+    detected_formation: Optional[str] = None
+) -> str:
+    """Format search results with metadata.
+    
+    Args:
+        results: List of search results
+        query: Original query
+        detected_formation: Detected formation name if any
+        
+    Returns:
+        Formatted string
+    """
+    if not results:
+        return f"No relevant information found in the RSCDS manual for: '{query}'"
+    
+    formatted = []
+    
+    # Header
+    header = f"📚 **RSCDS Manual - Relevant Information for '{query}':**"
+    if detected_formation:
+        header += f"\n🎯 *Focused on formation: {detected_formation}*"
+    formatted.append(header)
+    formatted.append("")
+    
+    # Results
+    for i, doc in enumerate(results, 1):
+        page = doc.metadata.get('page', 'N/A')
+        primary_formation = doc.metadata.get('primary_formation', 'N/A')
+        formation_name = doc.metadata.get('formation_name', primary_formation)
+        section_type = doc.metadata.get('section_type', 'N/A')
+        section_number = doc.metadata.get('section_number', '')
+        title = doc.metadata.get('title', '')
+        
+        # Section header with metadata
+        section_header = f"**Section {i} (Page {page})**"
+        
+        # Add section number and title from structured database
+        if section_number and title:
+            section_header += f" - {section_number} {title}"
+        elif formation_name and formation_name != 'N/A':
+            section_header += f" - *{formation_name}*"
+        elif primary_formation != 'N/A' and primary_formation:
+            section_header += f" - *{primary_formation}*"
+        
+        # Show section type for teaching-related content
+        if section_type in ['teaching_points', 'points_to_observe', 'technique', 'description', 'variation', 'common_mistakes']:
+            type_label = section_type.replace('_', ' ').title()
+            section_header += f" **[{type_label}]**"
+        
+        formatted.append(section_header)
+        formatted.append(doc.page_content.strip())
+        formatted.append("-" * 50)
+        formatted.append("")
+    
+    return "\n".join(formatted)
+
 
 def _load_manual_vectorstore() -> Optional[Chroma]:
-    """Load the RSCDS manual vector store (cached after first load)."""
+    """Load the RSCDS manual vector store (cached after first load).
+    
+    Tries structured version first (preserves document hierarchy), falls back to enriched or original.
+    """
     global _manual_vectorstore
     
     if _manual_vectorstore is not None:
         return _manual_vectorstore
     
-    db_path = Path("data/vector_db/rscds_manual")
+    # Try versions in order of preference
+    structured_path = Path("data/vector_db/rscds_manual_structured")
+    enriched_path = Path("data/vector_db/rscds_manual_enriched")
+    original_path = Path("data/vector_db/rscds_manual")
     
-    if not db_path.exists():
-        print(f"⚠️  RSCDS manual vector database not found at {db_path}", file=sys.stderr)
-        print(f"   Run 'uv run process_rscds_manual.py' to create it.", file=sys.stderr)
+    # Select first available database
+    if structured_path.exists():
+        db_path = structured_path
+        db_type = "structured"
+    elif enriched_path.exists():
+        db_path = enriched_path
+        db_type = "enriched"
+    elif original_path.exists():
+        db_path = original_path
+        db_type = "original"
+    else:
+        print(f"⚠️  RSCDS manual vector database not found", file=sys.stderr)
+        print(f"   Run 'uv run process_manual_structured.py' to create it.", file=sys.stderr)
         return None
     
     try:
@@ -423,7 +665,7 @@ def _load_manual_vectorstore() -> Optional[Chroma]:
             embedding_function=embeddings,
             collection_name="rscds_manual"
         )
-        print(f"✅ Loaded RSCDS manual vector database", file=sys.stderr)
+        print(f"✅ Loaded RSCDS manual vector database ({db_type})", file=sys.stderr)
         return _manual_vectorstore
     except Exception as e:
         print(f"❌ Error loading RSCDS manual vector database: {e}", file=sys.stderr)
@@ -453,7 +695,10 @@ async def search_manual(
         Formatted string with relevant sections from the RSCDS manual, including page numbers
     """
     func_start = time.perf_counter()
-    print(f"DEBUG: search_manual tool called with query: '{query}'", file=sys.stderr)
+    print(f"\n{'='*80}", file=sys.stderr)
+    print(f"DEBUG: search_manual tool called", file=sys.stderr)
+    print(f"  Query: '{query}'", file=sys.stderr)
+    print(f"  Num results: {num_results}", file=sys.stderr)
     
     # Load vector store
     async with _manual_vectorstore_lock:
@@ -466,27 +711,35 @@ async def search_manual(
     num_results = max(1, min(num_results, 10))
     
     try:
-        # Perform similarity search
+        # Extract formation name from query for smart filtering
+        detected_formation = _extract_formation_from_query(query)
+        if detected_formation:
+            print(f"DEBUG: Detected formation '{detected_formation}' in query", file=sys.stderr)
+        
+        # Perform smart search with metadata filtering and re-ranking
         search_start = time.perf_counter()
-        results = vectorstore.similarity_search(query, k=num_results)
+        results = _smart_manual_search(
+            vectorstore,
+            query,
+            num_results=num_results,
+            formation_filter=detected_formation
+        )
         search_end = time.perf_counter()
         
         if not results:
             return f"No relevant information found in the RSCDS manual for: '{query}'"
         
-        # Format results
-        formatted_results = []
-        formatted_results.append(f"📚 **RSCDS Manual - Relevant Information for '{query}':**\n")
-        
+        # Log what sections were retrieved
+        print(f"  Retrieved {len(results)} sections:", file=sys.stderr)
         for i, doc in enumerate(results, 1):
+            section_num = doc.metadata.get('section_number', 'N/A')
+            title = doc.metadata.get('title', 'N/A')
+            section_type = doc.metadata.get('section_type', 'N/A')
             page = doc.metadata.get('page', 'N/A')
-            content = doc.page_content.strip()
-            
-            formatted_results.append(f"\n**Section {i} (Page {page}):**")
-            formatted_results.append(content)
-            formatted_results.append("-" * 50)
+            print(f"    {i}. Section {section_num} ({section_type}): {title[:50]} (page {page})", file=sys.stderr)
         
-        response = "\n".join(formatted_results)
+        # Format results with metadata
+        response = _format_manual_results(results, query, detected_formation)
         
         func_end = time.perf_counter()
         search_time = (search_end - search_start) * 1000

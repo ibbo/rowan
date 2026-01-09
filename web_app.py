@@ -360,11 +360,8 @@ async def query_stream(request: Request):
                                 tool_args = call.get("args", {})
                                 
                                 yield f"data: {json.dumps({'type': 'tool_start', 'tool': tool_name, 'args': tool_args, 'timestamp': datetime.now().isoformat()})}\n\n"
-                        else:
-                            # Assistant message
-                            content = getattr(msg, "content", "")
-                            if isinstance(content, str) and content and not content.startswith("You are a Scottish"):
-                                yield f"data: {json.dumps({'type': 'assistant', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
+                        # Note: We don't stream intermediate assistant messages here
+                        # The final response will be sent after all tool calls complete
                 
                 # Handle tool executor
                 if "tool_executor" in chunk:
@@ -401,16 +398,22 @@ async def query_stream(request: Request):
                             yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
                             return
             
-            # Get final state
+            # Get final state and extract the final assistant response
             final_state = await agent.graph.aget_state(config)
             final_response = ""
             if final_state and hasattr(final_state, "values"):
                 messages = final_state.values.get("messages", [])
+                # Find the last AI message that's not a tool call and not a system message
                 for msg in reversed(messages):
+                    # Skip messages with tool calls
                     if hasattr(msg, "tool_calls") and msg.tool_calls:
                         continue
+                    # Skip system messages
+                    if hasattr(msg, "type") and msg.type == "system":
+                        continue
+                    # Get content and check if it's a substantive response
                     content = getattr(msg, "content", "")
-                    if isinstance(content, str) and content:
+                    if isinstance(content, str) and content and not content.startswith("You are"):
                         final_response = content
                         yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
                         break
