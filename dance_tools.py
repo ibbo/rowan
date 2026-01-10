@@ -1,4 +1,5 @@
 from typing import Dict, List, Any, Optional
+from datetime import datetime
 import time
 import sys
 import os
@@ -670,6 +671,309 @@ def _load_manual_vectorstore() -> Optional[Chroma]:
     except Exception as e:
         print(f"❌ Error loading RSCDS manual vector database: {e}", file=sys.stderr)
         return None
+
+
+@tool
+async def find_videos(
+    dance_id: Optional[int] = None,
+    dance_name: Optional[str] = None,
+    editors_pick: Optional[bool] = None,
+    limit: int = 10
+) -> List[Dict[str, Any]]:
+    """
+    Find YouTube video demonstrations for Scottish Country Dances.
+    Returns video links, quality ratings, and comments.
+    Useful for showing dancers how a dance is performed visually.
+    
+    Args:
+        dance_id: Get videos for a specific dance by its database ID
+        dance_name: Search for videos by dance name (case-insensitive substring match)
+        editors_pick: If true, only return editor's pick (highest quality) videos
+        limit: Maximum number of videos to return (1-50, default 10)
+    
+    Returns:
+        List of video dictionaries with dance_name, youtube_url, quality, comment, etc.
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: find_videos tool called", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    arguments = {"limit": limit}
+    if dance_id is not None:
+        arguments["dance_id"] = dance_id
+    if dance_name:
+        arguments["dance_name"] = dance_name
+    if editors_pick is not None:
+        arguments["editors_pick"] = editors_pick
+    
+    result = await mcp_client.call_tool("find_videos", arguments)
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: find_videos completed - {total_time:.2f}ms, {len(result)} results", file=sys.stderr)
+    
+    return result
+
+
+@tool
+async def find_recordings(
+    dance_id: Optional[int] = None,
+    dance_name: Optional[str] = None,
+    recording_name: Optional[str] = None,
+    artist_name: Optional[str] = None,
+    album_name: Optional[str] = None,
+    limit: int = 20
+) -> List[Dict[str, Any]]:
+    """
+    Find music recordings for Scottish Country Dances.
+    Returns recording name, artist, album, duration, and which dances the recording is suitable for.
+    Useful for finding music to practice or perform dances.
+    
+    Args:
+        dance_id: Get recordings suitable for a specific dance by its database ID
+        dance_name: Search for recordings by dance name (case-insensitive substring match)
+        recording_name: Search by recording/tune name (case-insensitive substring match)
+        artist_name: Search by artist/band name (case-insensitive substring match)
+        album_name: Search by album name (case-insensitive substring match)
+        limit: Maximum number of recordings to return (1-50, default 20)
+    
+    Returns:
+        List of recording dictionaries with recording_name, artist, album, duration_seconds, dance_name, etc.
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: find_recordings tool called", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    arguments = {"limit": limit}
+    if dance_id is not None:
+        arguments["dance_id"] = dance_id
+    if dance_name:
+        arguments["dance_name"] = dance_name
+    if recording_name:
+        arguments["recording_name"] = recording_name
+    if artist_name:
+        arguments["artist_name"] = artist_name
+    if album_name:
+        arguments["album_name"] = album_name
+    
+    result = await mcp_client.call_tool("find_recordings", arguments)
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: find_recordings completed - {total_time:.2f}ms, {len(result)} results", file=sys.stderr)
+    
+    return result
+
+
+@tool
+async def find_devisors(
+    name_contains: Optional[str] = None,
+    min_dances: Optional[int] = None,
+    sort_by: str = "dance_count",
+    limit: int = 25
+) -> List[Dict[str, Any]]:
+    """
+    Search for dance devisors (creators/choreographers) and see their dances.
+    Returns devisor name, location, and count of dances they created.
+    Useful for exploring prolific dance creators like John Drewry, Roy Goldring, etc.
+    
+    Args:
+        name_contains: Search by devisor name (case-insensitive substring match)
+        min_dances: Only return devisors with at least this many dances
+        sort_by: Sort by 'dance_count' (most prolific first) or 'name' (alphabetically)
+        limit: Maximum number of devisors to return (1-100, default 25)
+    
+    Returns:
+        List of devisor dictionaries with devisor_id, name, location, dance_count
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: find_devisors tool called", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    arguments = {"sort_by": sort_by, "limit": limit}
+    if name_contains:
+        arguments["name_contains"] = name_contains
+    if min_dances is not None:
+        arguments["min_dances"] = min_dances
+    
+    result = await mcp_client.call_tool("find_devisors", arguments)
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: find_devisors completed - {total_time:.2f}ms, {len(result)} results", file=sys.stderr)
+    
+    return result
+
+
+@tool
+async def find_publications(
+    name_contains: Optional[str] = None,
+    rscds_only: Optional[bool] = None,
+    year_from: Optional[int] = None,
+    year_to: Optional[int] = None,
+    sort_by: str = "name",
+    limit: int = 25
+) -> List[Dict[str, Any]]:
+    """
+    Search for publications (books, leaflets) containing Scottish Country Dances.
+    Returns publication name, year, RSCDS status, and dance count.
+    Useful for finding dances in specific books like 'RSCDS Book 1' or exploring a devisor's publications.
+    
+    Args:
+        name_contains: Search by publication name (case-insensitive substring match)
+        rscds_only: If true, only RSCDS publications; if false, only non-RSCDS; None for all
+        year_from: Publications from this year onwards
+        year_to: Publications up to this year
+        sort_by: Sort by 'year', 'name', or 'dance_count'
+        limit: Maximum number of publications to return (1-100, default 25)
+    
+    Returns:
+        List of publication dictionaries with publication_id, name, shortname, year, rscds, dance_count
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: find_publications tool called", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    arguments = {"sort_by": sort_by, "limit": limit}
+    if name_contains:
+        arguments["name_contains"] = name_contains
+    if rscds_only is not None:
+        arguments["rscds_only"] = rscds_only
+    if year_from is not None:
+        arguments["year_from"] = year_from
+    if year_to is not None:
+        arguments["year_to"] = year_to
+    
+    result = await mcp_client.call_tool("find_publications", arguments)
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: find_publications completed - {total_time:.2f}ms, {len(result)} results", file=sys.stderr)
+    
+    return result
+
+
+@tool
+async def get_publication_dances(
+    publication_id: int,
+    limit: int = 100
+) -> Dict[str, Any]:
+    """
+    Get all dances from a specific publication (book/leaflet).
+    Returns the dances with their position/number in the publication.
+    Useful after using find_publications to explore a specific book's contents.
+    
+    Args:
+        publication_id: The publication database ID (from find_publications results)
+        limit: Maximum number of dances to return (1-200, default 100)
+    
+    Returns:
+        Dictionary with 'publication' info and 'dances' list containing dance_id, dance_name, kind, bars, position_in_book
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: get_publication_dances tool called for publication_id: {publication_id}", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    result = await mcp_client.call_tool("get_publication_dances", {"publication_id": publication_id, "limit": limit})
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: get_publication_dances completed - {total_time:.2f}ms", file=sys.stderr)
+    
+    return result[0] if result else {}
+
+
+@tool
+async def search_dance_lists(
+    name_contains: Optional[str] = None,
+    owner: Optional[str] = None,
+    list_type: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    order_by: str = "-date",
+    limit: int = 20
+) -> List[Dict[str, Any]]:
+    """
+    Search for dance lists (event programs) from the live SCDDB server.
+    Dance lists are programs for classes, balls, and functions created by users.
+    Returns list name, owner, type (class/function/other), date, and item count.
+    NOTE: This queries the live SCDDB API and requires internet access.
+    
+    **TODAY'S DATE: {current_date}** - Use this to interpret relative date references like "upcoming", "this week", "next month", etc.
+    
+    Args:
+        name_contains: Search by list name (case-insensitive substring match)
+        owner: Filter by list owner's username
+        list_type: Filter by list type: 'function' (balls/events), 'class', 'informational', or 'other'
+        date_from: Lists from this date onwards (YYYY-MM-DD format)
+        date_to: Lists up to this date (YYYY-MM-DD format)
+        order_by: Sort order: 'date' (oldest first), '-date' (newest first), 'name', or 'owner'
+        limit: Maximum number of lists to return (1-100, default 20)
+    
+    Returns:
+        List of dance list dictionaries with id, name, owner, type, date, item_count
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: search_dance_lists tool called", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    arguments = {"order_by": order_by, "limit": limit}
+    if name_contains:
+        arguments["name_contains"] = name_contains
+    if owner:
+        arguments["owner"] = owner
+    if list_type:
+        arguments["list_type"] = list_type
+    if date_from:
+        arguments["date_from"] = date_from
+    if date_to:
+        arguments["date_to"] = date_to
+    
+    result = await mcp_client.call_tool("search_dance_lists", arguments)
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: search_dance_lists completed - {total_time:.2f}ms, {len(result)} results", file=sys.stderr)
+    
+    return result
+
+# Dynamically update the tool description with current date
+search_dance_lists.description = search_dance_lists.description.format(
+    current_date=datetime.now().strftime('%Y-%m-%d')
+)
+
+
+@tool
+async def get_dance_list_detail(list_id: int) -> Dict[str, Any]:
+    """
+    Get full details of a specific dance list (event program) including all items.
+    Returns the list info plus all dances, extras, and timing information.
+    NOTE: This queries the live SCDDB API and requires internet access.
+    
+    Args:
+        list_id: The dance list database ID (from search_dance_lists results)
+    
+    Returns:
+        Dictionary with list info (name, owner, type, date, notes) and 'items' array containing all dances/entries
+    """
+    func_start = time.perf_counter()
+    print(f"DEBUG: get_dance_list_detail tool called for list_id: {list_id}", file=sys.stderr)
+    
+    await mcp_client.setup()
+    
+    result = await mcp_client.call_tool("get_dance_list_detail", {"list_id": list_id})
+    func_end = time.perf_counter()
+    
+    total_time = (func_end - func_start) * 1000
+    print(f"DEBUG: get_dance_list_detail completed - {total_time:.2f}ms", file=sys.stderr)
+    
+    return result[0] if result else {}
 
 
 @tool

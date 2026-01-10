@@ -7,6 +7,7 @@ import logging
 import sqlite3
 import random
 import time
+import httpx
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server, InitializationOptions, NotificationOptions
@@ -144,6 +145,135 @@ async def handle_list_tools() -> List[Tool]:
                     "limit":{"type":"integer","minimum":1,"maximum":500,"default":50, "description":"Maximum number of formations to return"}
                 },
                 "required":[]
+            },
+        ),
+        Tool(
+            name="find_videos",
+            description=(
+                "Find YouTube video demonstrations for Scottish Country Dances. "
+                "Returns video links, quality ratings, and comments. "
+                "Useful for showing dancers how a dance is performed visually."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "dance_id":{"type":["integer","null"], "minimum":1, "description":"Get videos for a specific dance by its database ID"},
+                    "dance_name":{"type":["string","null"], "description":"Search for videos by dance name (case-insensitive substring match)"},
+                    "editors_pick":{"type":["boolean","null"], "description":"If true, only return editor's pick (highest quality) videos"},
+                    "limit":{"type":"integer","minimum":1,"maximum":50,"default":10, "description":"Maximum number of videos to return"}
+                },
+                "required":[]
+            },
+        ),
+        Tool(
+            name="find_recordings",
+            description=(
+                "Find music recordings for Scottish Country Dances. "
+                "Returns recording name, artist, album, duration, and which dances the recording is suitable for. "
+                "Useful for finding music to practice or perform dances."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "dance_id":{"type":["integer","null"], "minimum":1, "description":"Get recordings suitable for a specific dance by its database ID"},
+                    "dance_name":{"type":["string","null"], "description":"Search for recordings by dance name (case-insensitive substring match)"},
+                    "recording_name":{"type":["string","null"], "description":"Search by recording/tune name (case-insensitive substring match)"},
+                    "artist_name":{"type":["string","null"], "description":"Search by artist/band name (case-insensitive substring match)"},
+                    "album_name":{"type":["string","null"], "description":"Search by album name (case-insensitive substring match)"},
+                    "limit":{"type":"integer","minimum":1,"maximum":50,"default":20, "description":"Maximum number of recordings to return"}
+                },
+                "required":[]
+            },
+        ),
+        Tool(
+            name="find_devisors",
+            description=(
+                "Search for dance devisors (creators/choreographers) and see their dances. "
+                "Returns devisor name, location, and count of dances they created. "
+                "Useful for exploring prolific dance creators like John Drewry, Roy Goldring, etc."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "name_contains":{"type":["string","null"], "description":"Search by devisor name (case-insensitive substring match)"},
+                    "min_dances":{"type":["integer","null"], "minimum":1, "description":"Only return devisors with at least this many dances"},
+                    "sort_by":{"type":"string","enum":["dance_count","name"],"default":"dance_count", "description":"Sort by number of dances (most prolific first) or alphabetically by name"},
+                    "limit":{"type":"integer","minimum":1,"maximum":100,"default":25, "description":"Maximum number of devisors to return"}
+                },
+                "required":[]
+            },
+        ),
+        Tool(
+            name="find_publications",
+            description=(
+                "Search for publications (books, leaflets) containing Scottish Country Dances. "
+                "Returns publication name, year, RSCDS status, and dance count. "
+                "Useful for finding dances in specific books like 'RSCDS Book 1' or exploring a devisor's publications."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "name_contains":{"type":["string","null"], "description":"Search by publication name (case-insensitive substring match)"},
+                    "rscds_only":{"type":["boolean","null"], "description":"If true, only RSCDS publications; if false, only non-RSCDS; null for all"},
+                    "year_from":{"type":["integer","null"], "description":"Publications from this year onwards"},
+                    "year_to":{"type":["integer","null"], "description":"Publications up to this year"},
+                    "sort_by":{"type":"string","enum":["year","name","dance_count"],"default":"name", "description":"Sort by year, name, or number of dances"},
+                    "limit":{"type":"integer","minimum":1,"maximum":100,"default":25, "description":"Maximum number of publications to return"}
+                },
+                "required":[]
+            },
+        ),
+        Tool(
+            name="get_publication_dances",
+            description=(
+                "Get all dances from a specific publication (book/leaflet). "
+                "Returns the dances with their position/number in the publication. "
+                "Useful after using find_publications to explore a specific book's contents."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "publication_id":{"type":"integer","minimum":1, "description":"The publication database ID"},
+                    "limit":{"type":"integer","minimum":1,"maximum":200,"default":100, "description":"Maximum number of dances to return"}
+                },
+                "required":["publication_id"]
+            },
+        ),
+        Tool(
+            name="search_dance_lists",
+            description=(
+                "Search for dance lists (event programs) from the live SCDDB server. "
+                "Dance lists are programs for classes, balls, and functions created by users. "
+                "Returns list name, owner, type (class/function/other), date, and item count. "
+                "NOTE: This queries the live SCDDB API and requires internet access."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "name_contains":{"type":["string","null"], "description":"Search by list name (case-insensitive substring match)"},
+                    "owner":{"type":["string","null"], "description":"Filter by list owner's username"},
+                    "list_type":{"type":["string","null"], "enum":["function","class","informational","other"], "description":"Filter by list type: function (balls/events), class, informational, or other"},
+                    "date_from":{"type":["string","null"], "description":"Lists from this date onwards (YYYY-MM-DD format)"},
+                    "date_to":{"type":["string","null"], "description":"Lists up to this date (YYYY-MM-DD format)"},
+                    "order_by":{"type":"string","enum":["date","-date","name","owner"],"default":"-date", "description":"Sort order: date (oldest first), -date (newest first), name, or owner"},
+                    "limit":{"type":"integer","minimum":1,"maximum":100,"default":20, "description":"Maximum number of lists to return"}
+                },
+                "required":[]
+            },
+        ),
+        Tool(
+            name="get_dance_list_detail",
+            description=(
+                "Get full details of a specific dance list (event program) including all items. "
+                "Returns the list info plus all dances, extras, and timing information. "
+                "NOTE: This queries the live SCDDB API and requires internet access."
+            ),
+            inputSchema={
+                "type":"object",
+                "properties":{
+                    "list_id":{"type":"integer","minimum":1, "description":"The dance list database ID from search_dance_lists"}
+                },
+                "required":["list_id"]
             },
         ),
     ]
@@ -372,6 +502,355 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent | 
             
             logger.info(f"list_formations TOOL PERF: Total={total_tool_time:.2f}ms, Query={query_time:.2f}ms, Results={len(rows)}")
             return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
+
+        if name == "find_videos":
+            dance_id = arguments.get("dance_id")
+            dance_name = arguments.get("dance_name")
+            editors_pick = arguments.get("editors_pick")
+            limit = int(arguments.get("limit", 10))
+            
+            logger.info("find_videos called with: dance_id=%s, dance_name=%s, editors_pick=%s, limit=%s",
+                       dance_id, dance_name, editors_pick, limit)
+            
+            sql = """
+            SELECT 
+                dv.id as video_id,
+                d.id as dance_id,
+                d.name as dance_name,
+                dv.external as youtube_id,
+                dv.quality,
+                dv.comment,
+                dv.editors_pick,
+                dv.credit
+            FROM dancevideo dv
+            JOIN dance d ON d.id = dv.dance_id
+            WHERE dv.published = 1 AND dv.external != ''
+            """
+            
+            args: List[Any] = []
+            if dance_id:
+                sql += " AND d.id = ?"
+                args.append(int(dance_id))
+            if dance_name:
+                sql += " AND d.name LIKE ? COLLATE NOCASE"
+                args.append(f"%{dance_name}%")
+            if editors_pick:
+                sql += " AND dv.editors_pick = 1"
+            
+            sql += " ORDER BY dv.editors_pick DESC, d.name LIMIT ?"
+            args.append(limit)
+            
+            query_start = time.perf_counter()
+            rows = q(sql, tuple(args))
+            query_end = time.perf_counter()
+            
+            # Add YouTube URL to each result
+            for row in rows:
+                if row.get("youtube_id"):
+                    row["youtube_url"] = f"https://www.youtube.com/watch?v={row['youtube_id']}"
+            
+            tool_end = time.perf_counter()
+            query_time = (query_end - query_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"find_videos TOOL PERF: Total={total_tool_time:.2f}ms, Query={query_time:.2f}ms, Results={len(rows)}")
+            return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
+
+        if name == "find_recordings":
+            dance_id = arguments.get("dance_id")
+            dance_name = arguments.get("dance_name")
+            recording_name = arguments.get("recording_name")
+            artist_name = arguments.get("artist_name")
+            album_name = arguments.get("album_name")
+            limit = int(arguments.get("limit", 20))
+            
+            logger.info("find_recordings called with: dance_id=%s, dance_name=%s, recording_name=%s, artist_name=%s, album_name=%s, limit=%s",
+                       dance_id, dance_name, recording_name, artist_name, album_name, limit)
+            
+            sql = """
+            SELECT DISTINCT
+                r.id as recording_id,
+                r.name as recording_name,
+                r.playingseconds as duration_seconds,
+                r.repetitions,
+                r.barsperrepeat as bars_per_repeat,
+                p.display_name as artist,
+                a.name as album,
+                a.productionyear as album_year,
+                d.id as dance_id,
+                d.name as dance_name
+            FROM recording r
+            LEFT JOIN person p ON p.id = r.artist_id
+            LEFT JOIN albumsrecordingsmap arm ON arm.recording_id = r.id
+            LEFT JOIN album a ON a.id = arm.album_id
+            LEFT JOIN dancesrecordingsmap drm ON drm.recording_id = r.id
+            LEFT JOIN dance d ON d.id = drm.dance_id
+            WHERE 1=1
+            """
+            
+            args: List[Any] = []
+            if dance_id:
+                sql += " AND d.id = ?"
+                args.append(int(dance_id))
+            if dance_name:
+                sql += " AND d.name LIKE ? COLLATE NOCASE"
+                args.append(f"%{dance_name}%")
+            if recording_name:
+                sql += " AND r.name LIKE ? COLLATE NOCASE"
+                args.append(f"%{recording_name}%")
+            if artist_name:
+                sql += " AND p.display_name LIKE ? COLLATE NOCASE"
+                args.append(f"%{artist_name}%")
+            if album_name:
+                sql += " AND a.name LIKE ? COLLATE NOCASE"
+                args.append(f"%{album_name}%")
+            
+            sql += " ORDER BY r.name LIMIT ?"
+            args.append(limit)
+            
+            query_start = time.perf_counter()
+            rows = q(sql, tuple(args))
+            query_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            query_time = (query_end - query_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"find_recordings TOOL PERF: Total={total_tool_time:.2f}ms, Query={query_time:.2f}ms, Results={len(rows)}")
+            return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
+
+        if name == "find_devisors":
+            name_contains = arguments.get("name_contains")
+            min_dances = arguments.get("min_dances")
+            sort_by = arguments.get("sort_by", "dance_count")
+            limit = int(arguments.get("limit", 25))
+            
+            logger.info("find_devisors called with: name_contains=%s, min_dances=%s, sort_by=%s, limit=%s",
+                       name_contains, min_dances, sort_by, limit)
+            
+            sql = """
+            SELECT 
+                p.id as devisor_id,
+                p.display_name as name,
+                p.location,
+                COUNT(d.id) as dance_count
+            FROM person p
+            JOIN dance d ON d.devisor_id = p.id
+            WHERE p.isdev = 1
+            """
+            
+            args: List[Any] = []
+            if name_contains:
+                sql += " AND (p.name LIKE ? COLLATE NOCASE OR p.display_name LIKE ? COLLATE NOCASE)"
+                args.append(f"%{name_contains}%")
+                args.append(f"%{name_contains}%")
+            
+            sql += " GROUP BY p.id, p.display_name, p.location"
+            
+            if min_dances:
+                sql += " HAVING COUNT(d.id) >= ?"
+                args.append(int(min_dances))
+            
+            if sort_by == "dance_count":
+                sql += " ORDER BY dance_count DESC, p.display_name"
+            else:
+                sql += " ORDER BY p.display_name"
+            
+            sql += " LIMIT ?"
+            args.append(limit)
+            
+            query_start = time.perf_counter()
+            rows = q(sql, tuple(args))
+            query_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            query_time = (query_end - query_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"find_devisors TOOL PERF: Total={total_tool_time:.2f}ms, Query={query_time:.2f}ms, Results={len(rows)}")
+            return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
+
+        if name == "find_publications":
+            name_contains = arguments.get("name_contains")
+            rscds_only = arguments.get("rscds_only")
+            year_from = arguments.get("year_from")
+            year_to = arguments.get("year_to")
+            sort_by = arguments.get("sort_by", "name")
+            limit = int(arguments.get("limit", 25))
+            
+            logger.info("find_publications called with: name_contains=%s, rscds_only=%s, year_from=%s, year_to=%s, sort_by=%s, limit=%s",
+                       name_contains, rscds_only, year_from, year_to, sort_by, limit)
+            
+            sql = """
+            SELECT 
+                pub.id as publication_id,
+                pub.name,
+                pub.shortname,
+                pub.year,
+                pub.rscds,
+                pub.notes,
+                COUNT(DISTINCT dpm.dance_id) as dance_count
+            FROM publication pub
+            LEFT JOIN dancespublicationsmap dpm ON dpm.publication_id = pub.id
+            WHERE pub.hasdances = 1
+            """
+            
+            args: List[Any] = []
+            if name_contains:
+                sql += " AND (pub.name LIKE ? COLLATE NOCASE OR pub.shortname LIKE ? COLLATE NOCASE)"
+                args.append(f"%{name_contains}%")
+                args.append(f"%{name_contains}%")
+            if rscds_only is not None:
+                sql += " AND pub.rscds = ?"
+                args.append(1 if rscds_only else 0)
+            if year_from:
+                sql += " AND pub.year >= ?"
+                args.append(str(year_from))
+            if year_to:
+                sql += " AND pub.year <= ?"
+                args.append(str(year_to))
+            
+            sql += " GROUP BY pub.id, pub.name, pub.shortname, pub.year, pub.rscds, pub.notes"
+            
+            if sort_by == "year":
+                sql += " ORDER BY pub.year DESC, pub.name"
+            elif sort_by == "dance_count":
+                sql += " ORDER BY dance_count DESC, pub.name"
+            else:
+                sql += " ORDER BY pub.name"
+            
+            sql += " LIMIT ?"
+            args.append(limit)
+            
+            query_start = time.perf_counter()
+            rows = q(sql, tuple(args))
+            query_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            query_time = (query_end - query_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            logger.info(f"find_publications TOOL PERF: Total={total_tool_time:.2f}ms, Query={query_time:.2f}ms, Results={len(rows)}")
+            return [TextContent(type="text", text=json.dumps(rows, ensure_ascii=False))]
+
+        if name == "get_publication_dances":
+            publication_id = int(arguments["publication_id"])
+            limit = int(arguments.get("limit", 100))
+            
+            logger.info("get_publication_dances called with: publication_id=%s, limit=%s", publication_id, limit)
+            
+            # Get publication info
+            pub_info = q_one("SELECT id, name, shortname, year, rscds FROM publication WHERE id = ?", (publication_id,))
+            
+            # Get dances in this publication
+            sql = """
+            SELECT 
+                d.id as dance_id,
+                d.name as dance_name,
+                m.kind,
+                m.bars,
+                m.metaform,
+                dpm.number as position_in_book,
+                dpm.page
+            FROM dancespublicationsmap dpm
+            JOIN dance d ON d.id = dpm.dance_id
+            JOIN v_metaform m ON m.id = d.id
+            WHERE dpm.publication_id = ?
+            ORDER BY dpm.number, d.name
+            LIMIT ?
+            """
+            
+            query_start = time.perf_counter()
+            rows = q(sql, (publication_id, limit))
+            query_end = time.perf_counter()
+            tool_end = time.perf_counter()
+            
+            query_time = (query_end - query_start) * 1000
+            total_tool_time = (tool_end - tool_start_time) * 1000
+            
+            result = {"publication": pub_info, "dances": rows}
+            
+            logger.info(f"get_publication_dances TOOL PERF: Total={total_tool_time:.2f}ms, Query={query_time:.2f}ms, Results={len(rows)}")
+            return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
+
+        if name == "search_dance_lists":
+            name_contains = arguments.get("name_contains")
+            owner = arguments.get("owner")
+            list_type = arguments.get("list_type")
+            date_from = arguments.get("date_from")
+            date_to = arguments.get("date_to")
+            order_by = arguments.get("order_by", "-date")
+            limit = int(arguments.get("limit", 20))
+            
+            logger.info("search_dance_lists called with: name_contains=%s, owner=%s, list_type=%s, date_from=%s, date_to=%s, order_by=%s, limit=%s",
+                       name_contains, owner, list_type, date_from, date_to, order_by, limit)
+            
+            # Build API URL
+            base_url = "https://my.strathspey.org/dd/api/lists/v1/list"
+            params: Dict[str, Any] = {"limit": limit, "order": order_by}
+            
+            if name_contains:
+                params["name"] = name_contains
+            if owner:
+                params["owner"] = owner
+            if list_type:
+                params["type"] = list_type
+            if date_from:
+                params["date_from"] = date_from
+            if date_to:
+                params["date_to"] = date_to
+            
+            try:
+                api_start = time.perf_counter()
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(base_url, params=params)
+                    response.raise_for_status()
+                    data = response.json()
+                api_end = time.perf_counter()
+                tool_end = time.perf_counter()
+                
+                api_time = (api_end - api_start) * 1000
+                total_tool_time = (tool_end - tool_start_time) * 1000
+                
+                items = data.get("items", [])
+                # Add the correct URL for each dance list (uses /dd/list/ not /dd/dance/)
+                for item in items:
+                    if item.get("id"):
+                        item["url"] = f"https://my.strathspey.org/dd/list/{item['id']}/"
+                
+                logger.info(f"search_dance_lists TOOL PERF: Total={total_tool_time:.2f}ms, API={api_time:.2f}ms, Results={len(items)}")
+                return [TextContent(type="text", text=json.dumps(items, ensure_ascii=False))]
+            except httpx.HTTPError as e:
+                logger.error(f"HTTP error querying dance lists API: {e}")
+                return [TextContent(type="text", text=json.dumps({"error": f"Failed to query SCDDB API: {str(e)}"}))]
+
+        if name == "get_dance_list_detail":
+            list_id = int(arguments["list_id"])
+            
+            logger.info("get_dance_list_detail called with: list_id=%s", list_id)
+            
+            url = f"https://my.strathspey.org/dd/api/lists/v1/list/{list_id}"
+            
+            try:
+                api_start = time.perf_counter()
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(url)
+                    response.raise_for_status()
+                    data = response.json()
+                api_end = time.perf_counter()
+                tool_end = time.perf_counter()
+                
+                api_time = (api_end - api_start) * 1000
+                total_tool_time = (tool_end - tool_start_time) * 1000
+                
+                # Add the correct URL for the dance list (uses /dd/list/ not /dd/dance/)
+                data["url"] = f"https://my.strathspey.org/dd/list/{list_id}/"
+                
+                logger.info(f"get_dance_list_detail TOOL PERF: Total={total_tool_time:.2f}ms, API={api_time:.2f}ms")
+                return [TextContent(type="text", text=json.dumps(data, ensure_ascii=False))]
+            except httpx.HTTPError as e:
+                logger.error(f"HTTP error querying dance list detail API: {e}")
+                return [TextContent(type="text", text=json.dumps({"error": f"Failed to query SCDDB API: {str(e)}"}))]
 
         # Unknown tool
         tool_end = time.perf_counter()

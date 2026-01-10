@@ -25,7 +25,11 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-from dance_tools import find_dances, get_dance_detail, search_cribs, list_formations, search_manual
+from dance_tools import (
+    find_dances, get_dance_detail, search_cribs, list_formations, search_manual,
+    find_videos, find_recordings, find_devisors, find_publications, 
+    get_publication_dances, search_dance_lists, get_dance_list_detail
+)
 
 
 # Define the state that flows through the graph
@@ -53,7 +57,11 @@ class SCDAgent:
         self.dance_planner_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
         
         # Tools for the dance planner
-        self.tools = [list_formations, find_dances, get_dance_detail, search_cribs, search_manual]
+        self.tools = [
+            list_formations, find_dances, get_dance_detail, search_cribs, search_manual,
+            find_videos, find_recordings, find_devisors, find_publications,
+            get_publication_dances, search_dance_lists, get_dance_list_detail
+        ]
         
         # Bind tools to the dance planner LLM
         self.dance_planner_with_tools = self.dance_planner_llm.bind_tools(self.tools)
