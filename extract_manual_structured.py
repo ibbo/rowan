@@ -301,27 +301,105 @@ class ManualExtractor:
         return teaching_points
     
     def _generate_aliases(self, title: str) -> List[str]:
-        """Generate common aliases for a section title."""
+        """Generate common aliases for a section title.
+        
+        Handles:
+        - Number variations (three/3, two/2, four/4)
+        - Word order variations ("X for N couples" -> "N couple X")
+        - Common abbreviations
+        - Hyphenation variations
+        """
         aliases = []
         title_lower = title.lower()
         
-        # Common abbreviations and variations
+        # Number word to digit mapping
+        num_words = {
+            'one': '1', 'two': '2', 'three': '3', 'four': '4', 
+            'five': '5', 'six': '6', 'eight': '8'
+        }
+        num_digits = {v: k for k, v in num_words.items()}
+        
+        # Pattern: "X for N couples" -> "N couple X"
+        # e.g., "knot for three couples" -> "3 couple knot", "three couple knot"
+        # Also handles "The X for N couples"
+        match = re.match(r'^(?:the\s+)?(.+?)\s+for\s+(one|two|three|four|five|six)\s+couples?$', title_lower)
+        if match:
+            formation_name = match.group(1).strip()
+            # Strip leading "the" from formation name if present
+            formation_name = re.sub(r'^the\s+', '', formation_name)
+            num_word = match.group(2)
+            num_digit = num_words.get(num_word, num_word)
+            
+            # Add colloquial variations
+            aliases.append(f"{num_digit} couple {formation_name}")
+            aliases.append(f"{num_word} couple {formation_name}")
+            aliases.append(f"{num_digit}-couple {formation_name}")
+            # Also the base formation name alone for simple lookups
+            if formation_name not in ['poussette', 'promenade']:  # Avoid overly generic
+                aliases.append(formation_name)
+        
+        # Pattern: "X for N couples in Y" variations
+        match = re.match(r'^(.+?)\s+for\s+(one|two|three|four)\s+couples?\s+(.+)$', title_lower)
+        if match:
+            formation_name = match.group(1).strip()
+            num_word = match.group(2)
+            suffix = match.group(3).strip()
+            num_digit = num_words.get(num_word, num_word)
+            aliases.append(f"{num_digit} couple {formation_name} {suffix}")
+        
+        # Pattern: "reel of three/four" variations
+        match = re.match(r'^reels?\s+of\s+(three|four|3|4)(.*)$', title_lower)
+        if match:
+            num = match.group(1)
+            suffix = match.group(2).strip()
+            if num in num_words:
+                aliases.append(f"reel of {num_words[num]}{' ' + suffix if suffix else ''}")
+            if num in num_digits:
+                aliases.append(f"reel of {num_digits[num]}{' ' + suffix if suffix else ''}")
+            # Common colloquial: "reel of 3" 
+            if num == 'three':
+                aliases.extend(["reel of 3", "3 reel"])
+            elif num == 'four':
+                aliases.extend(["reel of 4", "4 reel"])
+        
+        # Specific common aliases
         if "skip change of step" in title_lower:
             aliases.append("skip change")
         elif "pas de basque" in title_lower:
             aliases.extend(["pas-de-basque", "pdb"])
         elif "rights and lefts" in title_lower:
-            aliases.append("rights & lefts")
+            aliases.extend(["rights & lefts", "rights n lefts"])
         elif "ladies' chain" in title_lower or "ladies' chain" in title_lower:
-            aliases.append("ladies chain")
+            aliases.extend(["ladies chain", "lady's chain"])
         elif "men's chain" in title_lower or "men's chain" in title_lower:
-            aliases.append("mens chain")
+            aliases.extend(["mens chain", "men chain"])
         elif "figure of eight" in title_lower:
-            aliases.append("figure 8")
-        elif "reel of three" in title_lower:
-            aliases.append("reel of 3")
-        elif "reel of four" in title_lower:
-            aliases.append("reel of 4")
+            aliases.extend(["figure 8", "figure-of-eight"])
+        elif "hands across" in title_lower:
+            aliases.append("hands-across")
+        elif "hands round" in title_lower:
+            aliases.append("hands-round")
+        elif "set and link" in title_lower:
+            aliases.append("set-and-link")
+        elif "set and turn" in title_lower:
+            aliases.append("set-and-turn")
+        elif "lead down the middle" in title_lower:
+            aliases.extend(["lead down", "down the middle"])
+        elif "petronella" in title_lower:
+            aliases.append("petronella")
+        elif "allemande" in title_lower:
+            aliases.append("allemande")
+        elif "poussette" in title_lower and "polka" not in title_lower:
+            # Add base "poussette" for the main poussette sections
+            if "for two couples" in title_lower:
+                aliases.extend(["poussette", "2 couple poussette"])
+        elif "half" in title_lower:
+            # "half X" -> common abbreviated forms
+            base = title_lower.replace("half ", "").strip()
+            aliases.append(f"1/2 {base}")
+        
+        # Remove duplicates and empty strings
+        aliases = list(set(a.strip() for a in aliases if a.strip()))
         
         return aliases
     
