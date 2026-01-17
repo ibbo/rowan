@@ -5,24 +5,29 @@ Uses Server-Sent Events (SSE) for real-time streaming updates.
 """
 
 import asyncio
+import hashlib
 import json
 import os
+import secrets
 import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import AsyncIterator, Dict, List, Optional
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, Request, Form, Response, Depends, HTTPException
+from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import uvicorn
 
 from scd_agent import SCDAgent
 from dance_tools import mcp_client
 from langchain_core.messages import HumanMessage
+from settings import get_llm_settings, set_llm_settings, init_settings_db
+from llm_providers import get_provider, list_providers
 
 # Load environment
 load_dotenv()
@@ -42,6 +47,30 @@ agent_ready = False
 
 # Chat history database path
 CHAT_DB_PATH = "data/chat_history.db"
+
+# Admin session management
+ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", secrets.token_hex(32))
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+SESSION_COOKIE_NAME = "admin_session"
+SERIALIZER = URLSafeTimedSerializer(ADMIN_SECRET_KEY)
+
+
+def verify_admin_session(request: Request) -> bool:
+    """Verify if the request has a valid admin session."""
+    session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
+    if not session_cookie:
+        return False
+    try:
+        # Session expires after 24 hours
+        data = SERIALIZER.loads(session_cookie, max_age=86400)
+        return data.get("authenticated") == True
+    except (BadSignature, SignatureExpired):
+        return False
+
+
+def create_admin_session() -> str:
+    """Create a new admin session token."""
+    return SERIALIZER.dumps({"authenticated": True})
 
 
 def init_chat_db():
@@ -270,7 +299,18 @@ async def startup_event():
     global agent, agent_ready
     print("🔧 Initializing SCD Agent...")
     init_chat_db()
-    agent = SCDAgent()
+    init_settings_db()
+    
+    # Load LLM settings
+    llm_settings = get_llm_settings()
+    print(f"📊 Using LLM: {llm_settings['provider']} / {llm_settings['model']}")
+    
+    # Create agent with configured provider/model
+    agent = SCDAgent(
+        provider=llm_settings["provider"],
+        model=llm_settings["model"],
+        temperature=llm_settings["temperature"]
+    )
     await mcp_client.setup()
     agent_ready = True
     print("✅ Agent ready!")
@@ -497,10 +537,138 @@ async def update_title(session_id: str, request: Request):
 @app.get("/health")
 async def health():
     """Health check endpoint."""
+    llm_settings = get_llm_settings()
     return {
         "status": "healthy",
         "agent_ready": agent_ready,
+        "llm_provider": llm_settings["provider"],
+        "llm_model": llm_settings["model"],
     }
+
+
+# =============================================================================
+# Admin Routes
+# =============================================================================
+
+@app.get("/admin/login", response_class=HTMLResponse)
+async def admin_login_page(request: Request, error: str = None, message: str = None):
+    """Render the admin login page."""
+    # If already authenticated, redirect to dashboard
+    if verify_admin_session(request):
+        return RedirectResponse(url="/admin", status_code=302)
+    return templates.TemplateResponse("admin_login.html", {
+        "request": request,
+        "error": error,
+        "message": message
+    })
+
+
+@app.post("/admin/login")
+async def admin_login(request: Request, password: str = Form(...)):
+    """Process admin login."""
+    if not ADMIN_PASSWORD:
+        return templates.TemplateResponse("admin_login.html", {
+            "request": request,
+            "error": "Admin password not configured. Set ADMIN_PASSWORD in .env file."
+        })
+    
+    if password == ADMIN_PASSWORD:
+        response = RedirectResponse(url="/admin", status_code=302)
+        session_token = create_admin_session()
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=session_token,
+            httponly=True,
+            samesite="lax",
+            max_age=86400  # 24 hours
+        )
+        return response
+    else:
+        return templates.TemplateResponse("admin_login.html", {
+            "request": request,
+            "error": "Invalid password. Please try again."
+        })
+
+
+@app.get("/admin/logout")
+async def admin_logout():
+    """Log out of admin session."""
+    response = RedirectResponse(url="/admin/login", status_code=302)
+    response.delete_cookie(SESSION_COOKIE_NAME)
+    return response
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard(request: Request):
+    """Render the admin dashboard."""
+    if not verify_admin_session(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+    
+    # Get current settings
+    llm_settings = get_llm_settings()
+    providers = list_providers()
+    
+    # Build models data for JavaScript
+    models_data = {}
+    for p in providers:
+        provider_instance = get_provider(p["id"])
+        models_data[p["id"]] = provider_instance.list_available_models()
+    
+    return templates.TemplateResponse("admin_dashboard.html", {
+        "request": request,
+        "current_provider": llm_settings["provider"],
+        "current_model": llm_settings["model"],
+        "current_temperature": llm_settings["temperature"],
+        "providers": providers,
+        "models_json": json.dumps(models_data)
+    })
+
+
+@app.post("/admin/api/settings")
+async def update_admin_settings(request: Request):
+    """Update LLM settings."""
+    if not verify_admin_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    try:
+        data = await request.json()
+        provider = data.get("provider")
+        model = data.get("model")
+        temperature = float(data.get("temperature", 0))
+        
+        # Validate provider
+        try:
+            get_provider(provider)
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+        
+        # Save settings
+        set_llm_settings(provider, model, temperature)
+        
+        return {"success": True, "message": "Settings saved. Restart server to apply."}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@app.post("/admin/api/test-connection")
+async def test_llm_connection(request: Request):
+    """Test LLM connection with given settings."""
+    if not verify_admin_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    try:
+        data = await request.json()
+        provider_name = data.get("provider")
+        model = data.get("model")
+        api_key = data.get("api_key")  # Optional override
+        
+        # Get provider and test connection
+        provider = get_provider(provider_name)
+        success, message = provider.validate_connection(model, api_key)
+        
+        return {"success": success, "message": message}
+    except Exception as e:
+        return {"success": False, "message": f"Test failed: {str(e)}"}
 
 
 if __name__ == "__main__":

@@ -43,18 +43,41 @@ class State(TypedDict):
 class SCDAgent:
     """Scottish Country Dance Agent with multi-stage processing."""
     
-    def __init__(self):
-        """Initialize the agent with LLMs and tools."""
-        # Check for OpenAI API key
-        if not os.getenv("OPENAI_API_KEY"):
+    def __init__(
+        self, 
+        provider: str = "openai", 
+        model: str = "gpt-4o-mini",
+        temperature: float = 0
+    ):
+        """Initialize the agent with LLMs and tools.
+        
+        Args:
+            provider: LLM provider name ('openai', 'google')
+            model: Model identifier
+            temperature: Sampling temperature (0 = deterministic)
+        """
+        from llm_providers import get_provider
+        
+        # Get the provider instance
+        llm_provider = get_provider(provider)
+        
+        # Check for API key
+        import os
+        env_var = llm_provider.get_env_var_name()
+        if not os.getenv(env_var):
             raise RuntimeError(
-                "OpenAI API key not found. Please set OPENAI_API_KEY environment variable.\n"
-                "Example: export OPENAI_API_KEY='your-key-here'"
+                f"API key not found. Please set {env_var} environment variable.\\n"
+                f"Example: export {env_var}='your-key-here'"
             )
         
         # Initialize LLMs for different agents
-        self.prompt_checker_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        self.dance_planner_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self.prompt_checker_llm = llm_provider.create_chat_llm(model, temperature)
+        self.dance_planner_llm = llm_provider.create_chat_llm(model, temperature)
+        
+        # Store config for reference
+        self.provider = provider
+        self.model = model
+        self.temperature = temperature
         
         # Tools for the dance planner
         self.tools = [
