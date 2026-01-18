@@ -87,7 +87,7 @@ class OpenAIProvider(BaseLLMProvider):
     
     MODELS = [
         {"id": "gpt-5.2", "name": "GPT-5.2", "description": "Most capable model"},
-        {"id": "gpt-5.2-mini", "name": "GPT-5.2 Mini", "description": "Fast and efficient"},
+        {"id": "gpt-5-mini", "name": "GPT-5 Mini", "description": "Fast and efficient"},
         {"id": "gpt-4o", "name": "GPT-4o", "description": "Previous generation flagship"},
         {"id": "gpt-4o-mini", "name": "GPT-4o Mini", "description": "Previous generation efficient"},
     ]
@@ -142,7 +142,7 @@ class GoogleAIProvider(BaseLLMProvider):
     display_name = "Google AI (Gemini)"
     
     MODELS = [
-        {"id": "gemini-3.0-flash", "name": "Gemini 3.0 Flash", "description": "Fastest, free tier available"},
+        {"id": "gemini-3-flash-preview", "name": "Gemini 3 Flash", "description": "Fastest, free tier available"},
         {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "description": "Most capable Gemini model"},
         {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash", "description": "Previous generation fast model"},
     ]
