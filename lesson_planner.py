@@ -15,6 +15,9 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from typing_extensions import TypedDict
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Import tools from both modules
 from dance_tools import (

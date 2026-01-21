@@ -28,6 +28,41 @@ from dance_tools import mcp_client, _get_manual_kb
 LESSON_DB_PATH = "data/lesson_plans.db"
 
 
+def _extract_crib_text(crib: Any) -> str:
+    """Extract text content from various crib formats.
+    
+    Cribs can come in different formats:
+    - String: return as-is
+    - Dict with 'text' or 'crib' key: extract the value
+    - Dict: stringify
+    - List: join items
+    - None: return empty string
+    
+    Args:
+        crib: The crib data in any format
+        
+    Returns:
+        String content of the crib
+    """
+    if crib is None:
+        return ""
+    if isinstance(crib, str):
+        return crib
+    if isinstance(crib, dict):
+        # Try common keys first
+        if "text" in crib:
+            return str(crib["text"])
+        if "crib" in crib:
+            return str(crib["crib"])
+        if "content" in crib:
+            return str(crib["content"])
+        # Fall back to stringifying the whole dict
+        return str(crib)
+    if isinstance(crib, list):
+        return " ".join(str(item) for item in crib)
+    return str(crib)
+
+
 def init_lesson_db():
     """Initialize the lesson plans database."""
     Path("data").mkdir(exist_ok=True)
@@ -159,7 +194,8 @@ async def get_teaching_points_for_dance(dance_id: int) -> Dict[str, Any]:
     ]
     
     # Find formations mentioned in the crib
-    crib_lower = (crib or "").lower()
+    crib_text = _extract_crib_text(crib)
+    crib_lower = crib_text.lower()
     found_formations = []
     teaching_points = []
     
