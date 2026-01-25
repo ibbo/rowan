@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,7 +36,7 @@
             min-width: 280px;
             flex-shrink: 0;
             background: white;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -74,7 +75,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
             transition: left 0.3s ease;
             z-index: 101;
         }
@@ -112,7 +113,7 @@
 
         .new-chat-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .sessions-list {
@@ -218,7 +219,7 @@
         .header h1 {
             font-size: 2rem;
             margin-bottom: 8px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -228,7 +229,7 @@
         .header-logo {
             height: 64px;
             width: auto;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+            filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
         }
 
         .header p {
@@ -239,7 +240,7 @@
         .chat-container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -269,6 +270,7 @@
                 opacity: 0;
                 transform: translateY(10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -495,9 +497,13 @@
         }
 
         @keyframes bounce {
-            0%, 80%, 100% {
+
+            0%,
+            80%,
+            100% {
                 transform: scale(0);
             }
+
             40% {
                 transform: scale(1);
             }
@@ -561,13 +567,13 @@
             border-radius: 12px;
             cursor: pointer;
             z-index: 1001;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             transition: all 0.2s;
         }
 
         .mobile-menu-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
 
         .mobile-menu-btn svg {
@@ -609,7 +615,7 @@
                 transform: translateX(-100%);
                 transition: transform 0.3s ease;
             }
-            
+
             .sidebar.mobile-open {
                 transform: translateX(0) !important;
             }
@@ -617,15 +623,15 @@
             .sidebar.collapsed {
                 transform: translateX(-100%);
             }
-            
+
             .sidebar-toggle {
                 display: none;
             }
-            
+
             .main-content {
                 padding: 80px 10px 10px 10px;
             }
-            
+
             .header h1 {
                 font-size: 1.5rem;
             }
@@ -772,14 +778,388 @@
             padding: 0;
             color: #f3f4f6;
         }
+
+        /* ============================================
+           LESSON PLANNER MODE STYLES
+           ============================================ */
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-top: 8px;
+        }
+
+        .mode-btn {
+            padding: 8px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:first-child {
+            border-radius: 20px 0 0 20px;
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .mode-btn:last-child {
+            border-radius: 0 20px 20px 0;
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Split Pane Container */
+        .split-container {
+            display: flex;
+            flex: 1;
+            gap: 0;
+            overflow: hidden;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .chat-pane {
+            flex: 1;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Resizer Handle */
+        .pane-resizer {
+            width: 8px;
+            background: transparent;
+            cursor: col-resize;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .pane-resizer:hover,
+        .pane-resizer.resizing {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .pane-resizer::after {
+            content: '';
+            width: 4px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+
+        .lesson-planner-mode .pane-resizer {
+            display: flex;
+        }
+
+        /* Lesson Preview Pane */
+        .lesson-preview-pane {
+            width: 0;
+            min-width: 0;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            transition: width 0.3s ease;
+        }
+
+        .lesson-planner-mode .lesson-preview-pane {
+            display: flex;
+            width: 45%;
+            min-width: 350px;
+        }
+
+        .lesson-preview-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .lesson-preview-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .lesson-preview-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lesson-preview-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .lesson-action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .lesson-action-btn.pdf-btn {
+            background: white;
+            color: #059669;
+        }
+
+        .lesson-action-btn.pdf-btn:hover {
+            background: #ecfdf5;
+            transform: translateY(-1px);
+        }
+
+        .lesson-preview-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .lesson-preview-content.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Lesson Markdown Styling */
+        .lesson-preview-content h1 {
+            font-size: 1.5rem;
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+
+        .lesson-preview-content h2 {
+            font-size: 1.25rem;
+            color: #374151;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        .lesson-preview-content h3 {
+            font-size: 1.1rem;
+            color: #4b5563;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+
+        .lesson-preview-content ul,
+        .lesson-preview-content ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        .lesson-preview-content li {
+            margin-bottom: 4px;
+        }
+
+        .lesson-preview-content blockquote {
+            border-left: 4px solid #10b981;
+            padding-left: 16px;
+            margin: 16px 0;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .lesson-preview-content a {
+            color: #10b981;
+            text-decoration: none;
+        }
+
+        .lesson-preview-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Example Buttons for Lesson Planner Mode */
+        .lesson-examples {
+            display: none;
+        }
+
+        .lesson-planner-mode .chat-examples {
+            display: none;
+        }
+
+        .lesson-planner-mode .lesson-examples {
+            display: flex;
+        }
+
+        /* Adjust main content for lesson planner mode */
+        .lesson-planner-mode .chat-container {
+            max-width: none;
+        }
+
+        /* Print Styles for PDF Export */
+        @media print {
+            body {
+                background: white !important;
+                margin: 0;
+                padding: 20px;
+            }
+
+            .container,
+            .sidebar,
+            .sidebar-toggle,
+            .mobile-menu-btn,
+            .sidebar-overlay,
+            .main-content,
+            .header,
+            .chat-pane,
+            .pane-resizer,
+            .lesson-preview-header,
+            .lesson-preview-actions {
+                display: none !important;
+            }
+
+            .lesson-preview-pane,
+            .lesson-preview-container,
+            .lesson-preview-content {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+
+            .lesson-preview-content {
+                padding: 0 !important;
+            }
+
+            .lesson-preview-content h1 {
+                font-size: 24pt;
+            }
+
+            .lesson-preview-content h2 {
+                font-size: 18pt;
+            }
+
+            .lesson-preview-content h3 {
+                font-size: 14pt;
+            }
+
+            .lesson-preview-content p,
+            .lesson-preview-content li {
+                font-size: 12pt;
+                line-height: 1.5;
+            }
+
+            a {
+                color: black !important;
+                text-decoration: underline !important;
+            }
+        }
+
+        /* Mobile Responsiveness for Lesson Planner */
+        @media (max-width: 1024px) {
+            .lesson-planner-mode .lesson-preview-pane {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 100%;
+                height: 100vh;
+                z-index: 1000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            }
+
+            .lesson-planner-mode .lesson-preview-pane.visible {
+                transform: translateX(0);
+            }
+
+            .lesson-planner-mode .pane-resizer {
+                display: none;
+            }
+
+            .lesson-preview-header {
+                padding: 12px 16px;
+            }
+
+            .lesson-close-btn {
+                display: block;
+            }
+        }
+
+        .lesson-close-btn {
+            display: none;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .lesson-close-btn {
+                display: block;
+            }
+        }
+
+        .view-lesson-btn {
+            display: none;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        @media (max-width: 1024px) {
+            .lesson-planner-mode .view-lesson-btn {
+                display: block;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Mobile menu button -->
         <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
             </svg>
         </button>
 
@@ -787,9 +1167,10 @@
         <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 
         <!-- Desktop sidebar toggle button -->
-        <button class="sidebar-toggle collapsed" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+        <button class="sidebar-toggle collapsed" id="sidebar-toggle" onclick="toggleSidebar()"
+            aria-label="Toggle sidebar">
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
             </svg>
         </button>
 
@@ -812,42 +1193,93 @@
                     ChatSCD
                 </h1>
                 <p>Your Scottish Country Dance Planning Partner</p>
-            </div>
-
-            <div class="chat-container">
-                <div class="messages" id="messages">
-                    <!-- Messages will be loaded here -->
-                </div>
-
-                <div class="input-container">
-                    <div class="examples">
-                        <button class="example-btn" onclick="setMessage('Find me some 32-bar reels')">32-bar reels</button>
-                        <button class="example-btn" onclick="setMessage('Find easy reels for beginners')">Easy reels</button>
-                        <button class="example-btn" onclick="setMessage('What dances have poussette moves?')">Poussette dances</button>
-                        <button class="example-btn" onclick="setMessage('Show me RSCDS published jigs')">RSCDS jigs</button>
-                        <button class="clear-chat-btn" onclick="clearChat()">🗑️ Clear Chat</button>
-                    </div>
-                    <form class="input-form" onsubmit="sendMessage(event)">
-                        <input 
-                            type="text" 
-                            id="message-input" 
-                            placeholder="Ask about Scottish Country Dances..." 
-                            autocomplete="off"
-                            required
-                        >
-                        <button type="submit" id="send-button">Send</button>
-                    </form>
-                </div>
-                
-                <div class="footer">
-                    <div class="disclaimer">
-                        <span>⚠️</span>
-                        <span><strong>Note:</strong> ChatSCD can make mistakes. Please verify dance details, formations, and links before using them.</span>
-                    </div>
-                    Dance data from <a href="https://my.strathspey.org/dd" target="_blank" rel="noopener">The Strathspey Server Dance Database</a>, 
-                    used under <a href="http://creativecommons.org/licenses/by/3.0/de/" target="_blank" rel="noopener">Creative Commons Attribution 3.0 Germany</a> license.
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="chat-mode-btn" onclick="switchMode('chat')">💬 Chat</button>
+                    <button class="mode-btn" id="planner-mode-btn" onclick="switchMode('planner')">📋 Lesson
+                        Planner</button>
                 </div>
             </div>
+
+            <div class="split-container" id="split-container">
+                <div class="chat-pane">
+                    <div class="chat-container">
+                        <div class="messages" id="messages">
+                            <!-- Messages will be loaded here -->
+                        </div>
+
+                        <div class="input-container">
+                            <!-- Chat mode examples -->
+                            <div class="examples chat-examples">
+                                <button class="example-btn" onclick="setMessage('Find me some 32-bar reels')">32-bar
+                                    reels</button>
+                                <button class="example-btn" onclick="setMessage('Find easy reels for beginners')">Easy
+                                    reels</button>
+                                <button class="example-btn"
+                                    onclick="setMessage('What dances have poussette moves?')">Poussette dances</button>
+                                <button class="example-btn" onclick="setMessage('Show me RSCDS published jigs')">RSCDS
+                                    jigs</button>
+                                <button class="clear-chat-btn" onclick="clearChat()">🗑️ Clear Chat</button>
+                            </div>
+                            <!-- Lesson planner mode examples -->
+                            <div class="examples lesson-examples">
+                                <button class="example-btn"
+                                    onclick="setMessage('Plan a 45 minute lesson for intermediate dancers focusing on strathspey poussette')">45min
+                                    poussette lesson</button>
+                                <button class="example-btn"
+                                    onclick="setMessage('Create a beginner lesson with 3 easy reels')">Beginner
+                                    reels</button>
+                                <button class="example-btn"
+                                    onclick="setMessage('Plan a 1 hour class with progressively harder dances')">Progressive
+                                    difficulty</button>
+                                <button class="view-lesson-btn" id="view-lesson-mobile-btn"
+                                    onclick="toggleLessonPreview()">📋 View Lesson</button>
+                                <button class="clear-chat-btn" onclick="clearChat()">🗑️ Clear</button>
+                            </div>
+                            <form class="input-form" onsubmit="sendMessage(event)">
+                                <input type="text" id="message-input" placeholder="Ask about Scottish Country Dances..."
+                                    autocomplete="off" required>
+                                <button type="submit" id="send-button">Send</button>
+                            </form>
+                        </div>
+
+                        <div class="footer">
+                            <div class="disclaimer">
+                                <span>⚠️</span>
+                                <span><strong>Note:</strong> ChatSCD can make mistakes. Please verify dance details,
+                                    formations,
+                                    and links before using them.</span>
+                            </div>
+                            Dance data from <a href="https://my.strathspey.org/dd" target="_blank" rel="noopener">The
+                                Strathspey
+                                Server Dance Database</a>,
+                            used under <a href="http://creativecommons.org/licenses/by/3.0/de/" target="_blank"
+                                rel="noopener">Creative Commons Attribution 3.0 Germany</a> license.
+                        </div>
+                    </div>
+                </div><!-- End chat-pane -->
+
+                <!-- Resizable divider -->
+                <div class="pane-resizer" id="pane-resizer"></div>
+
+                <!-- Lesson Preview Pane -->
+                <div class="lesson-preview-pane" id="lesson-preview-pane">
+                    <div class="lesson-preview-container">
+                        <div class="lesson-preview-header">
+                            <h3>📋 Lesson Plan</h3>
+                            <div class="lesson-preview-actions">
+                                <button class="lesson-action-btn pdf-btn" onclick="exportToPDF()"
+                                    title="Download as PDF">
+                                    📄 PDF
+                                </button>
+                                <button class="lesson-close-btn" onclick="toggleLessonPreview()">✕</button>
+                            </div>
+                        </div>
+                        <div class="lesson-preview-content empty" id="lesson-preview-content">
+                            <p>Your lesson plan will appear here once generated.</p>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- End split-container -->
         </div>
     </div>
 
@@ -859,7 +1291,7 @@
             localStorage.setItem('chatSCD_browserId', browserId);
         }
         console.log('Browser ID:', browserId);
-        
+
         // Get or create session ID from localStorage
         let sessionId = localStorage.getItem('chatSCD_sessionId');
         if (!sessionId) {
@@ -867,8 +1299,10 @@
             localStorage.setItem('chatSCD_sessionId', sessionId);
         }
         console.log('Session ID:', sessionId);
-        
+
         let isProcessing = false;
+        let currentMode = 'chat'; // 'chat' or 'planner'
+        let currentLessonMarkdown = ''; // Current lesson plan markdown
 
         // Configure marked.js
         marked.setOptions({
@@ -877,6 +1311,159 @@
             headerIds: false,
             mangle: false
         });
+
+        // ============================================
+        // MODE SWITCHING
+        // ============================================
+
+        function switchMode(mode) {
+            if (mode === currentMode) return;
+            currentMode = mode;
+
+            const mainContent = document.querySelector('.main-content');
+            const chatModeBtn = document.getElementById('chat-mode-btn');
+            const plannerModeBtn = document.getElementById('planner-mode-btn');
+            const messageInput = document.getElementById('message-input');
+
+            if (mode === 'planner') {
+                mainContent.classList.add('lesson-planner-mode');
+                chatModeBtn.classList.remove('active');
+                plannerModeBtn.classList.add('active');
+                messageInput.placeholder = 'Describe your lesson (e.g., "45 minute class focusing on poussette")...';
+            } else {
+                mainContent.classList.remove('lesson-planner-mode');
+                chatModeBtn.classList.add('active');
+                plannerModeBtn.classList.remove('active');
+                messageInput.placeholder = 'Ask about Scottish Country Dances...';
+            }
+
+            // Save mode preference
+            localStorage.setItem('chatSCD_mode', mode);
+        }
+
+        function toggleLessonPreview() {
+            const pane = document.getElementById('lesson-preview-pane');
+            pane.classList.toggle('visible');
+        }
+
+        // ============================================
+        // RESIZABLE PANE
+        // ============================================
+
+        function initResizer() {
+            const resizer = document.getElementById('pane-resizer');
+            const leftPane = document.querySelector('.chat-pane');
+            const rightPane = document.getElementById('lesson-preview-pane');
+            const container = document.getElementById('split-container');
+
+            if (!resizer || !leftPane || !rightPane || !container) return;
+
+            let isResizing = false;
+            let startX = 0;
+            let startLeftWidth = 0;
+
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                startLeftWidth = leftPane.offsetWidth;
+                resizer.classList.add('resizing');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+
+                const containerWidth = container.offsetWidth;
+                const dx = e.clientX - startX;
+                const newLeftWidth = startLeftWidth + dx;
+
+                // Constrain widths (min 300px for each pane)
+                const minWidth = 300;
+                const maxLeftWidth = containerWidth - minWidth - 8; // 8px for resizer
+
+                if (newLeftWidth >= minWidth && newLeftWidth <= maxLeftWidth) {
+                    const leftPercent = (newLeftWidth / containerWidth) * 100;
+                    leftPane.style.flex = 'none';
+                    leftPane.style.width = `${leftPercent}%`;
+                    rightPane.style.width = `${100 - leftPercent - 0.5}%`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    resizer.classList.remove('resizing');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+
+        // ============================================
+        // LESSON PLAN PREVIEW
+        // ============================================
+
+        function updateLessonPreview(markdown) {
+            const previewContent = document.getElementById('lesson-preview-content');
+            if (!markdown) {
+                previewContent.classList.add('empty');
+                previewContent.innerHTML = '<p>Your lesson plan will appear here once generated.</p>';
+                return;
+            }
+
+            currentLessonMarkdown = markdown;
+            previewContent.classList.remove('empty');
+            previewContent.innerHTML = renderMarkdown(markdown);
+        }
+
+        function exportToPDF() {
+            if (!currentLessonMarkdown) {
+                alert('No lesson plan to export. Generate a lesson plan first!');
+                return;
+            }
+
+            // Create a new window with just the lesson content for printing
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Lesson Plan - ChatSCD</title>
+                    <style>
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 40px;
+                            line-height: 1.6;
+                            color: #1f2937;
+                        }
+                        h1 { font-size: 24pt; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+                        h2 { font-size: 18pt; margin-top: 24px; color: #374151; }
+                        h3 { font-size: 14pt; margin-top: 16px; color: #4b5563; }
+                        p, li { font-size: 12pt; margin: 8px 0; }
+                        ul, ol { margin-left: 20px; }
+                        blockquote { border-left: 4px solid #10b981; padding-left: 16px; color: #6b7280; font-style: italic; }
+                        a { color: #10b981; }
+                        @media print {
+                            body { padding: 20px; }
+                            a { color: black; text-decoration: underline; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${renderMarkdown(currentLessonMarkdown)}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
 
         function setMessage(text) {
             document.getElementById('message-input').value = text;
@@ -896,28 +1483,28 @@
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            
+
             // Render markdown for assistant messages
             if (isMarkdown && type === 'assistant') {
                 contentDiv.innerHTML = renderMarkdown(content);
             } else {
                 contentDiv.innerHTML = content;
             }
-            
+
             if (timestamp) {
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'timestamp';
                 timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
                 contentDiv.appendChild(timeDiv);
             }
-            
+
             messageDiv.appendChild(contentDiv);
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
+
             return messageDiv;
         }
 
@@ -928,7 +1515,7 @@
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message assistant';
                 messageDiv.id = 'progress-container';
-                
+
                 progressBox = document.createElement('div');
                 progressBox.className = 'progress-box';
                 progressBox.id = 'progress-box';
@@ -939,7 +1526,7 @@
                     </div>
                     <div class="progress-content" id="progress-content"></div>
                 `;
-                
+
                 messageDiv.appendChild(progressBox);
                 messagesDiv.appendChild(messageDiv);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -952,11 +1539,11 @@
             const iconEl = document.getElementById('progress-icon');
             const titleEl = document.getElementById('progress-title-text');
             const contentEl = document.getElementById('progress-content');
-            
+
             if (iconEl) iconEl.textContent = icon;
             if (titleEl) titleEl.textContent = title;
             if (contentEl) contentEl.innerHTML = content;
-            
+
             // Scroll to bottom
             const messagesDiv = document.getElementById('messages');
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -983,7 +1570,7 @@
 
         function formatDanceCards(dances) {
             if (!dances || dances.length === 0) return '';
-            
+
             let html = '<div class="dance-cards">';
             dances.forEach(dance => {
                 html += `
@@ -1001,33 +1588,36 @@
 
         async function sendMessage(event) {
             event.preventDefault();
-            
+
             if (isProcessing) return;
-            
+
             const input = document.getElementById('message-input');
             const message = input.value.trim();
-            
+
             if (!message) return;
-            
+
             // Add user message
             addMessage('user', message);
             input.value = '';
-            
+
             // Disable input
             isProcessing = true;
             document.getElementById('send-button').disabled = true;
             input.disabled = true;
-            
+
             // Add typing indicator
             const typingIndicator = addTypingIndicator();
-            
+
             // Create assistant message placeholder
             let assistantMessage = null;
             let currentContent = '';
             let progressSteps = [];
-            
+
             try {
-                const response = await fetch('/api/query', {
+                // Choose endpoint based on mode
+                const endpoint = currentMode === 'planner' ? '/api/lesson-plan' : '/api/query';
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1038,27 +1628,27 @@
                         browser_id: browserId
                     })
                 });
-                
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                
+
                 while (true) {
-                    const {done, value} = await reader.read();
+                    const { done, value } = await reader.read();
                     if (done) break;
-                    
+
                     const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
-                    
+
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             try {
                                 const data = JSON.parse(line.slice(6));
-                                
+
                                 // Remove typing indicator on first real event
                                 if (typingIndicator && typingIndicator.parentNode) {
                                     removeTypingIndicator();
                                 }
-                                
+
                                 if (data.type === 'status') {
                                     progressSteps.push(`<div class="progress-step">⏳ ${data.message}</div>`);
                                     updateProgressBox('⏳', 'Processing', progressSteps.join(''));
@@ -1080,7 +1670,7 @@
                                 else if (data.type === 'assistant' || data.type === 'final') {
                                     // Remove progress box when we get the final response
                                     removeProgressBox();
-                                    
+
                                     if (!assistantMessage) {
                                         assistantMessage = addMessage('assistant', data.message, data.timestamp, true);
                                         currentContent = data.message;
@@ -1088,7 +1678,7 @@
                                         currentContent = data.message;
                                         const contentDiv = assistantMessage.querySelector('.message-content');
                                         contentDiv.innerHTML = renderMarkdown(currentContent);
-                                        
+
                                         // Re-add timestamp if it exists
                                         const existingTimestamp = contentDiv.querySelector('.timestamp');
                                         if (data.timestamp && !existingTimestamp) {
@@ -1097,6 +1687,11 @@
                                             timeDiv.textContent = new Date(data.timestamp).toLocaleTimeString();
                                             contentDiv.appendChild(timeDiv);
                                         }
+                                    }
+
+                                    // Update lesson preview if in planner mode and markdown is present
+                                    if (currentMode === 'planner' && data.lesson_markdown) {
+                                        updateLessonPreview(data.lesson_markdown);
                                     }
                                 }
                                 else if (data.type === 'error') {
@@ -1125,7 +1720,7 @@
                 input.disabled = false;
                 input.focus();
                 removeTypingIndicator();
-                
+
                 // Reload sessions list to update with new message
                 // Use setTimeout to avoid blocking and prevent race conditions
                 setTimeout(() => loadSessions(), 100);
@@ -1139,56 +1734,56 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                
+
                 const sessionsList = document.getElementById('sessions-list');
                 if (!sessionsList) {
                     console.error('Sessions list element not found!');
                     return;
                 }
-                
+
                 // Only clear if we have valid data
                 if (data.error) {
                     console.error('API error:', data.error);
                     return;
                 }
-                
+
                 sessionsList.innerHTML = '';
-                
+
                 if (data.sessions && data.sessions.length > 0) {
                     data.sessions.forEach(session => {
                         const sessionDiv = document.createElement('div');
                         sessionDiv.className = 'session-item' + (session.session_id === sessionId ? ' active' : '');
-                        
+
                         const timeAgo = formatTimeAgo(session.last_active);
-                        
+
                         // Escape HTML to prevent XSS
                         const escapeHtml = (text) => {
                             const div = document.createElement('div');
                             div.textContent = text;
                             return div.innerHTML;
                         };
-                        
+
                         const deleteBtn = document.createElement('button');
                         deleteBtn.className = 'session-delete';
                         deleteBtn.title = 'Delete chat';
                         deleteBtn.textContent = '🗑️';
                         deleteBtn.setAttribute('data-session-id', session.session_id);
-                        
+
                         // Attach delete handler directly to button - use once option to prevent multiple calls
                         deleteBtn.addEventListener('click', async (e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            
+
                             const targetSessionId = e.currentTarget.getAttribute('data-session-id');
                             console.log('Delete clicked for session:', targetSessionId);
                             console.log('Current session before delete:', sessionId);
-                            
+
                             // Disable button to prevent double-clicks
                             e.currentTarget.disabled = true;
-                            
+
                             await deleteSession(e, targetSessionId);
                         }, { capture: true, once: false }); // Use capture phase
-                        
+
                         // Attach session switch handler
                         sessionDiv.addEventListener('click', (e) => {
                             // Don't switch if clicking delete button
@@ -1197,15 +1792,15 @@
                             }
                             switchToSessionMobile(session.session_id);
                         });
-                        
+
                         sessionDiv.innerHTML = `
                             <div class="session-title">${escapeHtml(session.title || 'New Chat')}</div>
                             <div class="session-preview">${escapeHtml(session.preview || 'No messages yet')}</div>
                             <div class="session-time">${escapeHtml(timeAgo)}</div>
                         `;
-                        
+
                         sessionDiv.appendChild(deleteBtn);
-                        
+
                         sessionsList.appendChild(sessionDiv);
                     });
                 } else {
@@ -1227,7 +1822,7 @@
             // Append 'Z' to ensure it's parsed as UTC, not local time
             const then = new Date(timestamp + (timestamp.includes('Z') ? '' : 'Z'));
             const seconds = Math.floor((now - then) / 1000);
-            
+
             if (seconds < 60) return 'Just now';
             if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
             if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -1237,10 +1832,10 @@
 
         async function switchToSession(newSessionId) {
             if (newSessionId === sessionId) return;
-            
+
             sessionId = newSessionId;
             localStorage.setItem('chatSCD_sessionId', sessionId);
-            
+
             // Update active state in sidebar
             document.querySelectorAll('.session-item').forEach(item => {
                 item.classList.remove('active');
@@ -1248,7 +1843,7 @@
                     item.classList.add('active');
                 }
             });
-            
+
             // Load chat history for this session
             await loadChatHistory();
         }
@@ -1265,19 +1860,19 @@
                     })
                 });
                 const data = await response.json();
-                
+
                 if (data.session_id) {
                     sessionId = data.session_id;
                     localStorage.setItem('chatSCD_sessionId', sessionId);
-                    
+
                     // Clear messages and show welcome
                     const messagesDiv = document.getElementById('messages');
                     messagesDiv.innerHTML = '';
                     showWelcomeMessage();
-                    
+
                     // Reload sessions list
                     await loadSessions();
-                    
+
                     console.log('New chat created:', sessionId);
                 }
             } catch (error) {
@@ -1290,12 +1885,12 @@
             try {
                 const response = await fetch(`/api/history/${sessionId}`);
                 const data = await response.json();
-                
+
                 if (data.history && data.history.length > 0) {
                     // Clear messages div
                     const messagesDiv = document.getElementById('messages');
                     messagesDiv.innerHTML = '';
-                    
+
                     // Add each message from history
                     data.history.forEach(msg => {
                         if (msg.role === 'user') {
@@ -1329,16 +1924,16 @@
             if (!confirm('Are you sure you want to delete this chat? This cannot be undone.')) {
                 return;
             }
-            
+
             try {
                 // Clear from server
                 await fetch(`/api/history/${sessionId}`, {
                     method: 'DELETE'
                 });
-                
+
                 // Create a new session
                 await createNewChat();
-                
+
                 console.log('Chat deleted.');
             } catch (error) {
                 console.error('Error clearing chat:', error);
@@ -1349,25 +1944,25 @@
         async function deleteSession(event, sessionIdToDelete) {
             // Stop propagation to prevent switching to the session
             event.stopPropagation();
-            
+
             try {
                 console.log('Deleting session:', sessionIdToDelete);
-                
+
                 // Delete from server
                 const response = await fetch(`/api/history/${sessionIdToDelete}`, {
                     method: 'DELETE'
                 });
-                
+
                 if (!response.ok) {
                     throw new Error('Failed to delete session');
                 }
-                
+
                 const result = await response.json();
                 console.log('Delete response:', result);
-                
+
                 // Small delay to ensure database commit completes
                 await new Promise(resolve => setTimeout(resolve, 100));
-                
+
                 // If we deleted the current session, create a new one
                 if (sessionIdToDelete === sessionId) {
                     console.log('Deleted current session, creating new chat');
@@ -1377,7 +1972,7 @@
                     // Reload the sessions list to reflect the deletion
                     await loadSessions();
                 }
-                
+
                 console.log('Session deleted successfully:', sessionIdToDelete);
             } catch (error) {
                 console.error('Error deleting session:', error);
@@ -1391,7 +1986,7 @@
             const toggle = document.getElementById('sidebar-toggle');
             const isCollapsed = sidebar.classList.toggle('collapsed');
             toggle.classList.toggle('collapsed');
-            
+
             // Save state to localStorage
             localStorage.setItem('chatSCD_sidebarCollapsed', isCollapsed);
         }
@@ -1400,9 +1995,9 @@
         function toggleMobileSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            
+
             const isOpen = sidebar.classList.contains('mobile-open');
-            
+
             if (isOpen) {
                 // Closing: remove mobile-open, add collapsed
                 sidebar.classList.remove('mobile-open');
@@ -1419,7 +2014,7 @@
         // Close mobile sidebar when clicking a session
         function switchToSessionMobile(sessionId) {
             switchToSession(sessionId);
-            
+
             // Close sidebar on mobile after selecting
             if (window.innerWidth <= 768) {
                 toggleMobileSidebar();
@@ -1450,14 +2045,14 @@
         function ensureSidebarVisible() {
             const sidebar = document.querySelector('.sidebar');
             const container = document.querySelector('.container');
-            
+
             if (sidebar && container) {
                 // Make sure sidebar is in the DOM and visible
                 if (!container.contains(sidebar)) {
                     console.error('Sidebar not in container! Reloading page...');
                     location.reload();
                 }
-                
+
                 // Check if sidebar has display:none or visibility:hidden (but not collapsed)
                 if (!sidebar.classList.contains('collapsed')) {
                     const sidebarStyle = window.getComputedStyle(sidebar);
@@ -1474,14 +2069,24 @@
         window.addEventListener('load', async () => {
             // Restore sidebar collapsed state
             restoreSidebarState();
-            
+
+            // Initialize resizer for lesson planner mode
+            initResizer();
+
+            // Restore mode preference
+            const savedMode = localStorage.getItem('chatSCD_mode');
+            if (savedMode === 'planner') {
+                switchMode('planner');
+            }
+
             await loadSessions();
             await loadChatHistory();
             document.getElementById('message-input').focus();
-            
+
             // Periodically check sidebar visibility (every 5 seconds)
             setInterval(ensureSidebarVisible, 5000);
         });
     </script>
 </body>
+
 </html>

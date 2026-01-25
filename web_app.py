@@ -24,8 +24,9 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import uvicorn
 
 from scd_agent import SCDAgent
+from lesson_planner import LessonPlannerAgent
 from dance_tools import mcp_client
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from settings import get_llm_settings, set_llm_settings, init_settings_db
 from llm_providers import get_provider, list_providers
 
@@ -41,8 +42,9 @@ app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
-# Global agent instance
+# Global agent instances
 agent: Optional[SCDAgent] = None
+lesson_planner: Optional[LessonPlannerAgent] = None
 agent_ready = False
 
 # Chat history database path
@@ -295,8 +297,8 @@ def create_new_session(browser_id: str = None) -> str:
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize the agent on startup."""
-    global agent, agent_ready
+    """Initialize the agents on startup."""
+    global agent, lesson_planner, agent_ready
     print("🔧 Initializing SCD Agent...")
     init_chat_db()
     init_settings_db()
@@ -305,15 +307,24 @@ async def startup_event():
     llm_settings = get_llm_settings()
     print(f"📊 Using LLM: {llm_settings['provider']} / {llm_settings['model']}")
     
-    # Create agent with configured provider/model
+    # Create agents with configured provider/model
     agent = SCDAgent(
         provider=llm_settings["provider"],
         model=llm_settings["model"],
         temperature=llm_settings["temperature"]
     )
+    
+    # Initialize lesson planner agent
+    lesson_planner = LessonPlannerAgent(
+        provider=llm_settings["provider"],
+        model=llm_settings["model"],
+        temperature=llm_settings["temperature"]
+    )
+    
     await mcp_client.setup()
     agent_ready = True
     print("✅ Agent ready!")
+    print("✅ Lesson Planner ready!")
 
 
 @app.on_event("shutdown")
@@ -474,6 +485,132 @@ async def query_stream(request: Request):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",  # Disable nginx buffering
+        }
+    )
+
+
+@app.post("/api/lesson-plan")
+async def lesson_plan_stream(request: Request):
+    """
+    Stream lesson planner responses using Server-Sent Events (SSE).
+    
+    Expected JSON body:
+    {
+        "message": "Plan a 45 minute lesson focusing on strathspey poussette",
+        "session_id": "optional-session-id",
+        "browser_id": "optional-browser-id"
+    }
+    """
+    data = await request.json()
+    message = data.get("message", "").strip()
+    session_id = data.get("session_id") or str(uuid.uuid4())
+    browser_id = data.get("browser_id")
+    
+    if not message:
+        return {"error": "Message is required"}
+    
+    async def event_generator() -> AsyncIterator[str]:
+        """Generate SSE events from the lesson planner agent."""
+        try:
+            # Save user message to history
+            save_message(session_id, "user", message, browser_id)
+            
+            # Send initial status
+            yield f"data: {json.dumps({'type': 'status', 'message': '🎓 Planning your lesson...', 'timestamp': datetime.now().isoformat()})}\n\n"
+            
+            # Check if lesson planner is ready
+            if not lesson_planner:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'Lesson planner not initialized', 'timestamp': datetime.now().isoformat()})}\n\n"
+                return
+            
+            # Stream from the lesson planner graph
+            config = {"configurable": {"thread_id": f"lesson_{session_id}"}}
+            
+            async for chunk in lesson_planner.graph.astream(
+                {
+                    "messages": [HumanMessage(content=message)],
+                    "lesson_plan": None,
+                    "plan_status": "gathering"
+                },
+                config
+            ):
+                if not isinstance(chunk, dict):
+                    continue
+                
+                # Handle planner node
+                if "planner" in chunk:
+                    planner_data = chunk["planner"]
+                    messages = planner_data.get("messages", [])
+                    
+                    for msg in messages:
+                        # Check for tool calls
+                        tool_calls = getattr(msg, "tool_calls", None)
+                        if tool_calls:
+                            for call in tool_calls:
+                                tool_name = call.get("name", "tool")
+                                tool_args = call.get("args", {})
+                                
+                                # Friendly tool status messages
+                                status_msg = {
+                                    "find_dances": "🔍 Searching for dances...",
+                                    "get_full_crib": f"📜 Getting full crib for dance {tool_args.get('dance_id', '')}...",
+                                    "get_teaching_points_for_dance": f"📚 Getting teaching points...",
+                                    "search_cribs": f"🔍 Searching cribs for '{tool_args.get('query', '')}'...",
+                                    "search_manual": "📖 Consulting RSCDS manual...",
+                                    "save_lesson_plan": "💾 Saving lesson plan...",
+                                }.get(tool_name, f"🔧 Using {tool_name}...")
+                                
+                                yield f"data: {json.dumps({'type': 'tool_start', 'tool': tool_name, 'args': tool_args, 'status': status_msg, 'timestamp': datetime.now().isoformat()})}\n\n"
+                
+                # Handle tool results
+                if "tools" in chunk:
+                    tools_data = chunk["tools"]
+                    messages = tools_data.get("messages", [])
+                    
+                    for msg in messages:
+                        tool_name = getattr(msg, "name", "")
+                        content = getattr(msg, "content", "")
+                        
+                        yield f"data: {json.dumps({'type': 'tool_complete', 'tool': tool_name, 'timestamp': datetime.now().isoformat()})}\n\n"
+            
+            # Get final state to extract the lesson plan
+            # The lesson planner returns formatted markdown in its final message
+            final_response = ""
+            lesson_markdown = ""
+            
+            # Re-invoke to get full response (since we can't get_state with compiled graph)
+            result = await lesson_planner.ainvoke(message, config)
+            
+            if result and "messages" in result:
+                # Find the last AI message with content
+                for msg in reversed(result["messages"]):
+                    if isinstance(msg, AIMessage) and msg.content:
+                        final_response = msg.content
+                        # Check if this looks like a lesson plan (contains markdown headers)
+                        if "##" in final_response or "# " in final_response:
+                            lesson_markdown = final_response
+                        break
+            
+            # Send the final response
+            if final_response:
+                yield f"data: {json.dumps({'type': 'final', 'message': final_response, 'lesson_markdown': lesson_markdown, 'timestamp': datetime.now().isoformat()})}\n\n"
+                save_message(session_id, "assistant", final_response, browser_id)
+            
+            # Send completion
+            yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
         }
     )
 
