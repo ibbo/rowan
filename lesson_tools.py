@@ -120,6 +120,12 @@ async def get_full_crib(dance_id: int) -> Dict[str, Any]:
     
     dance_data = result[0] if result else {}
     
+    # Extract dance metadata
+    dance_info = dance_data.get("dance", {})
+    if not dance_info:
+        # Fallback if structure is different
+        dance_info = dance_data
+    
     # Extract full crib - no truncation
     crib = dance_data.get("crib", "")
     
@@ -129,12 +135,12 @@ async def get_full_crib(dance_id: int) -> Dict[str, Any]:
     
     return {
         "dance_id": dance_id,
-        "name": dance_data.get("name", "Unknown"),
-        "kind": dance_data.get("kind", "Unknown"),
-        "bars": dance_data.get("bars", 0),
-        "couples": dance_data.get("couples", 0),
-        "formation": dance_data.get("formation", "Unknown"),
-        "crib": crib,
+        "name": dance_info.get("name", "Unknown"),
+        "kind": dance_info.get("kind", "Unknown"),
+        "bars": dance_info.get("bars", 0),
+        "couples": dance_info.get("couples", 0),
+        "formation": dance_info.get("formation", "Unknown"),
+        "crib": _extract_crib_text(crib),
         "strathspey_link": f"https://my.strathspey.org/dd/dance/{dance_id}/"
     }
 
@@ -167,12 +173,17 @@ async def get_teaching_points_for_dance(dance_id: int) -> Dict[str, Any]:
     dance_data = result[0] if result else {}
     crib = dance_data.get("crib", "")
     
+    # Extract dance metadata
+    dance_info = dance_data.get("dance", {})
+    if not dance_info:
+        dance_info = dance_data
+
     # Get the manual knowledge base
     kb = _get_manual_kb()
     if kb is None or not kb._loaded:
         return {
             "dance_id": dance_id,
-            "name": dance_data.get("name", "Unknown"),
+            "name": dance_info.get("name", "Unknown"),
             "error": "RSCDS manual knowledge base not available"
         }
     
@@ -193,21 +204,52 @@ async def get_teaching_points_for_dance(dance_id: int) -> Dict[str, Any]:
         "advance and retire", "back to back", "bourrel", "knot"
     ]
     
+    # Tempo-specific formations map
+    # Maps generic formation name -> {dance_type -> specific_manual_section_name}
+    tempo_specific_formations = {
+        "poussette": {
+            "Strathspey": "poussette (in strathspey time)",
+            "Reel": "poussette (in reel and jig time)",
+            "Jig": "poussette (in reel and jig time)",
+        },
+        "hands round": {
+            "Strathspey": "hands round (in strathspey time)",
+            "Reel": "hands round (in reel and jig time)",
+            "Jig": "hands round (in reel and jig time)",
+        }
+    }
+
     # Find formations mentioned in the crib
     crib_text = _extract_crib_text(crib)
     crib_lower = crib_text.lower()
     found_formations = []
     teaching_points = []
     
+    dance_kind = dance_info.get("kind", "")
+    
     for formation in formation_patterns:
         if formation in crib_lower:
             found_formations.append(formation)
             
+            # Determine the correct lookup key (handling tempo variations)
+            lookup_key = formation
+            
+            if formation in tempo_specific_formations:
+                # Check dance type to find specific variation
+                if "Strathspey" in dance_kind:
+                    lookup_key = tempo_specific_formations[formation].get("Strathspey", formation)
+                elif "Reel" in dance_kind or "Jig" in dance_kind:
+                    # Use Reel mapping for both Reel and Jig if not explicitly separate
+                    lookup_key = tempo_specific_formations[formation].get("Reel", formation)
+                    if "Jig" in dance_kind and "Jig" in tempo_specific_formations[formation]:
+                        lookup_key = tempo_specific_formations[formation]["Jig"]
+            
             # Look up in manual
-            section = kb.lookup(formation)
+            section = kb.lookup(lookup_key)
             if section:
                 teaching_points.append({
-                    "formation": formation,
+                    "formation": formation, # Keep original name for display
+                    "manual_term": lookup_key, # Track what we actually looked up
                     "section": section.get("section", ""),
                     "title": section.get("title", formation.title()),
                     "page": section.get("page", "N/A"),
@@ -221,9 +263,9 @@ async def get_teaching_points_for_dance(dance_id: int) -> Dict[str, Any]:
     
     return {
         "dance_id": dance_id,
-        "name": dance_data.get("name", "Unknown"),
-        "kind": dance_data.get("kind", "Unknown"),
-        "bars": dance_data.get("bars", 0),
+        "name": dance_info.get("name", "Unknown"),
+        "kind": dance_info.get("kind", "Unknown"),
+        "bars": dance_info.get("bars", 0),
         "formations_found": found_formations,
         "teaching_points": teaching_points
     }
