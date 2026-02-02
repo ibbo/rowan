@@ -418,10 +418,11 @@ async def main():
                     import traceback
                     traceback.print_exc()
         finally:
-            # Clean up MCP client connections properly
-            from dance_tools import mcp_client
+            # Clean up database connections properly
+            from database import DatabasePool
             print("\n🧹 Cleaning up...", file=sys.stderr)
-            await mcp_client.close()
+            pool = await DatabasePool.get_instance()
+            await pool.close_all()
     
     except Exception as e:
         print(f"Failed to start agent: {e}")

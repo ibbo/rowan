@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp>=1.13.1",
+    "aiosqlite>=0.19.0",
     "openai>=1.106.1",
     "langgraph>=0.2.50",
     "langchain-openai>=0.2.0",

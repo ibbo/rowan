@@ -22,7 +22,8 @@ from typing import Any, Dict, List, Optional
 from langchain_core.tools import tool
 
 # Import shared components from dance_tools
-from dance_tools import mcp_client, _get_manual_kb
+from dance_tools import _get_manual_kb
+from database import query, query_one
 
 # Lesson plan database path
 LESSON_DB_PATH = "data/lesson_plans.db"
@@ -98,48 +99,36 @@ init_lesson_db()
 async def get_full_crib(dance_id: int) -> Dict[str, Any]:
     """
     Get the complete, untruncated crib for a dance.
-    
+
     Unlike get_dance_detail which may truncate content, this returns
     the full crib text suitable for lesson planning and printing.
-    
+
     Args:
         dance_id: The ID of the dance to get the crib for
-    
+
     Returns:
         Dictionary with dance name, type, bars, and complete crib text
     """
-    func_start = time.perf_counter()
     print(f"DEBUG: get_full_crib tool called for dance_id: {dance_id}", file=sys.stderr)
-    
-    await mcp_client.setup()
-    
-    result = await mcp_client.call_tool("dance_detail", {"dance_id": dance_id})
-    
-    if not result:
-        return {"error": f"Dance with ID {dance_id} not found"}
-    
-    dance_data = result[0] if result else {}
-    
-    # Extract dance metadata
-    dance_info = dance_data.get("dance", {})
+
+    # Get dance metadata
+    dance_info = await query_one("SELECT * FROM v_metaform WHERE id=?", (dance_id,))
+
     if not dance_info:
-        # Fallback if structure is different
-        dance_info = dance_data
-    
-    # Extract full crib - no truncation
-    crib = dance_data.get("crib", "")
-    
-    func_end = time.perf_counter()
-    total_time = (func_end - func_start) * 1000
-    print(f"DEBUG: get_full_crib completed - {total_time:.2f}ms", file=sys.stderr)
-    
+        return {"error": f"Dance with ID {dance_id} not found"}
+
+    # Get best crib
+    crib = await query_one("SELECT reliability, last_modified, text FROM v_crib_best WHERE dance_id=?", (dance_id,))
+
+    print(f"DEBUG: get_full_crib completed", file=sys.stderr)
+
     return {
         "dance_id": dance_id,
         "name": dance_info.get("name", "Unknown"),
         "kind": dance_info.get("kind", "Unknown"),
         "bars": dance_info.get("bars", 0),
         "couples": dance_info.get("couples", 0),
-        "formation": dance_info.get("formation", "Unknown"),
+        "formation": dance_info.get("metaform", "Unknown"),
         "crib": _extract_crib_text(crib),
         "strathspey_link": f"https://my.strathspey.org/dd/dance/{dance_id}/"
     }
@@ -149,34 +138,27 @@ async def get_full_crib(dance_id: int) -> Dict[str, Any]:
 async def get_teaching_points_for_dance(dance_id: int) -> Dict[str, Any]:
     """
     Get teaching points from the RSCDS manual for formations used in a dance.
-    
-    Analyzes the dance's crib to identify formations (e.g., "allemande", 
-    "poussette", "reel of three") and looks up the corresponding teaching 
+
+    Analyzes the dance's crib to identify formations (e.g., "allemande",
+    "poussette", "reel of three") and looks up the corresponding teaching
     guidance from the RSCDS manual.
-    
+
     Args:
         dance_id: The ID of the dance to analyze
-    
+
     Returns:
         Dictionary with dance info and teaching points for each identified formation
     """
-    func_start = time.perf_counter()
     print(f"DEBUG: get_teaching_points_for_dance called for dance_id: {dance_id}", file=sys.stderr)
-    
-    # First get the dance details
-    await mcp_client.setup()
-    result = await mcp_client.call_tool("dance_detail", {"dance_id": dance_id})
-    
-    if not result:
-        return {"error": f"Dance with ID {dance_id} not found"}
-    
-    dance_data = result[0] if result else {}
-    crib = dance_data.get("crib", "")
-    
-    # Extract dance metadata
-    dance_info = dance_data.get("dance", {})
+
+    # Get dance metadata
+    dance_info = await query_one("SELECT * FROM v_metaform WHERE id=?", (dance_id,))
+
     if not dance_info:
-        dance_info = dance_data
+        return {"error": f"Dance with ID {dance_id} not found"}
+
+    # Get best crib
+    crib = await query_one("SELECT reliability, last_modified, text FROM v_crib_best WHERE dance_id=?", (dance_id,))
 
     # Get the manual knowledge base
     kb = _get_manual_kb()

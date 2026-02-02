@@ -25,7 +25,7 @@ import uvicorn
 
 from scd_agent import SCDAgent
 from lesson_planner import LessonPlannerAgent
-from dance_tools import mcp_client
+from database import DatabasePool
 from langchain_core.messages import HumanMessage, AIMessage
 from settings import get_llm_settings, set_llm_settings, init_settings_db
 from llm_providers import get_provider, list_providers
@@ -320,8 +320,7 @@ async def startup_event():
         model=llm_settings["model"],
         temperature=llm_settings["temperature"]
     )
-    
-    await mcp_client.setup()
+
     agent_ready = True
     print("✅ Agent ready!")
     print("✅ Lesson Planner ready!")
@@ -331,7 +330,8 @@ async def startup_event():
 async def shutdown_event():
     """Clean up on shutdown."""
     print("🧹 Cleaning up...")
-    await mcp_client.close()
+    pool = await DatabasePool.get_instance()
+    await pool.close_all()
     print("✅ Cleanup complete")
 
 
