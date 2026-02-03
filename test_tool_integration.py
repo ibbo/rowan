@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quick test to verify list_formations tool is properly integrated into all agents.
+Quick test to verify list_formations tool is properly integrated.
 """
 
 import asyncio
@@ -8,26 +8,6 @@ import sys
 from dotenv import load_dotenv
 
 load_dotenv()
-
-async def test_dance_agent_tools():
-    """Test that dance_agent has list_formations tool."""
-    print("=" * 80)
-    print("Testing dance_agent.py tool integration")
-    print("=" * 80)
-    
-    from dance_agent import create_dance_agent
-    
-    agent = await create_dance_agent()
-    
-    # Check the tools in the agent
-    print("\n✓ Agent created successfully")
-    print(f"✓ Agent has tools available")
-    
-    # Try to get tool names from the agent's tools
-    # The agent is a compiled graph, so we can't directly inspect tools
-    # But we can test by running a query
-    print("\n✓ dance_agent.py integration complete")
-
 
 async def test_scd_agent_tools():
     """Test that scd_agent has list_formations tool."""
@@ -71,7 +51,6 @@ async def main():
     try:
         await test_dance_tools_module()
         await test_scd_agent_tools()
-        await test_dance_agent_tools()
         
         print("\n" + "=" * 80)
         print("✅ ALL INTEGRATION TESTS PASSED!")
@@ -79,7 +58,6 @@ async def main():
         print("\nThe list_formations tool is now available in:")
         print("  ✓ dance_tools.py (shared module)")
         print("  ✓ scd_agent.py (web interface agent)")
-        print("  ✓ dance_agent.py (CLI agent)")
         print("\nThe LLM can now use list_formations to discover formations!")
         
     except Exception as e:
