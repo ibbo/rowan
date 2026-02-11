@@ -47,7 +47,8 @@ class SCDAgent:
         self, 
         provider: str = "openai", 
         model: str = "gpt-4o-mini",
-        temperature: float = 0
+        temperature: float = 0,
+        api_key: str | None = None
     ):
         """Initialize the agent with LLMs and tools.
         
@@ -64,20 +65,21 @@ class SCDAgent:
         # Check for API key
         import os
         env_var = llm_provider.get_env_var_name()
-        if not os.getenv(env_var):
+        if not api_key and not os.getenv(env_var):
             raise RuntimeError(
                 f"API key not found. Please set {env_var} environment variable.\\n"
                 f"Example: export {env_var}='your-key-here'"
             )
         
         # Initialize LLMs for different agents
-        self.prompt_checker_llm = llm_provider.create_chat_llm(model, temperature)
-        self.dance_planner_llm = llm_provider.create_chat_llm(model, temperature)
+        self.prompt_checker_llm = llm_provider.create_chat_llm(model, temperature, api_key)
+        self.dance_planner_llm = llm_provider.create_chat_llm(model, temperature, api_key)
         
         # Store config for reference
         self.provider = provider
         self.model = model
         self.temperature = temperature
+        self.api_key = api_key
         
         # Tools for the dance planner
         self.tools = [

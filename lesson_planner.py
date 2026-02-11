@@ -131,7 +131,8 @@ class LessonPlannerAgent:
         self,
         provider: str = "openai",
         model: str = "gpt-4o-mini",
-        temperature: float = 0
+        temperature: float = 0,
+        api_key: str | None = None
     ):
         """
         Initialize the lesson planner agent.
@@ -149,16 +150,17 @@ class LessonPlannerAgent:
         # Check for API key
         import os
         env_var = llm_provider.get_env_var_name()
-        if not os.getenv(env_var):
+        if not api_key and not os.getenv(env_var):
             raise RuntimeError(
                 f"API key not found. Please set {env_var} environment variable.\n"
                 f"Example: export {env_var}='your-key-here'"
             )
         
         # Initialize LLM
-        self.llm = llm_provider.create_chat_llm(model, temperature)
+        self.llm = llm_provider.create_chat_llm(model, temperature, api_key)
         self.provider = provider
         self.model = model
+        self.api_key = api_key
         
         # Combine all tools for lesson planning
         self.tools = [

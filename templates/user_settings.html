@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Settings - ChatSCD</title>
+    <link rel="icon" type="image/png" href="/assets/chatscd_logo.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: #1f2937;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: white;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .hint {
+            color: #6b7280;
+            font-size: 0.85rem;
+            margin-top: 6px;
+        }
+
+        .key-status {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            color: #374151;
+            font-size: 0.85rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .status-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: #fef3c7;
+            border: 2px solid #fde68a;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .status-card.success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .status-icon {
+            font-size: 1.6rem;
+        }
+
+        .status-text {
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .user-summary {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #667eea;
+        }
+
+        .user-name {
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .user-email {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>User Settings</h1>
+            <div class="header-actions">
+                <a class="header-btn" href="/">Back to Chat</a>
+                <a class="header-btn" href="/auth/logout">Logout</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Account</div>
+            <div class="user-summary">
+                {% if user.avatar_url %}
+                <img src="{{ user.avatar_url }}" alt="User avatar" class="user-avatar">
+                {% endif %}
+                <div>
+                    <div class="user-name">{{ user.name or "Signed In User" }}</div>
+                    <div class="user-email">{{ user.email or "" }}</div>
+                </div>
+            </div>
+            <div class="hint">Signed in with {{ user.provider | title }}. Your settings override the server defaults.</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">LLM Preferences</div>
+            <div class="hint" style="margin-bottom: 16px;">Server default: {{ default_llm.provider }} / {{ default_llm.model }} (temp {{ default_llm.temperature }})</div>
+
+            <form method="POST" action="/settings">
+                {% if not settings_secret_configured %}
+                <div class="status-card">
+                    <div class="status-icon">⚠️</div>
+                    <div class="status-text">USER_SETTINGS_SECRET is not configured. API keys will not be stored until this is set.</div>
+                </div>
+                {% endif %}
+
+                {% if error %}
+                <div class="status-card">
+                    <div class="status-icon">❌</div>
+                    <div class="status-text">{{ error }}</div>
+                </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="preferred_provider">Preferred Provider</label>
+                    <select id="preferred_provider" name="preferred_provider">
+                        <option value="">Use server default</option>
+                        {% for provider in providers %}
+                        <option value="{{ provider.id }}" {% if settings.preferred_provider == provider.id %}selected{% endif %}>{{ provider.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="preferred_model">Preferred Model</label>
+                    <select id="preferred_model" name="preferred_model">
+                        <option value="">Use server default</option>
+                    </select>
+                    <div class="hint">Model options update based on the provider selection.</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="preferred_temperature">Temperature</label>
+                    <input id="preferred_temperature" name="preferred_temperature" type="number" min="0" max="2" step="0.1"
+                        placeholder="Use server default" value="{{ settings.preferred_temperature if settings.preferred_temperature is not none else '' }}">
+                    <div class="hint">Leave blank to use the server default.</div>
+                </div>
+
+                <div class="card-title" style="margin-top: 24px;">Bring Your Own API Key</div>
+
+                <div class="form-group">
+                    <label for="openai_api_key">OpenAI API Key</label>
+                    <input id="openai_api_key" name="openai_api_key" type="password" autocomplete="off" placeholder="Enter new key (optional)">
+                    <div class="key-status">{% if settings.openai_key_set %}Stored on server{% else %}No key stored{% endif %}</div>
+                    <div class="checkbox-row">
+                        <input id="clear_openai" name="clear_openai" type="checkbox">
+                        <label for="clear_openai">Clear stored OpenAI key</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="google_api_key">Google API Key</label>
+                    <input id="google_api_key" name="google_api_key" type="password" autocomplete="off" placeholder="Enter new key (optional)">
+                    <div class="key-status">{% if settings.google_key_set %}Stored on server{% else %}No key stored{% endif %}</div>
+                    <div class="checkbox-row">
+                        <input id="clear_google" name="clear_google" type="checkbox">
+                        <label for="clear_google">Clear stored Google key</label>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const modelsData = {{ models_json | safe }};
+        const providerSelect = document.getElementById('preferred_provider');
+        const modelSelect = document.getElementById('preferred_model');
+        const currentProvider = '{{ settings.preferred_provider or '' }}';
+        const currentModel = '{{ settings.preferred_model or '' }}';
+
+        function populateModels(providerId) {
+            modelSelect.innerHTML = '<option value="">Use server default</option>';
+            if (!providerId || !modelsData[providerId]) {
+                return;
+            }
+            modelsData[providerId].forEach((model) => {
+                const opt = document.createElement('option');
+                opt.value = model.id;
+                opt.textContent = model.name;
+                if (model.description) {
+                    opt.textContent += ` (${model.description})`;
+                }
+                if (model.id === currentModel) {
+                    opt.selected = true;
+                }
+                modelSelect.appendChild(opt);
+            });
+        }
+
+        providerSelect.addEventListener('change', (event) => {
+            populateModels(event.target.value);
+        });
+
+        window.addEventListener('load', () => {
+            if (currentProvider) {
+                providerSelect.value = currentProvider;
+            }
+            populateModels(providerSelect.value);
+        });
+    </script>
+</body>
+
+</html>

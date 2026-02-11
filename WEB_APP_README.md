@@ -77,6 +77,14 @@ Required:
 - `OPENAI_API_KEY` - Your OpenAI API key
 - `SCDDB_SQLITE` - Path to database (default: `data/scddb/scddb.sqlite`)
 
+Optional:
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` - Google OAuth credentials
+- `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` - Facebook OAuth credentials
+- `OAUTH_SESSION_SECRET` - Secret for OAuth session cookie signing
+- `OAUTH_STATE_SECRET` - Secret for OAuth state signing
+- `USER_SETTINGS_SECRET` - Secret for encrypting user API keys at rest
+- `ADMIN_PASSWORD` - Enable the admin dashboard login
+
 ## Features
 
 ### Real-Time Streaming

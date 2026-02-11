@@ -62,6 +62,99 @@
             margin-bottom: 10px;
         }
 
+        .user-bar {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .user-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .user-provider {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .user-link {
+            flex: 1;
+            text-align: center;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+
+        .user-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auth-btn.google {
+            background: white;
+            color: #1f2937;
+        }
+
+        .auth-btn.facebook {
+            background: #1877f2;
+            color: white;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
         .sidebar-toggle {
             position: fixed;
             left: 280px;
@@ -1179,6 +1272,40 @@
             <div class="sidebar-header">
                 <h2>💬 Chat History</h2>
                 <button class="new-chat-btn" onclick="createNewChat()">+ New Chat</button>
+                <div class="user-bar">
+                    {% if current_user %}
+                    <div class="user-info">
+                        {% if current_user.avatar_url %}
+                        <img src="{{ current_user.avatar_url }}" alt="User avatar" class="user-avatar">
+                        {% endif %}
+                        <div class="user-meta">
+                            <div class="user-name">
+                                {{ current_user.name or current_user.email or "Signed In" }}
+                            </div>
+                            <div class="user-provider">Signed in with {{ current_user.provider | title }}</div>
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <a class="user-link" href="/settings">Settings</a>
+                        <a class="user-link" href="/auth/logout">Logout</a>
+                    </div>
+                    {% else %}
+                    <div class="auth-buttons">
+                        {% if oauth_providers.google %}
+                        <button class="auth-btn google" onclick="startOAuth('google')">Continue with Google</button>
+                        {% endif %}
+                        {% if oauth_providers.facebook %}
+                        <button class="auth-btn facebook" onclick="startOAuth('facebook')">Continue with Facebook</button>
+                        {% endif %}
+                        {% if dev_auth_enabled %}
+                        <button class="auth-btn" style="background: #10b981; color: white;" onclick="startDevAuth()">🔧 Dev Login (Test)</button>
+                        {% endif %}
+                        {% if not oauth_providers.google and not oauth_providers.facebook and not dev_auth_enabled %}
+                        <div style="color: rgba(255, 255, 255, 0.85); font-size: 0.85rem;">OAuth not configured</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
             <div class="sessions-list" id="sessions-list">
                 <!-- Sessions will be loaded here -->
@@ -1291,6 +1418,16 @@
             localStorage.setItem('chatSCD_browserId', browserId);
         }
         console.log('Browser ID:', browserId);
+
+        function startOAuth(provider) {
+            const next = encodeURIComponent(window.location.pathname);
+            window.location.href = `/auth/login/${provider}?browser_id=${encodeURIComponent(browserId)}&next=${next}`;
+        }
+
+        function startDevAuth() {
+            const next = encodeURIComponent(window.location.pathname);
+            window.location.href = `/auth/dev-login?browser_id=${encodeURIComponent(browserId)}&next=${next}`;
+        }
 
         // Get or create session ID from localStorage
         let sessionId = localStorage.getItem('chatSCD_sessionId');
@@ -1883,7 +2020,7 @@
 
         async function loadChatHistory() {
             try {
-                const response = await fetch(`/api/history/${sessionId}`);
+                const response = await fetch(`/api/history/${sessionId}?browser_id=${encodeURIComponent(browserId)}`);
                 const data = await response.json();
 
                 if (data.history && data.history.length > 0) {
@@ -1927,7 +2064,7 @@
 
             try {
                 // Clear from server
-                await fetch(`/api/history/${sessionId}`, {
+                await fetch(`/api/history/${sessionId}?browser_id=${encodeURIComponent(browserId)}`, {
                     method: 'DELETE'
                 });
 
@@ -1949,7 +2086,7 @@
                 console.log('Deleting session:', sessionIdToDelete);
 
                 // Delete from server
-                const response = await fetch(`/api/history/${sessionIdToDelete}`, {
+                const response = await fetch(`/api/history/${sessionIdToDelete}?browser_id=${encodeURIComponent(browserId)}`, {
                     method: 'DELETE'
                 });
 
