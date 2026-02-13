@@ -801,7 +801,7 @@ def get_all_sessions(user_id: str | None = None, browser_id: str | None = None) 
                 ) as first_message
             FROM sessions s
             LEFT JOIN messages m ON s.session_id = m.session_id
-            WHERE s.browser_id = ?
+            WHERE s.browser_id = ? AND (s.user_id IS NULL OR s.user_id = '')
             GROUP BY s.session_id
             ORDER BY s.last_active DESC
         """, (browser_id,))
@@ -1400,7 +1400,7 @@ async def oauth_callback(provider: str, request: Request):
         )
 
     if provider == "google":
-        user_info = await client.get("userinfo", token=token)
+        user_info = await client.get("https://openidconnect.googleapis.com/v1/userinfo", token=token)
         profile = user_info.json()
         provider_user_id = profile.get("sub")
         email = profile.get("email")
