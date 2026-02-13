@@ -235,6 +235,7 @@
             <div class="hint" style="margin-bottom: 16px;">Server default: {{ default_llm.provider }} / {{ default_llm.model }} (temp {{ default_llm.temperature }})</div>
 
             <form method="POST" action="/settings">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 {% if not settings_secret_configured %}
                 <div class="status-card">
                     <div class="status-icon">⚠️</div>

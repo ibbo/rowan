@@ -12,8 +12,9 @@ import os
 import secrets
 import sqlite3
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from collections import OrderedDict
 from typing import AsyncIterator, Dict, List, Optional
 
 from fastapi import FastAPI, Request, Form, Response, Depends, HTTPException
@@ -54,8 +55,9 @@ templates = Jinja2Templates(directory="templates")
 agent: Optional[SCDAgent] = None
 lesson_planner: Optional[LessonPlannerAgent] = None
 agent_ready = False
-agent_cache: Dict[tuple, SCDAgent] = {}
-lesson_planner_cache: Dict[tuple, LessonPlannerAgent] = {}
+MAX_CACHE_SIZE = 20
+agent_cache: OrderedDict[tuple, SCDAgent] = OrderedDict()
+lesson_planner_cache: OrderedDict[tuple, LessonPlannerAgent] = OrderedDict()
 
 # Chat history database path
 CHAT_DB_PATH = "data/chat_history.db"
@@ -124,7 +126,7 @@ def create_admin_session() -> str:
 
 
 def _utc_now_string() -> str:
-    return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _get_fernet() -> Fernet | None:
@@ -261,8 +263,17 @@ def init_chat_db():
         ON sessions(user_id, last_active)
     """)
     
+    # Clean up expired sessions on startup
+    cursor.execute(
+        "DELETE FROM user_sessions WHERE expires_at < ?",
+        (datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),),
+    )
+    expired_count = cursor.rowcount
+
     conn.commit()
     conn.close()
+    if expired_count:
+        print(f"🧹 Cleaned up {expired_count} expired user session(s)")
     print(f"✅ Chat history database initialized at {CHAT_DB_PATH}")
 
 
@@ -320,7 +331,7 @@ def create_or_update_user(
 def create_user_session(user_id: str) -> tuple[str, str]:
     """Create a new user session token and expiry."""
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(seconds=USER_SESSION_TTL_SECONDS)
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=USER_SESSION_TTL_SECONDS)
     expires_str = expires_at.strftime("%Y-%m-%d %H:%M:%S")
 
     conn = _get_chat_conn()
@@ -360,8 +371,11 @@ def get_user_by_session_token(token: str) -> dict | None:
     )
     row = cursor.fetchone()
     if not row:
-        # Cleanup expired session token
-        cursor.execute("DELETE FROM user_sessions WHERE session_token = ?", (token,))
+        # Batch cleanup all expired sessions
+        cursor.execute(
+            "DELETE FROM user_sessions WHERE expires_at < ?",
+            (_utc_now_string(),),
+        )
         conn.commit()
         conn.close()
         return None
@@ -569,6 +583,7 @@ def get_agent_for_settings(llm_settings: dict, api_key: str | None) -> SCDAgent:
         _hash_api_key(api_key),
     )
     if key in agent_cache:
+        agent_cache.move_to_end(key)
         return agent_cache[key]
 
     new_agent = SCDAgent(
@@ -578,6 +593,8 @@ def get_agent_for_settings(llm_settings: dict, api_key: str | None) -> SCDAgent:
         api_key=api_key,
     )
     agent_cache[key] = new_agent
+    while len(agent_cache) > MAX_CACHE_SIZE:
+        agent_cache.popitem(last=False)
     return new_agent
 
 
@@ -589,6 +606,7 @@ def get_lesson_planner_for_settings(llm_settings: dict, api_key: str | None) -> 
         _hash_api_key(api_key),
     )
     if key in lesson_planner_cache:
+        lesson_planner_cache.move_to_end(key)
         return lesson_planner_cache[key]
 
     new_planner = LessonPlannerAgent(
@@ -598,6 +616,8 @@ def get_lesson_planner_for_settings(llm_settings: dict, api_key: str | None) -> 
         api_key=api_key,
     )
     lesson_planner_cache[key] = new_planner
+    while len(lesson_planner_cache) > MAX_CACHE_SIZE:
+        lesson_planner_cache.popitem(last=False)
     return new_planner
 
 
@@ -873,6 +893,10 @@ def create_new_session(browser_id: str | None = None, user_id: str | None = None
 async def startup_event():
     """Initialize the agents on startup."""
     global agent, lesson_planner, agent_ready
+    if DEV_AUTH_ENABLED:
+        print("=" * 60)
+        print("⚠️  WARNING: DEV_AUTH is enabled! Do not use in production.")
+        print("=" * 60)
     print("🔧 Initializing SCD Agent...")
     init_chat_db()
     init_settings_db()
@@ -1456,6 +1480,23 @@ async def oauth_logout(request: Request):
     return response
 
 
+def _get_csrf_token(request: Request) -> str:
+    """Get or create a CSRF token stored in the Starlette session."""
+    token = request.session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        request.session["csrf_token"] = token
+    return token
+
+
+def _validate_csrf_token(request: Request, token: str | None) -> bool:
+    """Validate CSRF token against the session value."""
+    expected = request.session.get("csrf_token")
+    if not expected or not token:
+        return False
+    return secrets.compare_digest(expected, token)
+
+
 @app.get("/settings", response_class=HTMLResponse)
 async def user_settings_page(request: Request):
     user = get_current_user(request)
@@ -1479,6 +1520,7 @@ async def user_settings_page(request: Request):
             "models_json": json.dumps(models_data),
             "settings_secret_configured": bool(USER_SETTINGS_SECRET),
             "default_llm": default_llm,
+            "csrf_token": _get_csrf_token(request),
         },
     )
 
@@ -1487,6 +1529,10 @@ async def user_settings_page(request: Request):
 async def update_user_settings(request: Request):
     user = require_user(request)
     form = await request.form()
+
+    # CSRF validation
+    if not _validate_csrf_token(request, form.get("csrf_token")):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
 
     preferred_provider_raw = form.get("preferred_provider", "")
     preferred_model_raw = form.get("preferred_model", "")
@@ -1526,6 +1572,7 @@ async def update_user_settings(request: Request):
                 }),
                 "settings_secret_configured": False,
                 "default_llm": get_llm_settings(),
+                "csrf_token": _get_csrf_token(request),
                 "error": "USER_SETTINGS_SECRET is not configured; cannot store API keys.",
             },
             status_code=400,
