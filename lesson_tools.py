@@ -150,6 +150,7 @@ async def get_teaching_points_for_dance(dance_id: int) -> Dict[str, Any]:
         Dictionary with dance info and teaching points for each identified formation
     """
     print(f"DEBUG: get_teaching_points_for_dance called for dance_id: {dance_id}", file=sys.stderr)
+    func_start = time.perf_counter()
 
     # Get dance metadata
     dance_info = await query_one("SELECT * FROM v_metaform WHERE id=?", (dance_id,))
