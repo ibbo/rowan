@@ -75,7 +75,7 @@ ALTER TABLE sessions ADD COLUMN title TEXT;
 ```
 
 **New Functions**:
-- `get_all_sessions()`: Returns all sessions with metadata
+- `get_all_sessions(user_id=None, browser_id=None)`: Returns sessions with metadata filtered by `user_id` or `browser_id` (returns empty list if neither provided)
 - `create_new_session()`: Creates a new session with UUID
 - `update_session_title(session_id, title)`: Updates session title
 

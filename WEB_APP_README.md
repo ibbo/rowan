@@ -84,6 +84,13 @@ Optional:
 - `OAUTH_STATE_SECRET` - Secret for OAuth state signing
 - `USER_SETTINGS_SECRET` - Secret for encrypting user API keys at rest
 - `ADMIN_PASSWORD` - Enable the admin dashboard login
+- `ANON_CHAT_ENABLED` - Enable/disable anonymous chat access (default: `true`)
+- `ANON_DAILY_MESSAGE_LIMIT` - Daily anonymous message quota per usage fingerprint (default: `5`)
+- `ANON_REQUIRE_SIGNIN_AFTER_LIMIT` - Emit `auth_required` after quota exhaustion (default: `true`)
+- `ANON_BURST_WINDOW_SECONDS` - Burst-rate window size in seconds (default: `60`)
+- `ANON_BURST_MAX_REQUESTS` - Max anonymous requests allowed in burst window (default: `8`)
+- `ANON_MIN_MESSAGE_CHARS` - Minimum anonymous message length (default: `1`)
+- `ANON_MAX_MESSAGE_CHARS` - Maximum anonymous message length (default: `1500`)
 
 ## Features
 
@@ -108,6 +115,31 @@ Optional:
 - 📜 Auto-scroll to latest
 - 🔄 Session persistence
 - ⚡ Instant feedback
+
+### Anonymous Free-Tier Gating
+- ✅ Configurable anonymous access policy via environment variables
+- ✅ Daily quota tracking in SQLite (`anon_usage_daily`)
+- ✅ Burst-limit protection in SQLite (`anon_burst_usage`)
+- ✅ Abuse instrumentation in SQLite (`abuse_events`) with indexed event/time fields
+- ✅ Anonymous fingerprinting from `browser_id + client_ip + user_agent` hashed with SHA-256
+- ✅ No raw IP/User-Agent persisted in abuse logs
+- ✅ Frontend usage badge showing free messages remaining
+- ✅ SSE contract for guard failures:
+  - `type: "auth_required"` for sign-in-required blocks (`anon_disabled`, quota+signin)
+  - `type: "error"` for non-auth blocks (`burst_limited`, invalid message, quota without signin)
+  - `reason`, `requires_signin`, and quota fields (`daily_limit`, `daily_used`, `daily_remaining`) included where relevant
+
+### Anonymous Status Endpoint
+- `GET /api/anonymous-status`
+- Returns:
+  - `enabled`
+  - `authenticated`
+  - `daily_limit`
+  - `daily_used`
+  - `daily_remaining`
+  - `requires_signin`
+  - `burst_window_seconds`
+  - `burst_max_requests`
 
 ## File Structure
 

@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections import OrderedDict
-from typing import AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 from fastapi import FastAPI, Request, Form, Response, Depends, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse
@@ -37,6 +37,44 @@ from llm_providers import get_provider, list_providers
 
 # Load environment
 load_dotenv()
+
+
+def _parse_env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if value in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    print(f"⚠️ Invalid boolean for {name}: {raw!r}. Using default={default}.")
+    return default
+
+
+def _parse_env_int(
+    name: str,
+    default: int,
+    min_value: int | None = None,
+    max_value: int | None = None,
+) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        value = default
+    else:
+        try:
+            value = int(raw.strip())
+        except (TypeError, ValueError):
+            print(f"⚠️ Invalid integer for {name}: {raw!r}. Using default={default}.")
+            value = default
+
+    if min_value is not None and value < min_value:
+        print(f"⚠️ {name}={value} below minimum {min_value}. Clamping.")
+        value = min_value
+    if max_value is not None and value > max_value:
+        print(f"⚠️ {name}={value} above maximum {max_value}. Clamping.")
+        value = max_value
+    return value
 
 # Initialize FastAPI
 app = FastAPI(title="ChatSCD - Scottish Country Dance Assistant")
@@ -77,7 +115,22 @@ OAUTH_STATE_SERIALIZER = URLSafeTimedSerializer(OAUTH_STATE_SECRET)
 USER_SETTINGS_SECRET = os.getenv("USER_SETTINGS_SECRET")
 
 # Dev auth bypass (only enabled when DEV_AUTH=true)
-DEV_AUTH_ENABLED = os.getenv("DEV_AUTH", "false").lower() == "true"
+DEV_AUTH_ENABLED = _parse_env_bool("DEV_AUTH", False)
+
+# Anonymous access policy
+ANON_CHAT_ENABLED = _parse_env_bool("ANON_CHAT_ENABLED", True)
+ANON_DAILY_MESSAGE_LIMIT = _parse_env_int("ANON_DAILY_MESSAGE_LIMIT", 5, min_value=0)
+ANON_REQUIRE_SIGNIN_AFTER_LIMIT = _parse_env_bool("ANON_REQUIRE_SIGNIN_AFTER_LIMIT", True)
+ANON_BURST_WINDOW_SECONDS = _parse_env_int("ANON_BURST_WINDOW_SECONDS", 60, min_value=1)
+ANON_BURST_MAX_REQUESTS = _parse_env_int("ANON_BURST_MAX_REQUESTS", 8, min_value=1)
+ANON_MIN_MESSAGE_CHARS = _parse_env_int("ANON_MIN_MESSAGE_CHARS", 1, min_value=0)
+ANON_MAX_MESSAGE_CHARS = _parse_env_int("ANON_MAX_MESSAGE_CHARS", 1500, min_value=1)
+if ANON_MAX_MESSAGE_CHARS < ANON_MIN_MESSAGE_CHARS:
+    print(
+        f"⚠️ ANON_MAX_MESSAGE_CHARS ({ANON_MAX_MESSAGE_CHARS}) is below ANON_MIN_MESSAGE_CHARS "
+        f"({ANON_MIN_MESSAGE_CHARS}). Adjusting max to min."
+    )
+    ANON_MAX_MESSAGE_CHARS = ANON_MIN_MESSAGE_CHARS
 
 oauth = OAuth()
 
@@ -127,6 +180,327 @@ def create_admin_session() -> str:
 
 def _utc_now_string() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _utc_day_string() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _sse_headers() -> dict[str, str]:
+    return {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",  # Disable nginx buffering
+    }
+
+
+def _format_sse(data: dict[str, Any]) -> str:
+    return f"data: {json.dumps(data)}\n\n"
+
+
+def _single_event_sse_response(payload: dict[str, Any]) -> StreamingResponse:
+    async def event_generator() -> AsyncIterator[str]:
+        event_payload = dict(payload)
+        event_payload.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+        yield _format_sse(event_payload)
+        yield _format_sse({"type": "complete", "timestamp": datetime.now(timezone.utc).isoformat()})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers=_sse_headers(),
+    )
+
+
+def _parse_db_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _extract_client_ip(request: Request) -> str:
+    x_forwarded_for = request.headers.get("x-forwarded-for", "")
+    if x_forwarded_for:
+        first_ip = x_forwarded_for.split(",")[0].strip()
+        if first_ip:
+            return first_ip
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def _hash_text(value: str | None) -> str:
+    normalized = value or ""
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _build_anonymous_fingerprint(
+    request: Request,
+    browser_id: str | None,
+) -> tuple[str, str, str]:
+    client_ip = _extract_client_ip(request)
+    user_agent = request.headers.get("user-agent", "")
+    usage_input = f"{browser_id or 'unknown-browser'}|{client_ip}|{user_agent}"
+    usage_key = _hash_text(usage_input)
+    return usage_key, _hash_text(client_ip), _hash_text(user_agent)
+
+
+def _log_abuse_event(
+    usage_key: str,
+    ip_hash: str,
+    user_agent_hash: str,
+    event_type: str,
+    details: dict[str, Any],
+    conn: sqlite3.Connection | None = None,
+):
+    should_close = conn is None
+    try:
+        if conn is None:
+            conn = _get_chat_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO abuse_events (usage_key, ip_hash, user_agent_hash, event_type, details)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (usage_key, ip_hash, user_agent_hash, event_type, json.dumps(details)),
+        )
+        if should_close:
+            conn.commit()
+            conn.close()
+    except Exception as exc:
+        print(f"⚠️ Failed to log abuse event ({event_type}): {exc}")
+
+
+def _get_anon_daily_usage(usage_key: str, day_utc: str | None = None) -> int:
+    day = day_utc or _utc_day_string()
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT messages_used
+        FROM anon_usage_daily
+        WHERE usage_key = ? AND day_utc = ?
+        """,
+        (usage_key, day),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return 0
+    return int(row["messages_used"] or 0)
+
+
+def _build_anonymous_status(
+    request: Request,
+    authenticated: bool,
+    browser_id: str | None,
+) -> dict[str, Any]:
+    daily_limit = ANON_DAILY_MESSAGE_LIMIT
+    if authenticated:
+        daily_used = 0
+        daily_remaining = daily_limit
+    else:
+        usage_key, _ip_hash, _ua_hash = _build_anonymous_fingerprint(request, browser_id)
+        daily_used = _get_anon_daily_usage(usage_key)
+        daily_remaining = max(0, daily_limit - daily_used)
+
+    return {
+        "enabled": ANON_CHAT_ENABLED,
+        "authenticated": authenticated,
+        "daily_limit": daily_limit,
+        "daily_used": daily_used,
+        "daily_remaining": daily_remaining,
+        "requires_signin": ANON_REQUIRE_SIGNIN_AFTER_LIMIT,
+        "burst_window_seconds": ANON_BURST_WINDOW_SECONDS,
+        "burst_max_requests": ANON_BURST_MAX_REQUESTS,
+    }
+
+
+def _check_anonymous_guard(
+    request: Request,
+    user: dict | None,
+    browser_id: str | None,
+    message: str,
+) -> dict[str, Any]:
+    if user:
+        return {"allowed": True}
+
+    usage_key, ip_hash, user_agent_hash = _build_anonymous_fingerprint(request, browser_id)
+    message_len = len(message)
+
+    if not ANON_CHAT_ENABLED:
+        payload = {
+            "type": "auth_required",
+            "reason": "anon_disabled",
+            "requires_signin": True,
+            "message": "Anonymous chat is disabled. Please sign in to continue.",
+        }
+        _log_abuse_event(
+            usage_key,
+            ip_hash,
+            user_agent_hash,
+            "anon_disabled_block",
+            {"reason": "anon_disabled", "message_length": message_len},
+        )
+        return {"allowed": False, "payload": payload}
+
+    if message_len < ANON_MIN_MESSAGE_CHARS or message_len > ANON_MAX_MESSAGE_CHARS:
+        payload = {
+            "type": "error",
+            "reason": "invalid_message",
+            "requires_signin": False,
+            "message": (
+                f"Message must be between {ANON_MIN_MESSAGE_CHARS} and "
+                f"{ANON_MAX_MESSAGE_CHARS} characters."
+            ),
+        }
+        _log_abuse_event(
+            usage_key,
+            ip_hash,
+            user_agent_hash,
+            "anon_message_invalid",
+            {
+                "reason": "invalid_message",
+                "message_length": message_len,
+                "min_chars": ANON_MIN_MESSAGE_CHARS,
+                "max_chars": ANON_MAX_MESSAGE_CHARS,
+            },
+        )
+        return {"allowed": False, "payload": payload}
+
+    now = datetime.now(timezone.utc)
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    day_utc = now.strftime("%Y-%m-%d")
+
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT window_start, request_count
+            FROM anon_burst_usage
+            WHERE usage_key = ?
+            """,
+            (usage_key,),
+        )
+        burst_row = cursor.fetchone()
+
+        request_count = int(burst_row["request_count"] or 0) if burst_row else 0
+        window_start = _parse_db_timestamp(burst_row["window_start"]) if burst_row else None
+        within_window = (
+            window_start is not None
+            and (now - window_start).total_seconds() < ANON_BURST_WINDOW_SECONDS
+        )
+
+        if within_window:
+            if request_count >= ANON_BURST_MAX_REQUESTS:
+                payload = {
+                    "type": "error",
+                    "reason": "burst_limited",
+                    "requires_signin": False,
+                    "message": "Too many requests in a short time. Please wait and try again.",
+                }
+                _log_abuse_event(
+                    usage_key,
+                    ip_hash,
+                    user_agent_hash,
+                    "anon_burst_limited",
+                    {
+                        "reason": "burst_limited",
+                        "request_count": request_count,
+                        "window_seconds": ANON_BURST_WINDOW_SECONDS,
+                        "max_requests": ANON_BURST_MAX_REQUESTS,
+                    },
+                    conn=conn,
+                )
+                conn.commit()
+                return {"allowed": False, "payload": payload}
+
+            cursor.execute(
+                """
+                UPDATE anon_burst_usage
+                SET request_count = ?, updated_at = ?
+                WHERE usage_key = ?
+                """,
+                (request_count + 1, now_str, usage_key),
+            )
+        else:
+            cursor.execute(
+                """
+                INSERT INTO anon_burst_usage (usage_key, window_start, request_count, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(usage_key) DO UPDATE SET
+                    window_start = excluded.window_start,
+                    request_count = excluded.request_count,
+                    updated_at = excluded.updated_at
+                """,
+                (usage_key, now_str, 1, now_str),
+            )
+
+        cursor.execute(
+            """
+            SELECT messages_used
+            FROM anon_usage_daily
+            WHERE usage_key = ? AND day_utc = ?
+            """,
+            (usage_key, day_utc),
+        )
+        daily_row = cursor.fetchone()
+        daily_used = int(daily_row["messages_used"] or 0) if daily_row else 0
+
+        if daily_used >= ANON_DAILY_MESSAGE_LIMIT:
+            remaining = 0
+            requires_signin = ANON_REQUIRE_SIGNIN_AFTER_LIMIT
+            payload = {
+                "type": "auth_required" if requires_signin else "error",
+                "reason": "anon_limit",
+                "requires_signin": requires_signin,
+                "daily_limit": ANON_DAILY_MESSAGE_LIMIT,
+                "daily_used": daily_used,
+                "daily_remaining": remaining,
+                "message": (
+                    "Daily free message limit reached. Sign in to continue."
+                    if requires_signin
+                    else "Daily free message limit reached. Please try again tomorrow."
+                ),
+            }
+            _log_abuse_event(
+                usage_key,
+                ip_hash,
+                user_agent_hash,
+                "anon_daily_limit_exceeded",
+                {
+                    "reason": "anon_limit",
+                    "daily_limit": ANON_DAILY_MESSAGE_LIMIT,
+                    "daily_used": daily_used,
+                    "requires_signin": requires_signin,
+                },
+                conn=conn,
+            )
+            conn.commit()
+            return {"allowed": False, "payload": payload}
+
+        cursor.execute(
+            """
+            INSERT INTO anon_usage_daily (usage_key, day_utc, messages_used, last_seen)
+            VALUES (?, ?, 1, ?)
+            ON CONFLICT(usage_key, day_utc) DO UPDATE SET
+                messages_used = anon_usage_daily.messages_used + 1,
+                last_seen = excluded.last_seen
+            """,
+            (usage_key, day_utc, now_str),
+        )
+        conn.commit()
+        return {"allowed": True}
+    finally:
+        conn.close()
 
 
 def _get_fernet() -> Fernet | None:
@@ -256,6 +630,48 @@ def init_chat_db():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_messages_session 
         ON messages(session_id, timestamp)
+    """)
+
+    # Anonymous usage tracking tables
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS anon_usage_daily (
+            usage_key TEXT,
+            day_utc TEXT,
+            messages_used INTEGER,
+            last_seen TIMESTAMP,
+            PRIMARY KEY (usage_key, day_utc)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS anon_burst_usage (
+            usage_key TEXT PRIMARY KEY,
+            window_start TIMESTAMP,
+            request_count INTEGER,
+            updated_at TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS abuse_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usage_key TEXT,
+            ip_hash TEXT,
+            user_agent_hash TEXT,
+            event_type TEXT,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_abuse_events_created_at
+        ON abuse_events(created_at)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_abuse_events_event_type
+        ON abuse_events(event_type)
     """)
 
     cursor.execute("""
@@ -968,6 +1384,17 @@ async def index(request: Request):
     )
 
 
+@app.get("/api/anonymous-status")
+async def anonymous_status(request: Request):
+    user = get_current_user(request)
+    browser_id = request.query_params.get("browser_id")
+    return _build_anonymous_status(
+        request=request,
+        authenticated=bool(user),
+        browser_id=browser_id,
+    )
+
+
 @app.post("/api/query")
 async def query_stream(request: Request):
     """
@@ -980,16 +1407,34 @@ async def query_stream(request: Request):
         "browser_id": "optional-browser-id"
     }
     """
-    data = await request.json()
-    message = data.get("message", "").strip()
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    raw_message = data.get("message", "")
+    message = raw_message.strip() if isinstance(raw_message, str) else ""
     session_id = data.get("session_id") or str(uuid.uuid4())
     browser_id = data.get("browser_id")
     user = get_current_user(request)
     user_id = user["id"] if user else None
-    llm_settings, api_key = get_effective_llm_settings(user_id)
-    
+    guard_result = _check_anonymous_guard(request, user, browser_id, message)
+    if not guard_result.get("allowed"):
+        return _single_event_sse_response(guard_result["payload"])
+
     if not message:
-        return {"error": "Message is required"}
+        return _single_event_sse_response(
+            {
+                "type": "error",
+                "reason": "invalid_message",
+                "requires_signin": False,
+                "message": "Message is required.",
+            }
+        )
+
+    llm_settings, api_key = get_effective_llm_settings(user_id)
     
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the agent."""
@@ -1112,11 +1557,7 @@ async def query_stream(request: Request):
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering
-        }
+        headers=_sse_headers(),
     )
 
 
@@ -1132,16 +1573,34 @@ async def lesson_plan_stream(request: Request):
         "browser_id": "optional-browser-id"
     }
     """
-    data = await request.json()
-    message = data.get("message", "").strip()
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    raw_message = data.get("message", "")
+    message = raw_message.strip() if isinstance(raw_message, str) else ""
     session_id = data.get("session_id") or str(uuid.uuid4())
     browser_id = data.get("browser_id")
     user = get_current_user(request)
     user_id = user["id"] if user else None
-    llm_settings, api_key = get_effective_llm_settings(user_id)
-    
+    guard_result = _check_anonymous_guard(request, user, browser_id, message)
+    if not guard_result.get("allowed"):
+        return _single_event_sse_response(guard_result["payload"])
+
     if not message:
-        return {"error": "Message is required"}
+        return _single_event_sse_response(
+            {
+                "type": "error",
+                "reason": "invalid_message",
+                "requires_signin": False,
+                "message": "Message is required.",
+            }
+        )
+
+    llm_settings, api_key = get_effective_llm_settings(user_id)
     
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the lesson planner agent."""
@@ -1242,11 +1701,7 @@ async def lesson_plan_stream(request: Request):
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        }
+        headers=_sse_headers(),
     )
 
 

@@ -130,6 +130,27 @@
             gap: 8px;
         }
 
+        .anon-status-banner {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .anon-status-banner.warning {
+            background: rgba(251, 191, 36, 0.28);
+            border-color: rgba(251, 191, 36, 0.45);
+        }
+
+        .anon-status-banner.locked {
+            background: rgba(239, 68, 68, 0.28);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
         .auth-btn {
             width: 100%;
             padding: 8px 10px;
@@ -452,6 +473,39 @@
         .status-error {
             background: #fee2e2;
             color: #991b1b;
+        }
+
+        .auth-inline-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .inline-auth-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .inline-auth-btn.google {
+            background: #ffffff;
+            color: #1f2937;
+            border: 1px solid #d1d5db;
+        }
+
+        .inline-auth-btn.facebook {
+            background: #1877f2;
+            color: #ffffff;
+        }
+
+        .inline-auth-btn.dev {
+            background: #10b981;
+            color: #ffffff;
         }
 
         .dance-cards {
@@ -1305,6 +1359,7 @@
                         {% endif %}
                     </div>
                     {% endif %}
+                    <div id="anon-status-banner" class="anon-status-banner" style="display: none;"></div>
                 </div>
             </div>
             <div class="sessions-list" id="sessions-list">
@@ -1411,13 +1466,34 @@
     </div>
 
     <script>
+        function generateUUID() {
+            if (typeof crypto !== 'undefined' && crypto && typeof crypto.randomUUID === 'function') {
+                return crypto.randomUUID();
+            }
+
+            // Fallback for browsers without crypto.randomUUID
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
         // Get or create browser ID from localStorage (persistent across sessions)
         let browserId = localStorage.getItem('chatSCD_browserId');
         if (!browserId) {
-            browserId = crypto.randomUUID();
+            browserId = generateUUID();
             localStorage.setItem('chatSCD_browserId', browserId);
         }
         console.log('Browser ID:', browserId);
+        const oauthProviders = {
+            google: {{ 'true' if oauth_providers.google else 'false' }},
+            facebook: {{ 'true' if oauth_providers.facebook else 'false' }}
+        };
+        const devAuthEnabled = {{ 'true' if dev_auth_enabled else 'false' }};
+        let isAuthenticated = {{ 'true' if current_user else 'false' }};
+        let anonymousStatus = null;
+        let inputLockedByAuth = false;
 
         function startOAuth(provider) {
             const next = encodeURIComponent(window.location.pathname);
@@ -1432,7 +1508,7 @@
         // Get or create session ID from localStorage
         let sessionId = localStorage.getItem('chatSCD_sessionId');
         if (!sessionId) {
-            sessionId = crypto.randomUUID();
+            sessionId = generateUUID();
             localStorage.setItem('chatSCD_sessionId', sessionId);
         }
         console.log('Session ID:', sessionId);
@@ -1460,19 +1536,18 @@
             const mainContent = document.querySelector('.main-content');
             const chatModeBtn = document.getElementById('chat-mode-btn');
             const plannerModeBtn = document.getElementById('planner-mode-btn');
-            const messageInput = document.getElementById('message-input');
 
             if (mode === 'planner') {
                 mainContent.classList.add('lesson-planner-mode');
                 chatModeBtn.classList.remove('active');
                 plannerModeBtn.classList.add('active');
-                messageInput.placeholder = 'Describe your lesson (e.g., "45 minute class focusing on poussette")...';
             } else {
                 mainContent.classList.remove('lesson-planner-mode');
                 chatModeBtn.classList.add('active');
                 plannerModeBtn.classList.remove('active');
-                messageInput.placeholder = 'Ask about Scottish Country Dances...';
             }
+
+            applyInputState();
 
             // Save mode preference
             localStorage.setItem('chatSCD_mode', mode);
@@ -1616,6 +1691,109 @@
             }
         }
 
+        function getDefaultInputPlaceholder() {
+            if (currentMode === 'planner') {
+                return 'Describe your lesson (e.g., "45 minute class focusing on poussette")...';
+            }
+            return 'Ask about Scottish Country Dances...';
+        }
+
+        function applyInputState() {
+            const input = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const disabled = isProcessing || inputLockedByAuth;
+
+            input.disabled = disabled;
+            sendButton.disabled = disabled;
+            input.placeholder = inputLockedByAuth ? 'Sign in to continue chatting...' : getDefaultInputPlaceholder();
+        }
+
+        function setInputAuthLock(locked) {
+            inputLockedByAuth = locked;
+            applyInputState();
+        }
+
+        function getInlineSignInActionsHtml() {
+            const actions = [];
+            if (oauthProviders.google) {
+                actions.push('<button class="inline-auth-btn google" onclick="startOAuth(\'google\')">Continue with Google</button>');
+            }
+            if (oauthProviders.facebook) {
+                actions.push('<button class="inline-auth-btn facebook" onclick="startOAuth(\'facebook\')">Continue with Facebook</button>');
+            }
+            if (devAuthEnabled) {
+                actions.push('<button class="inline-auth-btn dev" onclick="startDevAuth()">Dev Login</button>');
+            }
+            if (!actions.length) return '';
+            return `<div class="auth-inline-actions">${actions.join('')}</div>`;
+        }
+
+        function renderAnonymousStatus(status) {
+            const banner = document.getElementById('anon-status-banner');
+            if (!banner || !status) return;
+
+            anonymousStatus = status;
+            isAuthenticated = !!status.authenticated;
+
+            if (status.authenticated) {
+                banner.style.display = 'none';
+                setInputAuthLock(false);
+                return;
+            }
+
+            banner.style.display = 'block';
+            banner.className = 'anon-status-banner';
+
+            if (!status.enabled) {
+                banner.classList.add('locked');
+                banner.textContent = 'Free anonymous chat is disabled. Sign in to continue.';
+                setInputAuthLock(true);
+                return;
+            }
+
+            const remaining = Number(status.daily_remaining || 0);
+            const used = Number(status.daily_used || 0);
+            const limit = Number(status.daily_limit || 0);
+            banner.textContent = `Free chats left today: ${remaining} / ${limit} (used ${used})`;
+
+            if (status.requires_signin && remaining <= 0) {
+                banner.classList.add('locked');
+                setInputAuthLock(true);
+                return;
+            }
+            if (remaining <= 2) {
+                banner.classList.add('warning');
+            }
+            setInputAuthLock(false);
+        }
+
+        async function loadAnonymousStatus() {
+            try {
+                const response = await fetch(`/api/anonymous-status?browser_id=${encodeURIComponent(browserId)}`);
+                if (!response.ok) return;
+                const status = await response.json();
+                renderAnonymousStatus(status);
+            } catch (error) {
+                console.error('Error loading anonymous status:', error);
+            }
+        }
+
+        function showAuthRequiredPrompt(data) {
+            const quotaLine = (typeof data.daily_remaining === 'number' && typeof data.daily_limit === 'number')
+                ? `<div style="margin-top: 6px;">Free tier: ${data.daily_remaining} remaining out of ${data.daily_limit}.</div>`
+                : '';
+            const content = `
+                <span class="status-badge status-error">🔒 Sign-in Required</span>
+                <div>${data.message || 'Please sign in to continue.'}</div>
+                ${quotaLine}
+                ${getInlineSignInActionsHtml()}
+            `;
+            addMessage('system', content, data.timestamp);
+            if (data.requires_signin) {
+                setInputAuthLock(true);
+            }
+        }
+
         function addMessage(type, content, timestamp = null, isMarkdown = false) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
@@ -1726,7 +1904,7 @@
         async function sendMessage(event) {
             event.preventDefault();
 
-            if (isProcessing) return;
+            if (isProcessing || inputLockedByAuth) return;
 
             const input = document.getElementById('message-input');
             const message = input.value.trim();
@@ -1739,8 +1917,7 @@
 
             // Disable input
             isProcessing = true;
-            document.getElementById('send-button').disabled = true;
-            input.disabled = true;
+            applyInputState();
 
             // Add typing indicator
             const typingIndicator = addTypingIndicator();
@@ -1749,6 +1926,7 @@
             let assistantMessage = null;
             let currentContent = '';
             let progressSteps = [];
+            let guardBlocked = false;
 
             try {
                 // Choose endpoint based on mode
@@ -1765,6 +1943,10 @@
                         browser_id: browserId
                     })
                 });
+
+                if (!response.ok || !response.body) {
+                    throw new Error(`Request failed (${response.status})`);
+                }
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
@@ -1831,9 +2013,19 @@
                                         updateLessonPreview(data.lesson_markdown);
                                     }
                                 }
+                                else if (data.type === 'auth_required') {
+                                    guardBlocked = true;
+                                    removeProgressBox();
+                                    showAuthRequiredPrompt(data);
+                                }
                                 else if (data.type === 'error') {
                                     removeProgressBox();
-                                    addMessage('system', `<span class="status-badge status-error">❌</span>${data.message}`, data.timestamp);
+                                    if (data.requires_signin) {
+                                        guardBlocked = true;
+                                        showAuthRequiredPrompt(data);
+                                    } else {
+                                        addMessage('system', `<span class="status-badge status-error">❌</span>${data.message}`, data.timestamp);
+                                    }
                                 }
                                 else if (data.type === 'complete') {
                                     removeProgressBox();
@@ -1853,10 +2045,15 @@
             } finally {
                 // Re-enable input
                 isProcessing = false;
-                document.getElementById('send-button').disabled = false;
-                input.disabled = false;
-                input.focus();
                 removeTypingIndicator();
+                applyInputState();
+
+                if (!isAuthenticated && !guardBlocked) {
+                    await loadAnonymousStatus();
+                }
+                if (!input.disabled) {
+                    input.focus();
+                }
 
                 // Reload sessions list to update with new message
                 // Use setTimeout to avoid blocking and prevent race conditions
@@ -2218,7 +2415,11 @@
 
             await loadSessions();
             await loadChatHistory();
-            document.getElementById('message-input').focus();
+            await loadAnonymousStatus();
+            applyInputState();
+            if (!document.getElementById('message-input').disabled) {
+                document.getElementById('message-input').focus();
+            }
 
             // Periodically check sidebar visibility (every 5 seconds)
             setInterval(ensureSidebarVisible, 5000);

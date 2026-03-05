@@ -35,26 +35,27 @@ def test_chat_sessions():
     
     # Test 2: Create new sessions
     print("\n2️⃣ Testing session creation...")
-    session1 = create_new_session()
-    session2 = create_new_session()
-    session3 = create_new_session()
+    browser_id = "test-browser-id"
+    session1 = create_new_session(browser_id=browser_id)
+    session2 = create_new_session(browser_id=browser_id)
+    session3 = create_new_session(browser_id=browser_id)
     print(f"✅ Created 3 sessions: {session1[:8]}..., {session2[:8]}..., {session3[:8]}...")
     
     # Test 3: Add messages to sessions
     print("\n3️⃣ Testing message saving across sessions...")
-    save_message(session1, "user", "Find me some 32-bar reels")
-    save_message(session1, "assistant", "Here are some 32-bar reels...")
-    save_message(session1, "user", "Tell me more about the first one")
+    save_message(session1, "user", "Find me some 32-bar reels", browser_id=browser_id)
+    save_message(session1, "assistant", "Here are some 32-bar reels...", browser_id=browser_id)
+    save_message(session1, "user", "Tell me more about the first one", browser_id=browser_id)
     
-    save_message(session2, "user", "What dances have poussette?")
-    save_message(session2, "assistant", "Here are dances with poussette...")
+    save_message(session2, "user", "What dances have poussette?", browser_id=browser_id)
+    save_message(session2, "assistant", "Here are dances with poussette...", browser_id=browser_id)
     
-    save_message(session3, "user", "Show me RSCDS published jigs")
+    save_message(session3, "user", "Show me RSCDS published jigs", browser_id=browser_id)
     print("✅ Added messages to all sessions")
     
     # Test 4: Get all sessions
     print("\n4️⃣ Testing session listing...")
-    sessions = get_all_sessions()
+    sessions = get_all_sessions(browser_id=browser_id)
     assert len(sessions) == 3, f"Expected 3 sessions, got {len(sessions)}"
     
     # Check session metadata
@@ -73,10 +74,10 @@ def test_chat_sessions():
     
     # Test 5: Update session title
     print("\n5️⃣ Testing session title update...")
-    update_session_title(session1, "Reel Discussion")
-    update_session_title(session2, "Poussette Dances")
+    update_session_title(session1, "Reel Discussion", browser_id=browser_id)
+    update_session_title(session2, "Poussette Dances", browser_id=browser_id)
     
-    sessions = get_all_sessions()
+    sessions = get_all_sessions(browser_id=browser_id)
     # Find the sessions by their content
     session1_data = next(s for s in sessions if s['session_id'] == session1)
     session2_data = next(s for s in sessions if s['session_id'] == session2)
@@ -101,16 +102,16 @@ def test_chat_sessions():
     # Add a new message to session 1 to make it most recent
     import time
     time.sleep(1)  # Ensure timestamp difference
-    save_message(session1, "user", "Another question")
+    save_message(session1, "user", "Another question", browser_id=browser_id)
     
-    sessions = get_all_sessions()
+    sessions = get_all_sessions(browser_id=browser_id)
     assert sessions[0]['session_id'] == session1, "Most recent session should be first"
     print("✅ Sessions ordered by last_active correctly")
     
     # Test 8: Delete session
     print("\n8️⃣ Testing session deletion...")
-    clear_chat_history(session2)
-    sessions = get_all_sessions()
+    clear_chat_history(session2, browser_id=browser_id)
+    sessions = get_all_sessions(browser_id=browser_id)
     assert len(sessions) == 2, "Should have 2 sessions after deletion"
     print("✅ Session deletion works correctly")
     
@@ -136,7 +137,7 @@ def test_chat_sessions():
     
     # Show all sessions
     print(f"\n📋 All Sessions:")
-    sessions = get_all_sessions()
+    sessions = get_all_sessions(browser_id=browser_id)
     for i, session in enumerate(sessions, 1):
         print(f"   {i}. {session['title']}")
         print(f"      Preview: {session['preview'][:60]}...")
