@@ -141,6 +141,23 @@ Optional:
   - `burst_window_seconds`
   - `burst_max_requests`
 
+### Observability & Request Tracking
+- Request telemetry stored in SQLite table: `request_events`
+- Captures per request:
+  - endpoint (`/api/query`, `/api/lesson-plan`)
+  - session/user/anonymous usage key
+  - provider/model
+  - status (`success`, `error`, `blocked`) + reason
+  - latency, prompt/response sizes
+  - token usage (provider metadata when available, fallback estimates)
+  - estimated cost (optional; configured via env pricing)
+- Admin metrics endpoint:
+  - `GET /admin/api/observability?hours=24`
+- Env vars:
+  - `OBS_DASHBOARD_DEFAULT_HOURS` (default `24`)
+  - `OBS_ESTIMATED_INPUT_COST_PER_1M` (default `0`)
+  - `OBS_ESTIMATED_OUTPUT_COST_PER_1M` (default `0`)
+
 ## File Structure
 
 ```

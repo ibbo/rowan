@@ -76,6 +76,31 @@ def _parse_env_int(
         value = max_value
     return value
 
+
+def _parse_env_float(
+    name: str,
+    default: float,
+    min_value: float | None = None,
+    max_value: float | None = None,
+) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        value = default
+    else:
+        try:
+            value = float(raw.strip())
+        except (TypeError, ValueError):
+            print(f"⚠️ Invalid float for {name}: {raw!r}. Using default={default}.")
+            value = default
+
+    if min_value is not None and value < min_value:
+        print(f"⚠️ {name}={value} below minimum {min_value}. Clamping.")
+        value = min_value
+    if max_value is not None and value > max_value:
+        print(f"⚠️ {name}={value} above maximum {max_value}. Clamping.")
+        value = max_value
+    return value
+
 # Initialize FastAPI
 app = FastAPI(title="ChatSCD - Scottish Country Dance Assistant")
 
@@ -131,6 +156,11 @@ if ANON_MAX_MESSAGE_CHARS < ANON_MIN_MESSAGE_CHARS:
         f"({ANON_MIN_MESSAGE_CHARS}). Adjusting max to min."
     )
     ANON_MAX_MESSAGE_CHARS = ANON_MIN_MESSAGE_CHARS
+
+# Observability defaults
+OBS_DASHBOARD_DEFAULT_HOURS = _parse_env_int("OBS_DASHBOARD_DEFAULT_HOURS", 24, min_value=1, max_value=168)
+OBS_ESTIMATED_INPUT_COST_PER_1M = _parse_env_float("OBS_ESTIMATED_INPUT_COST_PER_1M", 0.0, min_value=0.0)
+OBS_ESTIMATED_OUTPUT_COST_PER_1M = _parse_env_float("OBS_ESTIMATED_OUTPUT_COST_PER_1M", 0.0, min_value=0.0)
 
 oauth = OAuth()
 
@@ -503,6 +533,188 @@ def _check_anonymous_guard(
         conn.close()
 
 
+def _estimate_tokens_from_text(text: str | None) -> int:
+    if not text:
+        return 0
+    # Lightweight fallback estimate when provider usage metadata is unavailable.
+    return max(1, (len(text) + 3) // 4)
+
+
+def _extract_usage_from_ai_message(message: Any) -> tuple[int | None, int | None]:
+    """Best-effort usage extraction from LangChain AIMessage metadata."""
+    usage = getattr(message, "usage_metadata", None)
+    if isinstance(usage, dict):
+        input_tokens = usage.get("input_tokens")
+        output_tokens = usage.get("output_tokens")
+        if isinstance(input_tokens, int) and isinstance(output_tokens, int):
+            return input_tokens, output_tokens
+
+    response_meta = getattr(message, "response_metadata", None)
+    if isinstance(response_meta, dict):
+        token_usage = response_meta.get("token_usage")
+        if isinstance(token_usage, dict):
+            input_tokens = token_usage.get("prompt_tokens")
+            output_tokens = token_usage.get("completion_tokens")
+            if isinstance(input_tokens, int) and isinstance(output_tokens, int):
+                return input_tokens, output_tokens
+
+    return None, None
+
+
+def _estimate_cost_usd(input_tokens: int | None, output_tokens: int | None) -> float | None:
+    if input_tokens is None or output_tokens is None:
+        return None
+    if OBS_ESTIMATED_INPUT_COST_PER_1M <= 0 and OBS_ESTIMATED_OUTPUT_COST_PER_1M <= 0:
+        return None
+
+    cost = (
+        (input_tokens * OBS_ESTIMATED_INPUT_COST_PER_1M)
+        + (output_tokens * OBS_ESTIMATED_OUTPUT_COST_PER_1M)
+    ) / 1_000_000
+    return round(cost, 8)
+
+
+def _log_request_event(
+    endpoint: str,
+    session_id: str | None,
+    user_id: str | None,
+    anon_usage_key: str | None,
+    provider: str | None,
+    model: str | None,
+    status: str,
+    latency_ms: int,
+    prompt_chars: int,
+    response_chars: int,
+    input_tokens: int | None,
+    output_tokens: int | None,
+    error_reason: str | None = None,
+    meta: dict[str, Any] | None = None,
+):
+    cost_usd = _estimate_cost_usd(input_tokens, output_tokens)
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO request_events (
+            endpoint,
+            session_id,
+            user_id,
+            anon_usage_key,
+            provider,
+            model,
+            status,
+            error_reason,
+            latency_ms,
+            prompt_chars,
+            response_chars,
+            input_tokens,
+            output_tokens,
+            cost_usd,
+            meta_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            endpoint,
+            session_id,
+            user_id,
+            anon_usage_key,
+            provider,
+            model,
+            status,
+            error_reason,
+            latency_ms,
+            prompt_chars,
+            response_chars,
+            input_tokens,
+            output_tokens,
+            cost_usd,
+            json.dumps(meta or {}),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def _p95(values: list[int]) -> int:
+    if not values:
+        return 0
+    sorted_values = sorted(values)
+    index = max(0, int(round((len(sorted_values) - 1) * 0.95)))
+    return sorted_values[index]
+
+
+def _get_observability_summary(hours: int) -> dict[str, Any]:
+    hours = max(1, min(168, hours))
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM request_events
+        WHERE created_at >= datetime('now', ?)
+        ORDER BY created_at DESC
+        """,
+        (f"-{hours} hours",),
+    )
+    rows = cursor.fetchall()
+
+    total_requests = len(rows)
+    success_count = sum(1 for row in rows if row["status"] == "success")
+    blocked_count = sum(1 for row in rows if row["status"] == "blocked")
+    error_count = sum(1 for row in rows if row["status"] == "error")
+    latencies = [int(row["latency_ms"] or 0) for row in rows if row["latency_ms"] is not None]
+
+    input_tokens = sum(int(row["input_tokens"] or 0) for row in rows)
+    output_tokens = sum(int(row["output_tokens"] or 0) for row in rows)
+    total_cost_usd = round(sum(float(row["cost_usd"] or 0.0) for row in rows), 6)
+
+    unique_sessions = len({row["session_id"] for row in rows if row["session_id"]})
+    unique_users = len({row["user_id"] for row in rows if row["user_id"]})
+    unique_anons = len({row["anon_usage_key"] for row in rows if row["anon_usage_key"]})
+
+    endpoint_counts: dict[str, int] = {}
+    error_breakdown: dict[str, int] = {}
+    for row in rows:
+        endpoint = row["endpoint"] or "unknown"
+        endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
+
+        if row["status"] in {"error", "blocked"}:
+            key = row["error_reason"] or row["status"]
+            error_breakdown[key] = error_breakdown.get(key, 0) + 1
+
+    conn.close()
+
+    top_errors = [
+        {"reason": reason, "count": count}
+        for reason, count in sorted(error_breakdown.items(), key=lambda item: item[1], reverse=True)[:8]
+    ]
+
+    by_endpoint = [
+        {"endpoint": endpoint, "count": count}
+        for endpoint, count in sorted(endpoint_counts.items(), key=lambda item: item[1], reverse=True)
+    ]
+
+    return {
+        "hours": hours,
+        "total_requests": total_requests,
+        "success_count": success_count,
+        "blocked_count": blocked_count,
+        "error_count": error_count,
+        "success_rate": round((success_count / total_requests) * 100, 2) if total_requests else 0.0,
+        "avg_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else 0.0,
+        "p95_latency_ms": _p95(latencies),
+        "unique_sessions": unique_sessions,
+        "unique_users": unique_users,
+        "unique_anonymous_keys": unique_anons,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "estimated_cost_usd": total_cost_usd,
+        "by_endpoint": by_endpoint,
+        "top_errors": top_errors,
+    }
+
+
 def _get_fernet() -> Fernet | None:
     if not USER_SETTINGS_SECRET:
         return None
@@ -672,6 +884,44 @@ def init_chat_db():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_abuse_events_event_type
         ON abuse_events(event_type)
+    """)
+
+    # Request observability events
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS request_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            endpoint TEXT,
+            session_id TEXT,
+            user_id TEXT,
+            anon_usage_key TEXT,
+            provider TEXT,
+            model TEXT,
+            status TEXT,
+            error_reason TEXT,
+            latency_ms INTEGER,
+            prompt_chars INTEGER,
+            response_chars INTEGER,
+            input_tokens INTEGER,
+            output_tokens INTEGER,
+            cost_usd REAL,
+            meta_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_request_events_created_at
+        ON request_events(created_at)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_request_events_status
+        ON request_events(status)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_request_events_endpoint
+        ON request_events(endpoint)
     """)
 
     cursor.execute("""
@@ -1420,11 +1670,50 @@ async def query_stream(request: Request):
     browser_id = data.get("browser_id")
     user = get_current_user(request)
     user_id = user["id"] if user else None
+    request_started_at = datetime.now(timezone.utc)
+    anon_usage_key = None
+    if not user:
+        anon_usage_key, _ip_hash, _ua_hash = _build_anonymous_fingerprint(request, browser_id)
+
     guard_result = _check_anonymous_guard(request, user, browser_id, message)
     if not guard_result.get("allowed"):
-        return _single_event_sse_response(guard_result["payload"])
+        payload = guard_result.get("payload", {})
+        latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+        _log_request_event(
+            endpoint="/api/query",
+            session_id=session_id,
+            user_id=user_id,
+            anon_usage_key=anon_usage_key,
+            provider=None,
+            model=None,
+            status="blocked",
+            latency_ms=latency_ms,
+            prompt_chars=len(message),
+            response_chars=0,
+            input_tokens=None,
+            output_tokens=None,
+            error_reason=payload.get("reason") or "blocked",
+            meta={"requires_signin": bool(payload.get("requires_signin"))},
+        )
+        return _single_event_sse_response(payload)
 
     if not message:
+        latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+        _log_request_event(
+            endpoint="/api/query",
+            session_id=session_id,
+            user_id=user_id,
+            anon_usage_key=anon_usage_key,
+            provider=None,
+            model=None,
+            status="error",
+            latency_ms=latency_ms,
+            prompt_chars=0,
+            response_chars=0,
+            input_tokens=0,
+            output_tokens=0,
+            error_reason="invalid_message",
+        )
         return _single_event_sse_response(
             {
                 "type": "error",
@@ -1435,25 +1724,48 @@ async def query_stream(request: Request):
         )
 
     llm_settings, api_key = get_effective_llm_settings(user_id)
-    
+
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the agent."""
+        final_response = ""
+        input_tokens = _estimate_tokens_from_text(message)
+        output_tokens = 0
+        log_written = False
+
         try:
             try:
                 agent_instance = get_agent_for_settings(llm_settings, api_key)
             except Exception as e:
+                latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+                _log_request_event(
+                    endpoint="/api/query",
+                    session_id=session_id,
+                    user_id=user_id,
+                    anon_usage_key=anon_usage_key,
+                    provider=llm_settings.get("provider"),
+                    model=llm_settings.get("model"),
+                    status="error",
+                    latency_ms=latency_ms,
+                    prompt_chars=len(message),
+                    response_chars=0,
+                    input_tokens=input_tokens,
+                    output_tokens=0,
+                    error_reason="agent_init_failed",
+                    meta={"error": str(e)},
+                )
+                log_written = True
                 yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
                 return
 
             # Save user message to history
             save_message(session_id, "user", message, browser_id, user_id)
-            
+
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': 'Processing your query...', 'timestamp': datetime.now().isoformat()})}\n\n"
-            
+
             # Stream from the agent graph
             config = {"configurable": {"thread_id": session_id}}
-            
+
             async for chunk in agent_instance.graph.astream(
                 {
                     "messages": [HumanMessage(content=message)],
@@ -1464,7 +1776,7 @@ async def query_stream(request: Request):
             ):
                 if not isinstance(chunk, dict):
                     continue
-                
+
                 # Handle prompt checker
                 if "prompt_checker" in chunk:
                     checker_data = chunk["prompt_checker"]
@@ -1472,12 +1784,12 @@ async def query_stream(request: Request):
                         yield f"data: {json.dumps({'type': 'status', 'message': '❌ Query rejected - not about Scottish Country Dancing', 'timestamp': datetime.now().isoformat()})}\n\n"
                     else:
                         yield f"data: {json.dumps({'type': 'status', 'message': '✅ Query accepted - processing...', 'timestamp': datetime.now().isoformat()})}\n\n"
-                
+
                 # Handle dance planner
                 if "dance_planner" in chunk:
                     planner_data = chunk["dance_planner"]
                     messages = planner_data.get("messages", [])
-                    
+
                     for msg in messages:
                         # Check for tool calls
                         tool_calls = getattr(msg, "tool_calls", None)
@@ -1485,24 +1797,21 @@ async def query_stream(request: Request):
                             for call in tool_calls:
                                 tool_name = call.get("name", "tool")
                                 tool_args = call.get("args", {})
-                                
+
                                 yield f"data: {json.dumps({'type': 'tool_start', 'tool': tool_name, 'args': tool_args, 'timestamp': datetime.now().isoformat()})}\n\n"
-                        # Note: We don't stream intermediate assistant messages here
-                        # The final response will be sent after all tool calls complete
-                
+
                 # Handle tool executor
                 if "tool_executor" in chunk:
                     executor_data = chunk["tool_executor"]
                     messages = executor_data.get("messages", [])
-                    
+
                     for msg in messages:
-                        call_id = getattr(msg, "tool_call_id", None)
                         content = getattr(msg, "content", "")
-                        
+
                         # Parse tool results
                         try:
                             result = json.loads(content) if isinstance(content, str) else content
-                            
+
                             # Extract dance information
                             dances = []
                             if isinstance(result, list):
@@ -1510,11 +1819,11 @@ async def query_stream(request: Request):
                             elif isinstance(result, dict):
                                 if "dance" in result:
                                     dances = [result["dance"]]
-                            
+
                             yield f"data: {json.dumps({'type': 'tool_result', 'dances': dances, 'timestamp': datetime.now().isoformat()})}\n\n"
-                        except:
+                        except Exception:
                             yield f"data: {json.dumps({'type': 'tool_result', 'result': str(content)[:200], 'timestamp': datetime.now().isoformat()})}\n\n"
-                
+
                 # Handle rejection
                 if "rejection_handler" in chunk:
                     rejection_data = chunk["rejection_handler"]
@@ -1522,12 +1831,35 @@ async def query_stream(request: Request):
                     for msg in messages:
                         content = getattr(msg, "content", "")
                         if content:
+                            final_response = content
+                            output_tokens = _estimate_tokens_from_text(final_response)
+                            save_message(session_id, "assistant", final_response, browser_id, user_id)
+
+                            latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+                            _log_request_event(
+                                endpoint="/api/query",
+                                session_id=session_id,
+                                user_id=user_id,
+                                anon_usage_key=anon_usage_key,
+                                provider=llm_settings.get("provider"),
+                                model=llm_settings.get("model"),
+                                status="success",
+                                latency_ms=latency_ms,
+                                prompt_chars=len(message),
+                                response_chars=len(final_response),
+                                input_tokens=input_tokens,
+                                output_tokens=output_tokens,
+                                error_reason=None,
+                                meta={"path": "rejection_handler"},
+                            )
+                            log_written = True
+
                             yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
+                            yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
                             return
-            
+
             # Get final state and extract the final assistant response
             final_state = await agent_instance.graph.aget_state(config)
-            final_response = ""
             if final_state and hasattr(final_state, "values"):
                 messages = final_state.values.get("messages", [])
                 # Find the last AI message that's not a tool call and not a system message
@@ -1542,18 +1874,62 @@ async def query_stream(request: Request):
                     content = getattr(msg, "content", "")
                     if isinstance(content, str) and content and not content.startswith("You are"):
                         final_response = content
+                        usage_input, usage_output = _extract_usage_from_ai_message(msg)
+                        if usage_input is not None:
+                            input_tokens = usage_input
+                        if usage_output is not None:
+                            output_tokens = usage_output
+                        else:
+                            output_tokens = _estimate_tokens_from_text(final_response)
+
                         yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
                         break
-            
+
             # Save assistant response to history
             if final_response:
                 save_message(session_id, "assistant", final_response, browser_id, user_id)
-            
+
+            latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+            _log_request_event(
+                endpoint="/api/query",
+                session_id=session_id,
+                user_id=user_id,
+                anon_usage_key=anon_usage_key,
+                provider=llm_settings.get("provider"),
+                model=llm_settings.get("model"),
+                status="success",
+                latency_ms=latency_ms,
+                prompt_chars=len(message),
+                response_chars=len(final_response),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+            )
+            log_written = True
+
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
-            
+
         except Exception as e:
+            latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+            if not log_written:
+                _log_request_event(
+                    endpoint="/api/query",
+                    session_id=session_id,
+                    user_id=user_id,
+                    anon_usage_key=anon_usage_key,
+                    provider=llm_settings.get("provider"),
+                    model=llm_settings.get("model"),
+                    status="error",
+                    latency_ms=latency_ms,
+                    prompt_chars=len(message),
+                    response_chars=len(final_response),
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    error_reason="stream_exception",
+                    meta={"error": str(e)},
+                )
             yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -1586,11 +1962,50 @@ async def lesson_plan_stream(request: Request):
     browser_id = data.get("browser_id")
     user = get_current_user(request)
     user_id = user["id"] if user else None
+    request_started_at = datetime.now(timezone.utc)
+    anon_usage_key = None
+    if not user:
+        anon_usage_key, _ip_hash, _ua_hash = _build_anonymous_fingerprint(request, browser_id)
+
     guard_result = _check_anonymous_guard(request, user, browser_id, message)
     if not guard_result.get("allowed"):
-        return _single_event_sse_response(guard_result["payload"])
+        payload = guard_result.get("payload", {})
+        latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+        _log_request_event(
+            endpoint="/api/lesson-plan",
+            session_id=session_id,
+            user_id=user_id,
+            anon_usage_key=anon_usage_key,
+            provider=None,
+            model=None,
+            status="blocked",
+            latency_ms=latency_ms,
+            prompt_chars=len(message),
+            response_chars=0,
+            input_tokens=None,
+            output_tokens=None,
+            error_reason=payload.get("reason") or "blocked",
+            meta={"requires_signin": bool(payload.get("requires_signin"))},
+        )
+        return _single_event_sse_response(payload)
 
     if not message:
+        latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+        _log_request_event(
+            endpoint="/api/lesson-plan",
+            session_id=session_id,
+            user_id=user_id,
+            anon_usage_key=anon_usage_key,
+            provider=None,
+            model=None,
+            status="error",
+            latency_ms=latency_ms,
+            prompt_chars=0,
+            response_chars=0,
+            input_tokens=0,
+            output_tokens=0,
+            error_reason="invalid_message",
+        )
         return _single_event_sse_response(
             {
                 "type": "error",
@@ -1601,25 +2016,49 @@ async def lesson_plan_stream(request: Request):
         )
 
     llm_settings, api_key = get_effective_llm_settings(user_id)
-    
+
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the lesson planner agent."""
+        final_response = ""
+        lesson_markdown = ""
+        input_tokens = _estimate_tokens_from_text(message)
+        output_tokens = 0
+        log_written = False
+
         try:
             try:
                 planner_instance = get_lesson_planner_for_settings(llm_settings, api_key)
             except Exception as e:
+                latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+                _log_request_event(
+                    endpoint="/api/lesson-plan",
+                    session_id=session_id,
+                    user_id=user_id,
+                    anon_usage_key=anon_usage_key,
+                    provider=llm_settings.get("provider"),
+                    model=llm_settings.get("model"),
+                    status="error",
+                    latency_ms=latency_ms,
+                    prompt_chars=len(message),
+                    response_chars=0,
+                    input_tokens=input_tokens,
+                    output_tokens=0,
+                    error_reason="planner_init_failed",
+                    meta={"error": str(e)},
+                )
+                log_written = True
                 yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
                 return
 
             # Save user message to history
             save_message(session_id, "user", message, browser_id, user_id)
-            
+
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': '🎓 Planning your lesson...', 'timestamp': datetime.now().isoformat()})}\n\n"
-            
+
             # Stream from the lesson planner graph
             config = {"configurable": {"thread_id": f"lesson_{session_id}"}}
-            
+
             async for chunk in planner_instance.graph.astream(
                 {
                     "messages": [HumanMessage(content=message)],
@@ -1630,12 +2069,12 @@ async def lesson_plan_stream(request: Request):
             ):
                 if not isinstance(chunk, dict):
                     continue
-                
+
                 # Handle planner node
                 if "planner" in chunk:
                     planner_data = chunk["planner"]
                     messages = planner_data.get("messages", [])
-                    
+
                     for msg in messages:
                         # Check for tool calls
                         tool_calls = getattr(msg, "tool_calls", None)
@@ -1643,7 +2082,7 @@ async def lesson_plan_stream(request: Request):
                             for call in tool_calls:
                                 tool_name = call.get("name", "tool")
                                 tool_args = call.get("args", {})
-                                
+
                                 # Friendly tool status messages
                                 status_msg = {
                                     "find_dances": "🔍 Searching for dances...",
@@ -1653,51 +2092,90 @@ async def lesson_plan_stream(request: Request):
                                     "search_manual": "📖 Consulting RSCDS manual...",
                                     "save_lesson_plan": "💾 Saving lesson plan...",
                                 }.get(tool_name, f"🔧 Using {tool_name}...")
-                                
+
                                 yield f"data: {json.dumps({'type': 'tool_start', 'tool': tool_name, 'args': tool_args, 'status': status_msg, 'timestamp': datetime.now().isoformat()})}\n\n"
-                
+
                 # Handle tool results
                 if "tools" in chunk:
                     tools_data = chunk["tools"]
                     messages = tools_data.get("messages", [])
-                    
+
                     for msg in messages:
                         tool_name = getattr(msg, "name", "")
-                        content = getattr(msg, "content", "")
-                        
+
                         yield f"data: {json.dumps({'type': 'tool_complete', 'tool': tool_name, 'timestamp': datetime.now().isoformat()})}\n\n"
-            
+
             # Get final state to extract the lesson plan
             # The lesson planner returns formatted markdown in its final message
-            final_response = ""
-            lesson_markdown = ""
-            
             # Re-invoke to get full response (since we can't get_state with compiled graph)
             result = await planner_instance.ainvoke(message, config)
-            
+
             if result and "messages" in result:
                 # Find the last AI message with content
                 for msg in reversed(result["messages"]):
                     if isinstance(msg, AIMessage) and msg.content:
                         final_response = msg.content
+                        usage_input, usage_output = _extract_usage_from_ai_message(msg)
+                        if usage_input is not None:
+                            input_tokens = usage_input
+                        if usage_output is not None:
+                            output_tokens = usage_output
+                        else:
+                            output_tokens = _estimate_tokens_from_text(final_response)
+
                         # Check if this looks like a lesson plan (contains markdown headers)
                         if "##" in final_response or "# " in final_response:
                             lesson_markdown = final_response
                         break
-            
+
             # Send the final response
             if final_response:
                 yield f"data: {json.dumps({'type': 'final', 'message': final_response, 'lesson_markdown': lesson_markdown, 'timestamp': datetime.now().isoformat()})}\n\n"
                 save_message(session_id, "assistant", final_response, browser_id, user_id)
-            
+
+            latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+            _log_request_event(
+                endpoint="/api/lesson-plan",
+                session_id=session_id,
+                user_id=user_id,
+                anon_usage_key=anon_usage_key,
+                provider=llm_settings.get("provider"),
+                model=llm_settings.get("model"),
+                status="success",
+                latency_ms=latency_ms,
+                prompt_chars=len(message),
+                response_chars=len(final_response),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+            )
+            log_written = True
+
             # Send completion
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
-            
+
         except Exception as e:
             import traceback
             traceback.print_exc()
+            latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
+            if not log_written:
+                _log_request_event(
+                    endpoint="/api/lesson-plan",
+                    session_id=session_id,
+                    user_id=user_id,
+                    anon_usage_key=anon_usage_key,
+                    provider=llm_settings.get("provider"),
+                    model=llm_settings.get("model"),
+                    status="error",
+                    latency_ms=latency_ms,
+                    prompt_chars=len(message),
+                    response_chars=len(final_response),
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    error_reason="stream_exception",
+                    meta={"error": str(e)},
+                )
             yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
-    
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -2123,8 +2601,18 @@ async def admin_dashboard(request: Request):
         "current_model": llm_settings["model"],
         "current_temperature": llm_settings["temperature"],
         "providers": providers,
-        "models_json": json.dumps(models_data)
+        "models_json": json.dumps(models_data),
+        "observability_default_hours": OBS_DASHBOARD_DEFAULT_HOURS,
     })
+
+
+@app.get("/admin/api/observability")
+async def admin_observability(request: Request, hours: int = OBS_DASHBOARD_DEFAULT_HOURS):
+    """Return observability summary for the admin dashboard."""
+    if not verify_admin_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return _get_observability_summary(hours)
 
 
 @app.post("/admin/api/settings")

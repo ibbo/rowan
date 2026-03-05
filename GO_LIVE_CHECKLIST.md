@@ -1,0 +1,42 @@
+# ChatSCD Go-Live Checklist
+
+Status legend:
+- [ ] Not started
+- [~] In progress
+- [x] Done
+
+## 1) Observability & Session Tracking (P0)
+- [x] Add request-level tracing table and logging for `/api/query` + `/api/lesson-plan`
+- [x] Capture status, latency, model/provider, session/user/anon identifiers
+- [ ] Capture token + cost metrics accurately (currently estimate/fallback)
+- [x] Add basic admin dashboard stats (24h totals, success/error rate, p95 latency)
+- [x] Add error breakdown + top failure reasons
+
+## 2) Abuse & Operational Safeguards (P0)
+- [x] Anonymous gating with daily quota + burst limits
+- [ ] Add optional challenge flow (Turnstile/hCaptcha) for suspicious traffic
+- [ ] Add alerting for spike conditions (error burst / traffic burst / cost surge)
+- [ ] Document emergency runbook + kill switches
+
+## 3) Product Trust Surface (P0)
+- [ ] Privacy policy page
+- [ ] Terms page
+- [ ] Data retention + deletion policy note in app
+- [ ] Clear contact/support path
+
+## 4) Feedback Loop (P1)
+- [ ] Add thumbs up / thumbs down per assistant response
+- [ ] Store feedback with session + model metadata
+- [ ] Add optional reason tags for thumbs down
+- [ ] Add admin review view for feedback trends
+
+## 5) Monetization Starter (P1)
+- [ ] Add donation/support link in UI
+- [ ] Track donation link click-throughs
+- [ ] Add lightweight copy explaining cost support
+
+## 6) Growth & Reliability (P1/P2)
+- [ ] Uptime checks + alerting
+- [ ] Release checklist for deploy/rollback
+- [ ] Changelog + status updates flow
+- [ ] Subscription model design (plans, quotas, billing hooks)
