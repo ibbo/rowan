@@ -662,6 +662,104 @@
             margin-top: 4px;
         }
 
+        .feedback-controls {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .feedback-btn {
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #4b5563;
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            line-height: 1;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s, background 0.2s, color 0.2s;
+        }
+
+        .feedback-btn:hover:not(:disabled) {
+            border-color: #667eea;
+            color: #374151;
+        }
+
+        .feedback-btn.selected {
+            border-color: #667eea;
+            background: #eef2ff;
+            color: #4338ca;
+        }
+
+        .feedback-btn:disabled {
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        .feedback-label {
+            font-size: 0.76rem;
+            color: #6b7280;
+        }
+
+        .feedback-comment-box {
+            width: 100%;
+            margin-top: 6px;
+            display: none;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .feedback-comment-box.visible {
+            display: flex;
+        }
+
+        .feedback-comment-input {
+            flex: 1;
+            min-width: 160px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 0.8rem;
+            resize: vertical;
+            min-height: 34px;
+            max-height: 90px;
+            font-family: inherit;
+        }
+
+        .feedback-reason-select {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 0.78rem;
+            color: #374151;
+            background: white;
+        }
+
+        .feedback-submit-btn {
+            border: 1px solid #667eea;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .feedback-submit-btn.skip {
+            border-color: #d1d5db;
+            background: white;
+            color: #4b5563;
+        }
+
         .examples {
             display: flex;
             gap: 10px;
@@ -1691,6 +1789,12 @@
             }
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
         function getDefaultInputPlaceholder() {
             if (currentMode === 'planner') {
                 return 'Describe your lesson (e.g., "45 minute class focusing on poussette")...';
@@ -1794,7 +1898,148 @@
             }
         }
 
-        function addMessage(type, content, timestamp = null, isMarkdown = false) {
+        function buildFeedbackPayload(vote, comment, feedbackContext, reasonTag = null) {
+            const ctx = feedbackContext || {};
+            return {
+                vote: vote,
+                comment: comment || '',
+                session_id: ctx.session_id || sessionId,
+                browser_id: browserId,
+                request_event_id: ctx.request_event_id || null,
+                response_message_id: ctx.response_message_id || null,
+                reason_tag: reasonTag || ctx.reason_tag || null
+            };
+        }
+
+        async function submitFeedback(payload, controlsEl, statusEl, commentBoxEl) {
+            if (!controlsEl || controlsEl.dataset.submitted === 'true') return;
+
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error((data && data.detail) || (data && data.error) || 'Failed to submit feedback');
+                }
+
+                controlsEl.dataset.submitted = 'true';
+                controlsEl.querySelectorAll('button, textarea').forEach((el) => {
+                    el.disabled = true;
+                });
+                if (commentBoxEl) {
+                    commentBoxEl.classList.remove('visible');
+                }
+                statusEl.textContent = 'Thanks for the feedback.';
+            } catch (error) {
+                statusEl.textContent = `Could not save feedback: ${error.message}`;
+            }
+        }
+
+        function createFeedbackControls(feedbackContext) {
+            const controls = document.createElement('div');
+            controls.className = 'feedback-controls';
+            controls.dataset.submitted = 'false';
+
+            const upBtn = document.createElement('button');
+            upBtn.type = 'button';
+            upBtn.className = 'feedback-btn';
+            upBtn.title = 'Helpful';
+            upBtn.setAttribute('aria-label', 'Helpful');
+            upBtn.textContent = '👍';
+
+            const downBtn = document.createElement('button');
+            downBtn.type = 'button';
+            downBtn.className = 'feedback-btn';
+            downBtn.title = 'Not helpful';
+            downBtn.setAttribute('aria-label', 'Not helpful');
+            downBtn.textContent = '👎';
+
+            const status = document.createElement('span');
+            status.className = 'feedback-label';
+            status.textContent = 'Helpful?';
+
+            const commentBox = document.createElement('div');
+            commentBox.className = 'feedback-comment-box';
+            commentBox.innerHTML = `
+                <select class="feedback-reason-select">
+                    <option value="">Reason (optional)</option>
+                    <option value="inaccurate">Inaccurate</option>
+                    <option value="not_relevant">Not relevant</option>
+                    <option value="too_vague">Too vague</option>
+                    <option value="other">Other</option>
+                </select>
+                <textarea class="feedback-comment-input" maxlength="1000" placeholder="Optional: what was wrong?"></textarea>
+                <button type="button" class="feedback-submit-btn">Send</button>
+                <button type="button" class="feedback-submit-btn skip">Skip</button>
+            `;
+
+            const reasonSelect = commentBox.querySelector('.feedback-reason-select');
+            const commentInput = commentBox.querySelector('.feedback-comment-input');
+            const sendBtn = commentBox.querySelector('.feedback-submit-btn:not(.skip)');
+            const skipBtn = commentBox.querySelector('.feedback-submit-btn.skip');
+
+            upBtn.addEventListener('click', async () => {
+                if (controls.dataset.submitted === 'true') return;
+                upBtn.classList.add('selected');
+                downBtn.classList.remove('selected');
+                commentBox.classList.remove('visible');
+                await submitFeedback(buildFeedbackPayload('up', '', feedbackContext), controls, status, commentBox);
+            });
+
+            downBtn.addEventListener('click', () => {
+                if (controls.dataset.submitted === 'true') return;
+                downBtn.classList.add('selected');
+                upBtn.classList.remove('selected');
+                commentBox.classList.add('visible');
+                if (commentInput) {
+                    commentInput.focus();
+                }
+                status.textContent = 'Tell us why (optional)';
+            });
+
+            sendBtn.addEventListener('click', async () => {
+                const comment = commentInput ? commentInput.value.trim() : '';
+                const reasonTag = reasonSelect ? reasonSelect.value : '';
+                await submitFeedback(buildFeedbackPayload('down', comment, feedbackContext, reasonTag), controls, status, commentBox);
+            });
+
+            skipBtn.addEventListener('click', async () => {
+                const reasonTag = reasonSelect ? reasonSelect.value : '';
+                await submitFeedback(buildFeedbackPayload('down', '', feedbackContext, reasonTag), controls, status, commentBox);
+            });
+
+            controls.appendChild(upBtn);
+            controls.appendChild(downBtn);
+            controls.appendChild(status);
+            controls.appendChild(commentBox);
+            return controls;
+        }
+
+        function attachFeedbackControls(messageDiv, feedbackContext) {
+            if (!messageDiv) return;
+            const contentDiv = messageDiv.querySelector('.message-content');
+            if (!contentDiv) return;
+
+            const existing = contentDiv.querySelector('.feedback-controls');
+            if (existing) {
+                existing.remove();
+            }
+
+            const mergedContext = Object.assign({}, feedbackContext || {});
+            if (!mergedContext.session_id) {
+                mergedContext.session_id = sessionId;
+            }
+            if (!mergedContext.browser_id) {
+                mergedContext.browser_id = browserId;
+            }
+
+            contentDiv.appendChild(createFeedbackControls(mergedContext));
+        }
+
+        function addMessage(type, content, timestamp = null, isMarkdown = false, feedbackContext = null) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -1814,6 +2059,17 @@
                 timeDiv.className = 'timestamp';
                 timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
                 contentDiv.appendChild(timeDiv);
+            }
+
+            if (type === 'assistant' && feedbackContext !== null) {
+                const defaultContext = feedbackContext || {};
+                if (!defaultContext.session_id) {
+                    defaultContext.session_id = sessionId;
+                }
+                if (!defaultContext.browser_id) {
+                    defaultContext.browser_id = browserId;
+                }
+                contentDiv.appendChild(createFeedbackControls(defaultContext));
             }
 
             messageDiv.appendChild(contentDiv);
@@ -1989,22 +2245,35 @@
                                 else if (data.type === 'assistant' || data.type === 'final') {
                                     // Remove progress box when we get the final response
                                     removeProgressBox();
+                                    const isFinalEvent = data.type === 'final';
 
                                     if (!assistantMessage) {
-                                        assistantMessage = addMessage('assistant', data.message, data.timestamp, true);
+                                        assistantMessage = addMessage(
+                                            'assistant',
+                                            data.message,
+                                            data.timestamp,
+                                            true,
+                                            isFinalEvent ? (data.feedback_context || { session_id: sessionId, browser_id: browserId }) : null
+                                        );
                                         currentContent = data.message;
                                     } else {
                                         currentContent = data.message;
                                         const contentDiv = assistantMessage.querySelector('.message-content');
+                                        const existingTimestampEl = contentDiv.querySelector('.timestamp');
+                                        const existingTimestampText = existingTimestampEl ? existingTimestampEl.textContent : null;
                                         contentDiv.innerHTML = renderMarkdown(currentContent);
 
-                                        // Re-add timestamp if it exists
-                                        const existingTimestamp = contentDiv.querySelector('.timestamp');
-                                        if (data.timestamp && !existingTimestamp) {
+                                        if (data.timestamp || existingTimestampText) {
                                             const timeDiv = document.createElement('div');
                                             timeDiv.className = 'timestamp';
-                                            timeDiv.textContent = new Date(data.timestamp).toLocaleTimeString();
+                                            timeDiv.textContent = data.timestamp
+                                                ? new Date(data.timestamp).toLocaleTimeString()
+                                                : existingTimestampText;
                                             contentDiv.appendChild(timeDiv);
+                                        }
+
+                                        if (isFinalEvent) {
+                                            attachFeedbackControls(assistantMessage, data.feedback_context);
                                         }
                                     }
 
@@ -2089,13 +2358,6 @@
                         sessionDiv.className = 'session-item' + (session.session_id === sessionId ? ' active' : '');
 
                         const timeAgo = formatTimeAgo(session.last_active);
-
-                        // Escape HTML to prevent XSS
-                        const escapeHtml = (text) => {
-                            const div = document.createElement('div');
-                            div.textContent = text;
-                            return div.innerHTML;
-                        };
 
                         const deleteBtn = document.createElement('button');
                         deleteBtn.className = 'session-delete';
@@ -2230,7 +2492,17 @@
                         if (msg.role === 'user') {
                             addMessage('user', msg.content, msg.timestamp);
                         } else if (msg.role === 'assistant') {
-                            addMessage('assistant', msg.content, msg.timestamp, true);
+                            addMessage(
+                                'assistant',
+                                msg.content,
+                                msg.timestamp,
+                                true,
+                                {
+                                    session_id: sessionId,
+                                    browser_id: browserId,
+                                    response_message_id: msg.id
+                                }
+                            );
                         }
                     });
                 } else {

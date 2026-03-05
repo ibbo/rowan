@@ -323,6 +323,54 @@
             font-size: 0.9rem;
         }
 
+        .feedback-summary {
+            margin-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 14px;
+        }
+
+        .feedback-counters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .feedback-pill {
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            color: #374151;
+            background: #fafafa;
+        }
+
+        .feedback-recent {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .feedback-recent li {
+            padding: 10px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.85rem;
+            line-height: 1.35;
+        }
+
+        .feedback-recent li:last-child {
+            border-bottom: none;
+        }
+
+        .feedback-meta {
+            color: #6b7280;
+            font-size: 0.78rem;
+            margin-top: 4px;
+        }
+
         @media (max-width: 760px) {
             .mini-list {
                 grid-template-columns: 1fr;
@@ -402,7 +450,18 @@
                     <ul id="obs-errors"><li><span class="muted">No data</span></li></ul>
                 </div>
             </div>
-            <p class="hint">Tracks request status, latency, model/provider, and session/anonymous usage keys in SQLite (`request_events`). Token/cost values are best-effort based on provider metadata or fallback estimates.</p>
+            <div class="feedback-summary">
+                <h4 style="margin-bottom: 8px; color: #374151;">Answer Feedback</h4>
+                <div class="feedback-counters">
+                    <span class="feedback-pill">👍 <strong id="obs-feedback-up">0</strong></span>
+                    <span class="feedback-pill">👎 <strong id="obs-feedback-down">0</strong></span>
+                    <span class="feedback-pill">Total <strong id="obs-feedback-total">0</strong></span>
+                </div>
+                <ul class="feedback-recent" id="obs-feedback-recent">
+                    <li><span class="muted">No feedback yet</span></li>
+                </ul>
+            </div>
+            <p class="hint">Tracks request status/latency in SQLite (`request_events`) plus answer ratings in `assistant_feedback`. Token/cost values are best-effort based on provider metadata or fallback estimates.</p>
         </div>
 
         <div class="card">
@@ -464,6 +523,12 @@
         const modelData = {{ models_json | safe }};
         const currentModel = "{{ current_model }}";
         const observabilityDefaultHours = {{ observability_default_hours }};
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
 
         // Update model dropdown when provider changes
         function updateModels() {
@@ -532,6 +597,28 @@
             ).join('');
         }
 
+        function renderFeedbackRecent(rows) {
+            const el = document.getElementById('obs-feedback-recent');
+            if (!rows || !rows.length) {
+                el.innerHTML = '<li><span class="muted">No feedback yet</span></li>';
+                return;
+            }
+
+            el.innerHTML = rows.map((row) => {
+                const vote = row.vote === 'down' ? '👎' : '👍';
+                const comment = row.comment ? escapeHtml(row.comment) : '<span class="muted">(no comment)</span>';
+                const model = escapeHtml(row.model || '-');
+                const endpoint = escapeHtml(row.endpoint || '-');
+                const createdAt = row.created_at ? new Date(row.created_at + (row.created_at.includes('Z') ? '' : 'Z')).toLocaleString() : '';
+                return `
+                    <li>
+                        <div><strong>${vote}</strong> ${comment}</div>
+                        <div class="feedback-meta">${model} • ${endpoint} • ${escapeHtml(createdAt)}</div>
+                    </li>
+                `;
+            }).join('');
+        }
+
         async function loadObservability() {
             const refreshBtn = document.getElementById('obs-refresh-btn');
             const hours = document.getElementById('obs-hours').value;
@@ -553,6 +640,11 @@
 
                 renderMiniList('obs-endpoints', data.by_endpoint || [], 'endpoint', 'count');
                 renderMiniList('obs-errors', data.top_errors || [], 'reason', 'count');
+                const feedback = data.feedback || {};
+                document.getElementById('obs-feedback-up').textContent = feedback.up_count ?? 0;
+                document.getElementById('obs-feedback-down').textContent = feedback.down_count ?? 0;
+                document.getElementById('obs-feedback-total').textContent = feedback.total_count ?? 0;
+                renderFeedbackRecent(feedback.recent || []);
                 document.getElementById('obs-updated-at').textContent = `Updated ${new Date().toLocaleTimeString()}`;
             } catch (error) {
                 document.getElementById('obs-updated-at').textContent = `Failed to load: ${error.message}`;

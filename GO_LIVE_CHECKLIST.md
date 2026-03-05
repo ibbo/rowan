@@ -25,10 +25,10 @@ Status legend:
 - [ ] Clear contact/support path
 
 ## 4) Feedback Loop (P1)
-- [ ] Add thumbs up / thumbs down per assistant response
-- [ ] Store feedback with session + model metadata
-- [ ] Add optional reason tags for thumbs down
-- [ ] Add admin review view for feedback trends
+- [x] Add thumbs up / thumbs down per assistant response
+- [x] Store feedback with session + model metadata
+- [x] Add optional reason tags for thumbs down
+- [x] Add admin review view for feedback trends
 
 ## 5) Monetization Starter (P1)
 - [ ] Add donation/support link in UI

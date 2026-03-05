@@ -158,6 +158,17 @@ Optional:
   - `OBS_ESTIMATED_INPUT_COST_PER_1M` (default `0`)
   - `OBS_ESTIMATED_OUTPUT_COST_PER_1M` (default `0`)
 
+### Answer Feedback
+- Per-assistant thumbs feedback in chat UI (`👍` / `👎`)
+- Optional downvote reason tag + free-text comment
+- Stored in SQLite table: `assistant_feedback`
+- Join keys:
+  - `request_event_id` (links to `request_events`)
+  - `response_message_id` (links to `messages`)
+  - `session_id`, `user_id`, `anon_usage_key`, `provider`, `model`, `endpoint`
+- API endpoint:
+  - `POST /api/feedback`
+
 ## File Structure
 
 ```

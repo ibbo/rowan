@@ -589,7 +589,7 @@ def _log_request_event(
     output_tokens: int | None,
     error_reason: str | None = None,
     meta: dict[str, Any] | None = None,
-):
+) -> int:
     cost_usd = _estimate_cost_usd(input_tokens, output_tokens)
     conn = _get_chat_conn()
     cursor = conn.cursor()
@@ -631,8 +631,30 @@ def _log_request_event(
             json.dumps(meta or {}),
         ),
     )
+    event_id = int(cursor.lastrowid)
     conn.commit()
     conn.close()
+    return event_id
+
+
+def _normalize_feedback_vote(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"up", "thumbs_up", "thumb_up", "positive", "like"}:
+        return "up"
+    if normalized in {"down", "thumbs_down", "thumb_down", "negative", "dislike"}:
+        return "down"
+    return None
+
+
+def _to_int_or_none(value: Any) -> int | None:
+    if value in {None, ""}:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _p95(values: list[int]) -> int:
@@ -695,6 +717,8 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
         for endpoint, count in sorted(endpoint_counts.items(), key=lambda item: item[1], reverse=True)
     ]
 
+    feedback_summary = _get_feedback_summary(hours)
+
     return {
         "hours": hours,
         "total_requests": total_requests,
@@ -712,6 +736,82 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
         "estimated_cost_usd": total_cost_usd,
         "by_endpoint": by_endpoint,
         "top_errors": top_errors,
+        "feedback": feedback_summary,
+    }
+
+
+def _get_feedback_summary(hours: int) -> dict[str, Any]:
+    hours = max(1, min(168, hours))
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT vote, COUNT(*) AS count
+        FROM assistant_feedback
+        WHERE created_at >= datetime('now', ?)
+        GROUP BY vote
+        """,
+        (f"-{hours} hours",),
+    )
+    counts_rows = cursor.fetchall()
+    counts = {row["vote"]: int(row["count"]) for row in counts_rows}
+
+    cursor.execute(
+        """
+        SELECT
+            f.id,
+            f.vote,
+            f.comment,
+            f.reason_tag,
+            f.session_id,
+            f.user_id,
+            f.provider,
+            f.model,
+            f.endpoint,
+            f.request_event_id,
+            f.response_message_id,
+            f.created_at,
+            re.status AS request_status
+        FROM assistant_feedback f
+        LEFT JOIN request_events re ON re.id = f.request_event_id
+        WHERE f.created_at >= datetime('now', ?)
+        ORDER BY f.created_at DESC
+        LIMIT 10
+        """,
+        (f"-{hours} hours",),
+    )
+    recent_rows = cursor.fetchall()
+    conn.close()
+
+    recent = []
+    for row in recent_rows:
+        recent.append(
+            {
+                "id": int(row["id"]),
+                "vote": row["vote"],
+                "comment": row["comment"] or "",
+                "reason_tag": row["reason_tag"] or "",
+                "session_id": row["session_id"] or "",
+                "user_id": row["user_id"] or "",
+                "provider": row["provider"] or "",
+                "model": row["model"] or "",
+                "endpoint": row["endpoint"] or "",
+                "request_event_id": row["request_event_id"],
+                "response_message_id": row["response_message_id"],
+                "request_status": row["request_status"] or "",
+                "created_at": row["created_at"],
+            }
+        )
+
+    up_count = counts.get("up", 0)
+    down_count = counts.get("down", 0)
+    return {
+        "hours": hours,
+        "up_count": up_count,
+        "down_count": down_count,
+        "total_count": up_count + down_count,
+        "recent": recent,
     }
 
 
@@ -922,6 +1022,46 @@ def init_chat_db():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_request_events_endpoint
         ON request_events(endpoint)
+    """)
+
+    # Assistant response feedback
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS assistant_feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vote TEXT NOT NULL CHECK(vote IN ('up', 'down')),
+            comment TEXT,
+            reason_tag TEXT,
+            session_id TEXT NOT NULL,
+            user_id TEXT,
+            browser_id TEXT,
+            anon_usage_key TEXT,
+            endpoint TEXT,
+            provider TEXT,
+            model TEXT,
+            request_event_id INTEGER,
+            response_message_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_assistant_feedback_created_at
+        ON assistant_feedback(created_at)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_assistant_feedback_vote
+        ON assistant_feedback(vote)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_assistant_feedback_session_id
+        ON assistant_feedback(session_id)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_assistant_feedback_request_event_id
+        ON assistant_feedback(request_event_id)
     """)
 
     cursor.execute("""
@@ -1333,7 +1473,7 @@ def save_message(
     content: str,
     browser_id: str | None = None,
     user_id: str | None = None,
-):
+) -> int:
     """Save a message to the chat history."""
     conn = _get_chat_conn()
     cursor = conn.cursor()
@@ -1387,9 +1527,11 @@ def save_message(
     cursor.execute("""
         INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)
     """, (session_id, role, content))
+    message_id = int(cursor.lastrowid)
     
     conn.commit()
     conn.close()
+    return message_id
 
 
 def get_chat_history(
@@ -1406,7 +1548,7 @@ def get_chat_history(
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT role, content, timestamp 
+        SELECT id, role, content, timestamp
         FROM messages 
         WHERE session_id = ? 
         ORDER BY timestamp ASC
@@ -1416,9 +1558,10 @@ def get_chat_history(
     messages = []
     for row in cursor.fetchall():
         messages.append({
-            "role": row[0],
-            "content": row[1],
-            "timestamp": row[2]
+            "id": row[0],
+            "role": row[1],
+            "content": row[2],
+            "timestamp": row[3]
         })
     
     conn.close()
@@ -1833,10 +1976,12 @@ async def query_stream(request: Request):
                         if content:
                             final_response = content
                             output_tokens = _estimate_tokens_from_text(final_response)
-                            save_message(session_id, "assistant", final_response, browser_id, user_id)
+                            assistant_message_id = save_message(
+                                session_id, "assistant", final_response, browser_id, user_id
+                            )
 
                             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
-                            _log_request_event(
+                            request_event_id = _log_request_event(
                                 endpoint="/api/query",
                                 session_id=session_id,
                                 user_id=user_id,
@@ -1854,7 +1999,20 @@ async def query_stream(request: Request):
                             )
                             log_written = True
 
-                            yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
+                            final_event = {
+                                "type": "final",
+                                "message": content,
+                                "timestamp": datetime.now().isoformat(),
+                                "feedback_context": {
+                                    "request_event_id": request_event_id,
+                                    "response_message_id": assistant_message_id,
+                                    "session_id": session_id,
+                                    "provider": llm_settings.get("provider"),
+                                    "model": llm_settings.get("model"),
+                                    "endpoint": "/api/query",
+                                },
+                            }
+                            yield f"data: {json.dumps(final_event)}\n\n"
                             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
                             return
 
@@ -1882,15 +2040,14 @@ async def query_stream(request: Request):
                         else:
                             output_tokens = _estimate_tokens_from_text(final_response)
 
-                        yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
                         break
 
-            # Save assistant response to history
+            assistant_message_id = None
             if final_response:
-                save_message(session_id, "assistant", final_response, browser_id, user_id)
+                assistant_message_id = save_message(session_id, "assistant", final_response, browser_id, user_id)
 
             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
-            _log_request_event(
+            request_event_id = _log_request_event(
                 endpoint="/api/query",
                 session_id=session_id,
                 user_id=user_id,
@@ -1905,6 +2062,22 @@ async def query_stream(request: Request):
                 output_tokens=output_tokens,
             )
             log_written = True
+
+            if final_response:
+                final_event = {
+                    "type": "final",
+                    "message": final_response,
+                    "timestamp": datetime.now().isoformat(),
+                    "feedback_context": {
+                        "request_event_id": request_event_id,
+                        "response_message_id": assistant_message_id,
+                        "session_id": session_id,
+                        "provider": llm_settings.get("provider"),
+                        "model": llm_settings.get("model"),
+                        "endpoint": "/api/query",
+                    },
+                }
+                yield f"data: {json.dumps(final_event)}\n\n"
 
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
@@ -2128,13 +2301,12 @@ async def lesson_plan_stream(request: Request):
                             lesson_markdown = final_response
                         break
 
-            # Send the final response
+            assistant_message_id = None
             if final_response:
-                yield f"data: {json.dumps({'type': 'final', 'message': final_response, 'lesson_markdown': lesson_markdown, 'timestamp': datetime.now().isoformat()})}\n\n"
-                save_message(session_id, "assistant", final_response, browser_id, user_id)
+                assistant_message_id = save_message(session_id, "assistant", final_response, browser_id, user_id)
 
             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
-            _log_request_event(
+            request_event_id = _log_request_event(
                 endpoint="/api/lesson-plan",
                 session_id=session_id,
                 user_id=user_id,
@@ -2149,6 +2321,23 @@ async def lesson_plan_stream(request: Request):
                 output_tokens=output_tokens,
             )
             log_written = True
+
+            if final_response:
+                final_event = {
+                    "type": "final",
+                    "message": final_response,
+                    "lesson_markdown": lesson_markdown,
+                    "timestamp": datetime.now().isoformat(),
+                    "feedback_context": {
+                        "request_event_id": request_event_id,
+                        "response_message_id": assistant_message_id,
+                        "session_id": session_id,
+                        "provider": llm_settings.get("provider"),
+                        "model": llm_settings.get("model"),
+                        "endpoint": "/api/lesson-plan",
+                    },
+                }
+                yield f"data: {json.dumps(final_event)}\n\n"
 
             # Send completion
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
@@ -2249,6 +2438,156 @@ async def update_title(session_id: str, request: Request):
         return {"success": True}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/api/feedback")
+async def submit_feedback(request: Request):
+    """Capture thumbs up/down feedback for an assistant response."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    vote = _normalize_feedback_vote(data.get("vote"))
+    if not vote:
+        raise HTTPException(status_code=400, detail="vote must be 'up' or 'down'")
+
+    raw_comment = data.get("comment")
+    comment = raw_comment.strip() if isinstance(raw_comment, str) else ""
+    if len(comment) > 1000:
+        raise HTTPException(status_code=400, detail="comment is too long (max 1000 chars)")
+
+    raw_reason_tag = data.get("reason_tag")
+    reason_tag = raw_reason_tag.strip() if isinstance(raw_reason_tag, str) else ""
+    if len(reason_tag) > 80:
+        raise HTTPException(status_code=400, detail="reason_tag is too long (max 80 chars)")
+
+    session_id = data.get("session_id")
+    if not isinstance(session_id, str) or not session_id.strip():
+        raise HTTPException(status_code=400, detail="session_id is required")
+    session_id = session_id.strip()
+
+    browser_id = data.get("browser_id")
+    browser_id = browser_id.strip() if isinstance(browser_id, str) else None
+    request_event_id = _to_int_or_none(data.get("request_event_id"))
+    response_message_id = _to_int_or_none(data.get("response_message_id"))
+
+    user = get_current_user(request)
+    user_id = user["id"] if user else None
+    if not _ensure_session_access(session_id, user_id, browser_id, link_user=True):
+        raise HTTPException(status_code=403, detail="Unauthorized session access")
+
+    provider = None
+    model = None
+    endpoint = None
+    anon_usage_key = None
+
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+
+    if request_event_id is not None:
+        cursor.execute(
+            """
+            SELECT id, session_id, user_id, anon_usage_key, provider, model, endpoint
+            FROM request_events
+            WHERE id = ?
+            """,
+            (request_event_id,),
+        )
+        event_row = cursor.fetchone()
+        if not event_row:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Invalid request_event_id")
+        if event_row["session_id"] and event_row["session_id"] != session_id:
+            conn.close()
+            raise HTTPException(status_code=400, detail="request_event_id does not match session_id")
+        if event_row["user_id"] and event_row["user_id"] != user_id:
+            conn.close()
+            raise HTTPException(status_code=403, detail="request_event_id belongs to another user")
+        provider = event_row["provider"]
+        model = event_row["model"]
+        endpoint = event_row["endpoint"]
+        anon_usage_key = event_row["anon_usage_key"]
+    else:
+        cursor.execute(
+            """
+            SELECT provider, model, endpoint, anon_usage_key
+            FROM request_events
+            WHERE session_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (session_id,),
+        )
+        latest_event = cursor.fetchone()
+        if latest_event:
+            provider = latest_event["provider"]
+            model = latest_event["model"]
+            endpoint = latest_event["endpoint"]
+            anon_usage_key = latest_event["anon_usage_key"]
+
+    if response_message_id is not None:
+        cursor.execute(
+            """
+            SELECT id, session_id, role
+            FROM messages
+            WHERE id = ?
+            """,
+            (response_message_id,),
+        )
+        message_row = cursor.fetchone()
+        if not message_row:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Invalid response_message_id")
+        if message_row["session_id"] != session_id:
+            conn.close()
+            raise HTTPException(status_code=400, detail="response_message_id does not match session_id")
+        if message_row["role"] != "assistant":
+            conn.close()
+            raise HTTPException(status_code=400, detail="response_message_id must reference an assistant message")
+
+    if not user and not anon_usage_key:
+        anon_usage_key, _ip_hash, _ua_hash = _build_anonymous_fingerprint(request, browser_id)
+
+    cursor.execute(
+        """
+        INSERT INTO assistant_feedback (
+            vote,
+            comment,
+            reason_tag,
+            session_id,
+            user_id,
+            browser_id,
+            anon_usage_key,
+            endpoint,
+            provider,
+            model,
+            request_event_id,
+            response_message_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            vote,
+            comment or None,
+            reason_tag or None,
+            session_id,
+            user_id,
+            browser_id,
+            anon_usage_key,
+            endpoint,
+            provider,
+            model,
+            request_event_id,
+            response_message_id,
+        ),
+    )
+    feedback_id = int(cursor.lastrowid)
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "feedback_id": feedback_id}
 
 
 @app.get("/health")
