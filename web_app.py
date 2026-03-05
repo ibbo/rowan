@@ -150,17 +150,46 @@ ANON_BURST_WINDOW_SECONDS = _parse_env_int("ANON_BURST_WINDOW_SECONDS", 60, min_
 ANON_BURST_MAX_REQUESTS = _parse_env_int("ANON_BURST_MAX_REQUESTS", 8, min_value=1)
 ANON_MIN_MESSAGE_CHARS = _parse_env_int("ANON_MIN_MESSAGE_CHARS", 1, min_value=0)
 ANON_MAX_MESSAGE_CHARS = _parse_env_int("ANON_MAX_MESSAGE_CHARS", 1500, min_value=1)
+ANON_CHALLENGE_ENABLED = _parse_env_bool("ANON_CHALLENGE_ENABLED", False)
+ANON_CHALLENGE_SCORE_THRESHOLD = _parse_env_float(
+    "ANON_CHALLENGE_SCORE_THRESHOLD",
+    0.7,
+    min_value=0.0,
+    max_value=1.0,
+)
+ANON_CHALLENGE_PROVIDER = (os.getenv("ANON_CHALLENGE_PROVIDER", "turnstile") or "turnstile").strip().lower()
 if ANON_MAX_MESSAGE_CHARS < ANON_MIN_MESSAGE_CHARS:
     print(
         f"⚠️ ANON_MAX_MESSAGE_CHARS ({ANON_MAX_MESSAGE_CHARS}) is below ANON_MIN_MESSAGE_CHARS "
         f"({ANON_MIN_MESSAGE_CHARS}). Adjusting max to min."
     )
     ANON_MAX_MESSAGE_CHARS = ANON_MIN_MESSAGE_CHARS
+if ANON_CHALLENGE_PROVIDER not in {"turnstile", "hcaptcha"}:
+    print(
+        f"⚠️ Unsupported ANON_CHALLENGE_PROVIDER={ANON_CHALLENGE_PROVIDER!r}. "
+        "Using 'turnstile'."
+    )
+    ANON_CHALLENGE_PROVIDER = "turnstile"
 
 # Observability defaults
 OBS_DASHBOARD_DEFAULT_HOURS = _parse_env_int("OBS_DASHBOARD_DEFAULT_HOURS", 24, min_value=1, max_value=168)
 OBS_ESTIMATED_INPUT_COST_PER_1M = _parse_env_float("OBS_ESTIMATED_INPUT_COST_PER_1M", 0.0, min_value=0.0)
 OBS_ESTIMATED_OUTPUT_COST_PER_1M = _parse_env_float("OBS_ESTIMATED_OUTPUT_COST_PER_1M", 0.0, min_value=0.0)
+ALERT_WINDOW_MINUTES = _parse_env_int("ALERT_WINDOW_MINUTES", 5, min_value=1, max_value=1440)
+ALERT_ERROR_RATE_THRESHOLD = _parse_env_float(
+    "ALERT_ERROR_RATE_THRESHOLD",
+    0.3,
+    min_value=0.0,
+    max_value=1.0,
+)
+ALERT_ERROR_MIN_REQUESTS = _parse_env_int("ALERT_ERROR_MIN_REQUESTS", 10, min_value=1)
+ALERT_TRAFFIC_SPIKE_THRESHOLD = _parse_env_int("ALERT_TRAFFIC_SPIKE_THRESHOLD", 40, min_value=1)
+ALERT_COST_SPIKE_USD_THRESHOLD = _parse_env_float(
+    "ALERT_COST_SPIKE_USD_THRESHOLD",
+    0.0,
+    min_value=0.0,
+)
+ALERT_COOLDOWN_MINUTES = _parse_env_int("ALERT_COOLDOWN_MINUTES", 15, min_value=1, max_value=1440)
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "").strip()
 SUPPORT_URL = os.getenv("SUPPORT_URL", "").strip()
 DONATION_URL = os.getenv("DONATION_URL", "").strip()
@@ -311,6 +340,104 @@ def _log_abuse_event(
         print(f"⚠️ Failed to log abuse event ({event_type}): {exc}")
 
 
+def _count_recent_abuse_events(
+    usage_key: str,
+    event_types: list[str],
+    window_minutes: int,
+    conn: sqlite3.Connection,
+) -> int:
+    if not event_types:
+        return 0
+    placeholders = ",".join("?" for _ in event_types)
+    cursor = conn.cursor()
+    cursor.execute(
+        f"""
+        SELECT COUNT(*) AS count
+        FROM abuse_events
+        WHERE usage_key = ?
+          AND event_type IN ({placeholders})
+          AND created_at >= datetime('now', ?)
+        """,
+        (usage_key, *event_types, f"-{window_minutes} minutes"),
+    )
+    row = cursor.fetchone()
+    return int(row["count"] or 0) if row else 0
+
+
+def _build_challenge_required_payload(score: float, reason: str) -> dict[str, Any]:
+    provider_label = "Cloudflare Turnstile" if ANON_CHALLENGE_PROVIDER == "turnstile" else "hCaptcha"
+    return {
+        "type": "error",
+        "reason": "challenge_required",
+        "requires_signin": False,
+        "challenge_provider": ANON_CHALLENGE_PROVIDER,
+        "challenge_score": round(score, 2),
+        "message": (
+            f"Additional verification is required before continuing. "
+            f"This deployment requires a {provider_label} check for suspicious anonymous traffic, "
+            "or you can sign in and continue."
+        ),
+        "detail": reason,
+    }
+
+
+def _maybe_require_anonymous_challenge(
+    usage_key: str,
+    ip_hash: str,
+    user_agent_hash: str,
+    request_count: int,
+    conn: sqlite3.Connection,
+) -> dict[str, Any] | None:
+    if not ANON_CHALLENGE_ENABLED:
+        return None
+
+    burst_ratio = min(1.0, request_count / max(1, ANON_BURST_MAX_REQUESTS))
+    recent_blocked_attempts = _count_recent_abuse_events(
+        usage_key,
+        [
+            "anon_burst_limited",
+            "anon_daily_limit_exceeded",
+            "anon_message_invalid",
+            "anon_challenge_required",
+        ],
+        window_minutes=15,
+        conn=conn,
+    )
+    blocked_attempt_score = min(1.0, recent_blocked_attempts / 3.0)
+    suspicion_score = max(burst_ratio, blocked_attempt_score)
+
+    if suspicion_score < ANON_CHALLENGE_SCORE_THRESHOLD:
+        return None
+
+    if burst_ratio >= blocked_attempt_score:
+        detail = (
+            f"Suspicious anonymous traffic detected near the burst limit "
+            f"({request_count}/{ANON_BURST_MAX_REQUESTS} in the current window)."
+        )
+    else:
+        detail = (
+            f"Suspicious anonymous traffic detected after {recent_blocked_attempts} "
+            "recent blocked attempts."
+        )
+
+    _log_abuse_event(
+        usage_key,
+        ip_hash,
+        user_agent_hash,
+        "anon_challenge_required",
+        {
+            "reason": "challenge_required",
+            "score": round(suspicion_score, 4),
+            "threshold": ANON_CHALLENGE_SCORE_THRESHOLD,
+            "burst_ratio": round(burst_ratio, 4),
+            "recent_blocked_attempts": recent_blocked_attempts,
+            "provider": ANON_CHALLENGE_PROVIDER,
+        },
+        conn=conn,
+    )
+    return _build_challenge_required_payload(suspicion_score, detail)
+
+
 def _get_anon_daily_usage(usage_key: str, day_utc: str | None = None) -> int:
     day = day_utc or _utc_day_string()
     conn = _get_chat_conn()
@@ -353,6 +480,8 @@ def _build_anonymous_status(
         "requires_signin": ANON_REQUIRE_SIGNIN_AFTER_LIMIT,
         "burst_window_seconds": ANON_BURST_WINDOW_SECONDS,
         "burst_max_requests": ANON_BURST_MAX_REQUESTS,
+        "challenge_enabled": ANON_CHALLENGE_ENABLED,
+        "challenge_provider": ANON_CHALLENGE_PROVIDER,
     }
 
 
@@ -431,6 +560,7 @@ def _check_anonymous_guard(
             window_start is not None
             and (now - window_start).total_seconds() < ANON_BURST_WINDOW_SECONDS
         )
+        projected_request_count = request_count + 1 if within_window else 1
 
         if within_window:
             if request_count >= ANON_BURST_MAX_REQUESTS:
@@ -456,6 +586,17 @@ def _check_anonymous_guard(
                 conn.commit()
                 return {"allowed": False, "payload": payload}
 
+            challenge_payload = _maybe_require_anonymous_challenge(
+                usage_key,
+                ip_hash,
+                user_agent_hash,
+                projected_request_count,
+                conn,
+            )
+            if challenge_payload:
+                conn.commit()
+                return {"allowed": False, "payload": challenge_payload}
+
             cursor.execute(
                 """
                 UPDATE anon_burst_usage
@@ -476,6 +617,18 @@ def _check_anonymous_guard(
                 """,
                 (usage_key, now_str, 1, now_str),
             )
+
+        if not within_window:
+            challenge_payload = _maybe_require_anonymous_challenge(
+                usage_key,
+                ip_hash,
+                user_agent_hash,
+                projected_request_count,
+                conn,
+            )
+            if challenge_payload:
+                conn.commit()
+                return {"allowed": False, "payload": challenge_payload}
 
         cursor.execute(
             """
@@ -587,6 +740,159 @@ def _public_site_context() -> dict[str, Any]:
     }
 
 
+def _create_system_alert(
+    conn: sqlite3.Connection,
+    alert_type: str,
+    severity: str,
+    title: str,
+    message: str,
+    details: dict[str, Any],
+    source: str = "server",
+    cooldown_minutes: int = ALERT_COOLDOWN_MINUTES,
+) -> bool:
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT 1
+        FROM system_alerts
+        WHERE alert_type = ? AND source = ? AND created_at >= datetime('now', ?)
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (alert_type, source, f"-{cooldown_minutes} minutes"),
+    )
+    if cursor.fetchone():
+        return False
+
+    cursor.execute(
+        """
+        INSERT INTO system_alerts (alert_type, severity, source, title, message, details_json)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (alert_type, severity, source, title, message, json.dumps(details)),
+    )
+    return True
+
+
+def _evaluate_request_alerts(conn: sqlite3.Connection) -> None:
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT
+            COUNT(*) AS total_requests,
+            SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS error_requests,
+            SUM(COALESCE(cost_usd, 0)) AS total_cost_usd
+        FROM request_events
+        WHERE created_at >= datetime('now', ?)
+        """,
+        (f"-{ALERT_WINDOW_MINUTES} minutes",),
+    )
+    row = cursor.fetchone()
+    total_requests = int(row["total_requests"] or 0) if row else 0
+    error_requests = int(row["error_requests"] or 0) if row else 0
+    total_cost_usd = float(row["total_cost_usd"] or 0.0) if row else 0.0
+    error_rate = (error_requests / total_requests) if total_requests else 0.0
+
+    if total_requests >= ALERT_ERROR_MIN_REQUESTS and error_rate >= ALERT_ERROR_RATE_THRESHOLD:
+        _create_system_alert(
+            conn=conn,
+            alert_type="high_error_rate",
+            severity="warning",
+            title="High error rate detected",
+            message=(
+                f"Error rate reached {error_rate:.0%} in the last {ALERT_WINDOW_MINUTES} minutes "
+                f"({error_requests}/{total_requests} requests)."
+            ),
+            details={
+                "window_minutes": ALERT_WINDOW_MINUTES,
+                "error_requests": error_requests,
+                "total_requests": total_requests,
+                "error_rate": round(error_rate, 4),
+                "threshold": ALERT_ERROR_RATE_THRESHOLD,
+            },
+        )
+
+    if total_requests >= ALERT_TRAFFIC_SPIKE_THRESHOLD:
+        _create_system_alert(
+            conn=conn,
+            alert_type="traffic_spike",
+            severity="warning",
+            title="Traffic spike detected",
+            message=(
+                f"Request volume reached {total_requests} requests in the last "
+                f"{ALERT_WINDOW_MINUTES} minutes."
+            ),
+            details={
+                "window_minutes": ALERT_WINDOW_MINUTES,
+                "total_requests": total_requests,
+                "threshold": ALERT_TRAFFIC_SPIKE_THRESHOLD,
+            },
+        )
+
+    if ALERT_COST_SPIKE_USD_THRESHOLD > 0 and total_cost_usd >= ALERT_COST_SPIKE_USD_THRESHOLD:
+        _create_system_alert(
+            conn=conn,
+            alert_type="cost_spike",
+            severity="warning",
+            title="Estimated cost spike detected",
+            message=(
+                f"Estimated request cost reached ${total_cost_usd:.4f} in the last "
+                f"{ALERT_WINDOW_MINUTES} minutes."
+            ),
+            details={
+                "window_minutes": ALERT_WINDOW_MINUTES,
+                "estimated_cost_usd": round(total_cost_usd, 6),
+                "threshold": ALERT_COST_SPIKE_USD_THRESHOLD,
+            },
+        )
+
+
+def _get_recent_alerts(hours: int) -> dict[str, Any]:
+    hours = max(1, min(168, hours))
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, alert_type, severity, source, title, message, details_json, created_at
+        FROM system_alerts
+        WHERE created_at >= datetime('now', ?)
+        ORDER BY created_at DESC
+        LIMIT 20
+        """,
+        (f"-{hours} hours",),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    recent = []
+    for row in rows:
+        details = {}
+        raw_details = row["details_json"]
+        if raw_details:
+            try:
+                details = json.loads(raw_details)
+            except json.JSONDecodeError:
+                details = {}
+        recent.append(
+            {
+                "id": int(row["id"]),
+                "alert_type": row["alert_type"] or "",
+                "severity": row["severity"] or "",
+                "source": row["source"] or "",
+                "title": row["title"] or "",
+                "message": row["message"] or "",
+                "details": details,
+                "created_at": row["created_at"],
+            }
+        )
+
+    return {
+        "hours": hours,
+        "count": len(recent),
+        "recent": recent,
+    }
+
+
 def _log_request_event(
     endpoint: str,
     session_id: str | None,
@@ -645,6 +951,7 @@ def _log_request_event(
         ),
     )
     event_id = int(cursor.lastrowid)
+    _evaluate_request_alerts(conn)
     conn.commit()
     conn.close()
     return event_id
@@ -732,6 +1039,7 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
 
     feedback_summary = _get_feedback_summary(hours)
     donation_summary = _get_donation_summary(hours)
+    alerts_summary = _get_recent_alerts(hours)
 
     return {
         "hours": hours,
@@ -752,6 +1060,7 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
         "top_errors": top_errors,
         "feedback": feedback_summary,
         "donation": donation_summary,
+        "alerts": alerts_summary,
     }
 
 
@@ -1141,6 +1450,29 @@ def init_chat_db():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_donation_clicks_source
         ON donation_clicks(source)
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS system_alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alert_type TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'server',
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            details_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_system_alerts_created_at
+        ON system_alerts(created_at)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_system_alerts_type
+        ON system_alerts(alert_type)
     """)
 
     cursor.execute("""
@@ -1938,7 +2270,12 @@ async def query_stream(request: Request):
             input_tokens=None,
             output_tokens=None,
             error_reason=payload.get("reason") or "blocked",
-            meta={"requires_signin": bool(payload.get("requires_signin"))},
+            meta={
+                "requires_signin": bool(payload.get("requires_signin")),
+                "reason": payload.get("reason"),
+                "challenge_provider": payload.get("challenge_provider"),
+                "challenge_score": payload.get("challenge_score"),
+            },
         )
         return _single_event_sse_response(payload)
 
@@ -2260,7 +2597,12 @@ async def lesson_plan_stream(request: Request):
             input_tokens=None,
             output_tokens=None,
             error_reason=payload.get("reason") or "blocked",
-            meta={"requires_signin": bool(payload.get("requires_signin"))},
+            meta={
+                "requires_signin": bool(payload.get("requires_signin")),
+                "reason": payload.get("reason"),
+                "challenge_provider": payload.get("challenge_provider"),
+                "challenge_score": payload.get("challenge_score"),
+            },
         )
         return _single_event_sse_response(payload)
 

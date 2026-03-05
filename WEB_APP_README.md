@@ -94,6 +94,16 @@ Optional:
 - `ANON_BURST_MAX_REQUESTS` - Max anonymous requests allowed in burst window (default: `8`)
 - `ANON_MIN_MESSAGE_CHARS` - Minimum anonymous message length (default: `1`)
 - `ANON_MAX_MESSAGE_CHARS` - Maximum anonymous message length (default: `1500`)
+- `ANON_CHALLENGE_ENABLED` - Enable challenge-required responses for suspicious anonymous traffic (default: `false`)
+- `ANON_CHALLENGE_SCORE_THRESHOLD` - Suspicion score threshold for challenge responses (default: `0.7`)
+- `ANON_CHALLENGE_PROVIDER` - Challenge provider label returned to the UI (`turnstile` or `hcaptcha`)
+- `ALERT_WINDOW_MINUTES` - Rolling window used for server-side spike detection (default: `5`)
+- `ALERT_ERROR_RATE_THRESHOLD` - Error-rate threshold that triggers a persisted alert (default: `0.3`)
+- `ALERT_ERROR_MIN_REQUESTS` - Minimum recent request volume before high-error-rate alerts can fire (default: `10`)
+- `ALERT_TRAFFIC_SPIKE_THRESHOLD` - Recent request count that triggers a traffic-spike alert (default: `40`)
+- `ALERT_COST_SPIKE_USD_THRESHOLD` - Optional recent estimated-cost threshold that triggers a cost-spike alert (default: `0`, disabled)
+- `ALERT_COOLDOWN_MINUTES` - Duplicate-alert suppression window for server-generated alerts (default: `15`)
+- `HEALTH_CHECK_URL` / `HEALTH_CHECK_DB_PATH` / `HEALTH_CHECK_LOG_PATH` / `HEALTH_CHECK_LABEL` / `HEALTH_CHECK_TIMEOUT_SECONDS` / `HEALTH_CHECK_ALERT_COOLDOWN_MINUTES` - Defaults used by `scripts/health_check.py`
 
 ## Features
 
@@ -124,12 +134,14 @@ Optional:
 - ✅ Daily quota tracking in SQLite (`anon_usage_daily`)
 - ✅ Burst-limit protection in SQLite (`anon_burst_usage`)
 - ✅ Abuse instrumentation in SQLite (`abuse_events`) with indexed event/time fields
+- ✅ Optional challenge-required hook for suspicious anonymous traffic when `ANON_CHALLENGE_ENABLED=true`
 - ✅ Anonymous fingerprinting from `browser_id + client_ip + user_agent` hashed with SHA-256
 - ✅ No raw IP/User-Agent persisted in abuse logs
 - ✅ Frontend usage badge showing free messages remaining
 - ✅ SSE contract for guard failures:
   - `type: "auth_required"` for sign-in-required blocks (`anon_disabled`, quota+signin)
   - `type: "error"` for non-auth blocks (`burst_limited`, invalid message, quota without signin)
+  - `reason: "challenge_required"` for suspicious anonymous traffic that should be challenged
   - `reason`, `requires_signin`, and quota fields (`daily_limit`, `daily_used`, `daily_remaining`) included where relevant
 
 ### Anonymous Status Endpoint
@@ -143,9 +155,12 @@ Optional:
   - `requires_signin`
   - `burst_window_seconds`
   - `burst_max_requests`
+  - `challenge_enabled`
+  - `challenge_provider`
 
 ### Observability & Request Tracking
 - Request telemetry stored in SQLite table: `request_events`
+- Server-side operational alerts stored in SQLite table: `system_alerts`
 - Captures per request:
   - endpoint (`/api/query`, `/api/lesson-plan`)
   - session/user/anonymous usage key
@@ -160,6 +175,13 @@ Optional:
   - `OBS_DASHBOARD_DEFAULT_HOURS` (default `24`)
   - `OBS_ESTIMATED_INPUT_COST_PER_1M` (default `0`)
   - `OBS_ESTIMATED_OUTPUT_COST_PER_1M` (default `0`)
+  - `ALERT_WINDOW_MINUTES`, `ALERT_ERROR_RATE_THRESHOLD`, `ALERT_ERROR_MIN_REQUESTS`
+  - `ALERT_TRAFFIC_SPIKE_THRESHOLD`, `ALERT_COST_SPIKE_USD_THRESHOLD`, `ALERT_COOLDOWN_MINUTES`
+- Recent alerts shown in the admin dashboard:
+  - `high_error_rate`
+  - `traffic_spike`
+  - `cost_spike` (only when cost threshold is configured)
+  - `health_check_failed` (from the uptime-check script)
 
 ### Answer Feedback
 - Per-assistant thumbs feedback in chat UI (`👍` / `👎`)
@@ -183,6 +205,7 @@ Optional:
 - [Emergency runbook and kill switches](docs/emergency_runbook.md)
 - [Release checklist](docs/release_checklist.md)
 - [Changelog and status update workflow](docs/changelog_workflow.md)
+- [Uptime checks and cron setup](docs/uptime_checks.md)
 - [Project changelog](CHANGELOG.md)
 
 ### Donation Support

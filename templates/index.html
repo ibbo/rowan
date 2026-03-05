@@ -1988,6 +1988,18 @@
             }
         }
 
+        function showChallengeRequiredPrompt(data) {
+            const provider = data.challenge_provider ? String(data.challenge_provider) : 'challenge';
+            const detail = data.detail ? `<div style="margin-top: 6px;">${provider}: ${data.detail}</div>` : '';
+            const content = `
+                <span class="status-badge status-error">🛡️ Verification Required</span>
+                <div>${data.message || 'Additional verification is required before continuing.'}</div>
+                ${detail}
+                ${getInlineSignInActionsHtml()}
+            `;
+            addMessage('system', content, data.timestamp);
+        }
+
         function buildFeedbackPayload(vote, comment, feedbackContext, reasonTag = null) {
             const ctx = feedbackContext || {};
             return {
@@ -2379,7 +2391,9 @@
                                 }
                                 else if (data.type === 'error') {
                                     removeProgressBox();
-                                    if (data.requires_signin) {
+                                    if (data.reason === 'challenge_required') {
+                                        showChallengeRequiredPrompt(data);
+                                    } else if (data.requires_signin) {
                                         guardBlocked = true;
                                         showAuthRequiredPrompt(data);
                                     } else {

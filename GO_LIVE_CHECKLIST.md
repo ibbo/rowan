@@ -14,8 +14,8 @@ Status legend:
 
 ## 2) Abuse & Operational Safeguards (P0)
 - [x] Anonymous gating with daily quota + burst limits
-- [ ] Add optional challenge flow (Turnstile/hCaptcha) for suspicious traffic
-- [ ] Add alerting for spike conditions (error burst / traffic burst / cost surge)
+- [x] Add optional challenge flow (Turnstile/hCaptcha) for suspicious traffic
+- [x] Add alerting for spike conditions (error burst / traffic burst / cost surge)
 - [x] Document emergency runbook + kill switches
 
 ## 3) Product Trust Surface (P0)
@@ -36,7 +36,7 @@ Status legend:
 - [x] Add lightweight copy explaining cost support
 
 ## 6) Growth & Reliability (P1/P2)
-- [ ] Uptime checks + alerting
+- [x] Uptime checks + alerting
 - [x] Release checklist for deploy/rollback
 - [x] Changelog + status updates flow
 - [ ] Subscription model design (plans, quotas, billing hooks)

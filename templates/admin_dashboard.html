@@ -371,6 +371,28 @@
             margin-top: 4px;
         }
 
+        .alert-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .alert-pill.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .alert-pill.critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
         @media (max-width: 760px) {
             .mini-list {
                 grid-template-columns: 1fr;
@@ -471,7 +493,16 @@
                     <li><span class="muted">No donation clicks yet</span></li>
                 </ul>
             </div>
-            <p class="hint">Tracks request status/latency in SQLite (`request_events`), answer ratings in `assistant_feedback`, and donation click-throughs in `donation_clicks`. Token/cost values are best-effort based on provider metadata or fallback estimates.</p>
+            <div class="feedback-summary">
+                <h4 style="margin-bottom: 8px; color: #374151;">Recent Alerts</h4>
+                <div class="feedback-counters">
+                    <span class="feedback-pill">Alerts <strong id="obs-alert-count">0</strong></span>
+                </div>
+                <ul class="feedback-recent" id="obs-alert-recent">
+                    <li><span class="muted">No alerts yet</span></li>
+                </ul>
+            </div>
+            <p class="hint">Tracks request status/latency in SQLite (`request_events`), persisted alerts in `system_alerts`, answer ratings in `assistant_feedback`, and donation click-throughs in `donation_clicks`. Token/cost values are best-effort based on provider metadata or fallback estimates.</p>
         </div>
 
         <div class="card">
@@ -650,6 +681,30 @@
             }).join('');
         }
 
+        function renderAlertRecent(rows) {
+            const el = document.getElementById('obs-alert-recent');
+            if (!rows || !rows.length) {
+                el.innerHTML = '<li><span class="muted">No alerts yet</span></li>';
+                return;
+            }
+
+            el.innerHTML = rows.map((row) => {
+                const createdAt = row.created_at ? new Date(row.created_at + (row.created_at.includes('Z') ? '' : 'Z')).toLocaleString() : '';
+                const severity = escapeHtml(row.severity || 'warning');
+                const source = escapeHtml(row.source || 'server');
+                return `
+                    <li>
+                        <div>
+                            <span class="alert-pill ${severity}">${severity}</span>
+                            <strong style="margin-left: 8px;">${escapeHtml(row.title || row.alert_type || 'Alert')}</strong>
+                        </div>
+                        <div style="margin-top: 6px;">${escapeHtml(row.message || '')}</div>
+                        <div class="feedback-meta">${source} • ${escapeHtml(createdAt)}</div>
+                    </li>
+                `;
+            }).join('');
+        }
+
         async function loadObservability() {
             const refreshBtn = document.getElementById('obs-refresh-btn');
             const hours = document.getElementById('obs-hours').value;
@@ -680,6 +735,9 @@
                 document.getElementById('obs-donation-count').textContent = donation.count ?? 0;
                 document.getElementById('obs-donation-unique').textContent = donation.unique_clickers ?? 0;
                 renderDonationRecent(donation.recent || []);
+                const alerts = data.alerts || {};
+                document.getElementById('obs-alert-count').textContent = alerts.count ?? 0;
+                renderAlertRecent(alerts.recent || []);
                 document.getElementById('obs-updated-at').textContent = `Updated ${new Date().toLocaleTimeString()}`;
             } catch (error) {
                 document.getElementById('obs-updated-at').textContent = `Failed to load: ${error.message}`;
