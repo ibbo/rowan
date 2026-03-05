@@ -84,6 +84,9 @@ Optional:
 - `OAUTH_STATE_SECRET` - Secret for OAuth state signing
 - `USER_SETTINGS_SECRET` - Secret for encrypting user API keys at rest
 - `ADMIN_PASSWORD` - Enable the admin dashboard login
+- `SUPPORT_EMAIL` - Public support email shown in the footer, Privacy page, and Terms page
+- `SUPPORT_URL` - Public support URL shown in the footer, Privacy page, and Terms page
+- `DONATION_URL` - External donation/support URL shown in the footer and tracked on click
 - `ANON_CHAT_ENABLED` - Enable/disable anonymous chat access (default: `true`)
 - `ANON_DAILY_MESSAGE_LIMIT` - Daily anonymous message quota per usage fingerprint (default: `5`)
 - `ANON_REQUIRE_SIGNIN_AFTER_LIMIT` - Emit `auth_required` after quota exhaustion (default: `true`)
@@ -169,6 +172,23 @@ Optional:
 - API endpoint:
   - `POST /api/feedback`
 
+### Product Trust Surface
+- Privacy page at `GET /privacy`
+- Terms page at `GET /terms`
+- Footer note explaining that chats and operational telemetry are stored in SQLite
+- Footer support contact path via `SUPPORT_EMAIL` or `SUPPORT_URL`
+- Footer links to Privacy and Terms pages
+
+### Ops Docs
+- Emergency runbook and kill switches: `docs/emergency_runbook.md`
+
+### Donation Support
+- Optional footer CTA via `DONATION_URL`
+- Click-through tracking stored in SQLite table: `donation_clicks`
+- Admin observability card shows donation click totals and recent clicks
+- API endpoint:
+  - `POST /api/donation-click`
+
 ## File Structure
 
 ```
@@ -185,6 +205,12 @@ Optional:
 
 ### GET /
 Returns the main HTML page.
+
+### GET /privacy
+Returns the Privacy page.
+
+### GET /terms
+Returns the Terms page.
 
 ### POST /api/query
 Streams agent responses via SSE.

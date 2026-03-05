@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy - ChatSCD</title>
+    <link rel="icon" type="image/png" href="/assets/chatscd_logo.png">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+            color: #1f2937;
+            line-height: 1.65;
+        }
+
+        .page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 32px 20px 56px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
+            padding: 28px;
+        }
+
+        h1, h2 {
+            margin-top: 0;
+            color: #111827;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            margin-top: 28px;
+            font-size: 1.15rem;
+        }
+
+        p, li {
+            color: #4b5563;
+        }
+
+        a {
+            color: #2563eb;
+        }
+
+        .eyebrow {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #1d4ed8;
+            margin-bottom: 10px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0 6px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 600;
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .meta {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page">
+        <div class="card">
+            <div class="eyebrow">ChatSCD</div>
+            <h1>Privacy</h1>
+            <p class="meta">This page covers the web UI, authentication, chat history, abuse controls, and feedback collection for this ChatSCD deployment.</p>
+
+            <h2>What we store</h2>
+            <ul>
+                <li>Chat messages, session IDs, and timestamps so conversations can persist between page reloads.</li>
+                <li>Account details from the sign-in provider you choose, such as name, email, avatar, and login timestamps.</li>
+                <li>Hashed anonymous usage fingerprints, abuse events, request telemetry, and answer feedback to protect the service and review quality.</li>
+            </ul>
+
+            <h2>How we use it</h2>
+            <ul>
+                <li>Run the assistant and lesson planner, keep chat history available, and connect sessions to signed-in users.</li>
+                <li>Enforce anonymous usage limits, investigate abuse, and monitor reliability and cost.</li>
+                <li>Review feedback and donation-support engagement to improve the service.</li>
+            </ul>
+
+            <h2>Retention and deletion</h2>
+            <p>Chat and operational records are stored in this deployment's SQLite database until they are deleted by the operator or removed through app controls. Use <strong>Clear Chat</strong> in the main UI to delete the current chat session. For account-linked data or broader deletion requests, use the support contact below.</p>
+
+            <h2>Third parties</h2>
+            <p>Signed-in access uses configured OAuth providers. Model requests are sent to the language-model provider configured for this deployment. Dance reference data is sourced from The Strathspey Server Dance Database under its published license.</p>
+
+            <h2>Contact</h2>
+            {% if support_url %}
+            <p>Support requests, including deletion requests: <a href="{{ support_url }}" target="_blank" rel="noopener">{{ support_url }}</a></p>
+            {% elif support_email %}
+            <p>Support requests, including deletion requests: <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+            {% else %}
+            <p>This deployment has not configured a direct support contact yet. Contact the operator of this deployment for privacy or deletion requests.</p>
+            {% endif %}
+
+            <div class="actions">
+                <a class="button" href="/">Back to Chat</a>
+                <a class="button" href="/terms">Terms</a>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

@@ -16,13 +16,13 @@ Status legend:
 - [x] Anonymous gating with daily quota + burst limits
 - [ ] Add optional challenge flow (Turnstile/hCaptcha) for suspicious traffic
 - [ ] Add alerting for spike conditions (error burst / traffic burst / cost surge)
-- [ ] Document emergency runbook + kill switches
+- [x] Document emergency runbook + kill switches
 
 ## 3) Product Trust Surface (P0)
-- [ ] Privacy policy page
-- [ ] Terms page
-- [ ] Data retention + deletion policy note in app
-- [ ] Clear contact/support path
+- [x] Privacy policy page
+- [x] Terms page
+- [x] Data retention + deletion policy note in app
+- [x] Clear contact/support path
 
 ## 4) Feedback Loop (P1)
 - [x] Add thumbs up / thumbs down per assistant response
@@ -31,9 +31,9 @@ Status legend:
 - [x] Add admin review view for feedback trends
 
 ## 5) Monetization Starter (P1)
-- [ ] Add donation/support link in UI
-- [ ] Track donation link click-throughs
-- [ ] Add lightweight copy explaining cost support
+- [x] Add donation/support link in UI
+- [x] Track donation link click-throughs
+- [x] Add lightweight copy explaining cost support
 
 ## 6) Growth & Reliability (P1/P2)
 - [ ] Uptime checks + alerting

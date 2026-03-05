@@ -461,7 +461,17 @@
                     <li><span class="muted">No feedback yet</span></li>
                 </ul>
             </div>
-            <p class="hint">Tracks request status/latency in SQLite (`request_events`) plus answer ratings in `assistant_feedback`. Token/cost values are best-effort based on provider metadata or fallback estimates.</p>
+            <div class="feedback-summary">
+                <h4 style="margin-bottom: 8px; color: #374151;">Donation Support</h4>
+                <div class="feedback-counters">
+                    <span class="feedback-pill">Clicks <strong id="obs-donation-count">0</strong></span>
+                    <span class="feedback-pill">Unique clickers <strong id="obs-donation-unique">0</strong></span>
+                </div>
+                <ul class="feedback-recent" id="obs-donation-recent">
+                    <li><span class="muted">No donation clicks yet</span></li>
+                </ul>
+            </div>
+            <p class="hint">Tracks request status/latency in SQLite (`request_events`), answer ratings in `assistant_feedback`, and donation click-throughs in `donation_clicks`. Token/cost values are best-effort based on provider metadata or fallback estimates.</p>
         </div>
 
         <div class="card">
@@ -619,6 +629,27 @@
             }).join('');
         }
 
+        function renderDonationRecent(rows) {
+            const el = document.getElementById('obs-donation-recent');
+            if (!rows || !rows.length) {
+                el.innerHTML = '<li><span class="muted">No donation clicks yet</span></li>';
+                return;
+            }
+
+            el.innerHTML = rows.map((row) => {
+                const source = escapeHtml(row.source || 'ui');
+                const target = escapeHtml(row.target_url || '');
+                const createdAt = row.created_at ? new Date(row.created_at + (row.created_at.includes('Z') ? '' : 'Z')).toLocaleString() : '';
+                const actor = row.has_user ? 'signed-in' : 'anonymous';
+                return `
+                    <li>
+                        <div><strong>${source}</strong> click from ${actor}</div>
+                        <div class="feedback-meta">${target} • ${escapeHtml(createdAt)}</div>
+                    </li>
+                `;
+            }).join('');
+        }
+
         async function loadObservability() {
             const refreshBtn = document.getElementById('obs-refresh-btn');
             const hours = document.getElementById('obs-hours').value;
@@ -645,6 +676,10 @@
                 document.getElementById('obs-feedback-down').textContent = feedback.down_count ?? 0;
                 document.getElementById('obs-feedback-total').textContent = feedback.total_count ?? 0;
                 renderFeedbackRecent(feedback.recent || []);
+                const donation = data.donation || {};
+                document.getElementById('obs-donation-count').textContent = donation.count ?? 0;
+                document.getElementById('obs-donation-unique').textContent = donation.unique_clickers ?? 0;
+                renderDonationRecent(donation.recent || []);
                 document.getElementById('obs-updated-at').textContent = `Updated ${new Date().toLocaleTimeString()}`;
             } catch (error) {
                 document.getElementById('obs-updated-at').textContent = `Failed to load: ${error.message}`;

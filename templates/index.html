@@ -557,6 +557,45 @@
             line-height: 1.5;
         }
 
+        .footer-note {
+            margin-bottom: 8px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .footer-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .support-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+        }
+
+        .support-cta:hover {
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+
         .disclaimer {
             background: #fef3c7;
             border: 1px solid #fde68a;
@@ -1529,11 +1568,45 @@
                                     formations,
                                     and links before using them.</span>
                             </div>
-                            Dance data from <a href="https://my.strathspey.org/dd" target="_blank" rel="noopener">The
-                                Strathspey
-                                Server Dance Database</a>,
-                            used under <a href="http://creativecommons.org/licenses/by/3.0/de/" target="_blank"
-                                rel="noopener">Creative Commons Attribution 3.0 Germany</a> license.
+                            <div class="footer-note">
+                                Chats are stored in this deployment's SQLite database to support session history,
+                                abuse monitoring, and feedback review. Use Clear Chat to delete the current chat.
+                            </div>
+                            <div class="footer-note">
+                                {% if support_url %}
+                                Need help or a deletion request? <a href="{{ support_url }}" target="_blank"
+                                    rel="noopener">Contact support</a>.
+                                {% elif support_email %}
+                                Need help or a deletion request? Email <a
+                                    href="mailto:{{ support_email }}">{{ support_email }}</a>.
+                                {% else %}
+                                Need help or a deletion request? Contact the operator of this deployment.
+                                {% endif %}
+                            </div>
+                            <div class="footer-links">
+                                <a href="/privacy">Privacy</a>
+                                <a href="/terms">Terms</a>
+                                {% if support_url %}
+                                <a href="{{ support_url }}" target="_blank" rel="noopener">Support</a>
+                                {% elif support_email %}
+                                <a href="mailto:{{ support_email }}">Support</a>
+                                {% endif %}
+                            </div>
+                            {% if donation_url %}
+                            <div class="footer-note">
+                                Running ChatSCD has hosting and model costs. If it saves you time, you can help keep it online.
+                            </div>
+                            <div class="footer-actions">
+                                <a class="support-cta" href="{{ donation_url }}" target="_blank" rel="noopener"
+                                    onclick="trackDonationClick('footer')">Support ChatSCD</a>
+                            </div>
+                            {% endif %}
+                            <div class="footer-note">
+                                Dance data from <a href="https://my.strathspey.org/dd" target="_blank"
+                                    rel="noopener">The Strathspey Server Dance Database</a>,
+                                used under <a href="http://creativecommons.org/licenses/by/3.0/de/" target="_blank"
+                                    rel="noopener">Creative Commons Attribution 3.0 Germany</a> license.
+                            </div>
                         </div>
                     </div>
                 </div><!-- End chat-pane -->
@@ -1815,6 +1888,23 @@
         function setInputAuthLock(locked) {
             inputLockedByAuth = locked;
             applyInputState();
+        }
+
+        async function trackDonationClick(source) {
+            try {
+                await fetch('/api/donation-click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source: source || 'ui',
+                        session_id: sessionId || null,
+                        browser_id: browserId || null
+                    }),
+                    keepalive: true
+                });
+            } catch (error) {
+                console.error('Error tracking donation click:', error);
+            }
         }
 
         function getInlineSignInActionsHtml() {

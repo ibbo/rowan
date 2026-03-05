@@ -161,6 +161,9 @@ if ANON_MAX_MESSAGE_CHARS < ANON_MIN_MESSAGE_CHARS:
 OBS_DASHBOARD_DEFAULT_HOURS = _parse_env_int("OBS_DASHBOARD_DEFAULT_HOURS", 24, min_value=1, max_value=168)
 OBS_ESTIMATED_INPUT_COST_PER_1M = _parse_env_float("OBS_ESTIMATED_INPUT_COST_PER_1M", 0.0, min_value=0.0)
 OBS_ESTIMATED_OUTPUT_COST_PER_1M = _parse_env_float("OBS_ESTIMATED_OUTPUT_COST_PER_1M", 0.0, min_value=0.0)
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "").strip()
+SUPPORT_URL = os.getenv("SUPPORT_URL", "").strip()
+DONATION_URL = os.getenv("DONATION_URL", "").strip()
 
 oauth = OAuth()
 
@@ -574,6 +577,16 @@ def _estimate_cost_usd(input_tokens: int | None, output_tokens: int | None) -> f
     return round(cost, 8)
 
 
+def _public_site_context() -> dict[str, Any]:
+    support_href = SUPPORT_URL or (f"mailto:{SUPPORT_EMAIL}" if SUPPORT_EMAIL else "")
+    return {
+        "support_email": SUPPORT_EMAIL,
+        "support_url": SUPPORT_URL,
+        "support_href": support_href,
+        "donation_url": DONATION_URL,
+    }
+
+
 def _log_request_event(
     endpoint: str,
     session_id: str | None,
@@ -718,6 +731,7 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
     ]
 
     feedback_summary = _get_feedback_summary(hours)
+    donation_summary = _get_donation_summary(hours)
 
     return {
         "hours": hours,
@@ -737,6 +751,7 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
         "by_endpoint": by_endpoint,
         "top_errors": top_errors,
         "feedback": feedback_summary,
+        "donation": donation_summary,
     }
 
 
@@ -811,6 +826,47 @@ def _get_feedback_summary(hours: int) -> dict[str, Any]:
         "up_count": up_count,
         "down_count": down_count,
         "total_count": up_count + down_count,
+        "recent": recent,
+    }
+
+
+def _get_donation_summary(hours: int) -> dict[str, Any]:
+    hours = max(1, min(168, hours))
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT session_id, user_id, browser_id, anon_usage_key, source, target_url, created_at
+        FROM donation_clicks
+        WHERE created_at >= datetime('now', ?)
+        ORDER BY created_at DESC
+        """,
+        (f"-{hours} hours",),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    identities = {
+        row["user_id"] or row["anon_usage_key"] or row["browser_id"] or row["session_id"]
+        for row in rows
+        if row["user_id"] or row["anon_usage_key"] or row["browser_id"] or row["session_id"]
+    }
+
+    recent = [
+        {
+            "source": row["source"] or "",
+            "target_url": row["target_url"] or "",
+            "created_at": row["created_at"],
+            "has_user": bool(row["user_id"]),
+        }
+        for row in rows[:10]
+    ]
+
+    return {
+        "hours": hours,
+        "count": len(rows),
+        "unique_clickers": len(identities),
         "recent": recent,
     }
 
@@ -1062,6 +1118,29 @@ def init_chat_db():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_assistant_feedback_request_event_id
         ON assistant_feedback(request_event_id)
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS donation_clicks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT,
+            user_id TEXT,
+            browser_id TEXT,
+            anon_usage_key TEXT,
+            source TEXT,
+            target_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_donation_clicks_created_at
+        ON donation_clicks(created_at)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_donation_clicks_source
+        ON donation_clicks(source)
     """)
 
     cursor.execute("""
@@ -1773,6 +1852,29 @@ async def index(request: Request):
             "current_user": user,
             "oauth_providers": oauth_providers,
             "dev_auth_enabled": DEV_AUTH_ENABLED,
+            **_public_site_context(),
+        },
+    )
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(request: Request):
+    return templates.TemplateResponse(
+        "privacy.html",
+        {
+            "request": request,
+            **_public_site_context(),
+        },
+    )
+
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_page(request: Request):
+    return templates.TemplateResponse(
+        "terms.html",
+        {
+            "request": request,
+            **_public_site_context(),
         },
     )
 
@@ -2588,6 +2690,69 @@ async def submit_feedback(request: Request):
     conn.close()
 
     return {"success": True, "feedback_id": feedback_id}
+
+
+@app.post("/api/donation-click")
+async def track_donation_click(request: Request):
+    """Record donation/support link click-throughs."""
+    if not DONATION_URL:
+        return {"success": False, "enabled": False}
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    raw_source = data.get("source")
+    source = raw_source.strip() if isinstance(raw_source, str) else "ui"
+    if len(source) > 80:
+        source = source[:80]
+
+    raw_session_id = data.get("session_id")
+    session_id = raw_session_id.strip() if isinstance(raw_session_id, str) else None
+    if session_id and len(session_id) > 100:
+        session_id = session_id[:100]
+
+    raw_browser_id = data.get("browser_id")
+    browser_id = raw_browser_id.strip() if isinstance(raw_browser_id, str) else None
+    if browser_id and len(browser_id) > 200:
+        browser_id = browser_id[:200]
+
+    user = get_current_user(request)
+    user_id = user["id"] if user else None
+    anon_usage_key = None
+    if not user and browser_id:
+        anon_usage_key, _ip_hash, _ua_hash = _build_anonymous_fingerprint(request, browser_id)
+
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO donation_clicks (
+            session_id,
+            user_id,
+            browser_id,
+            anon_usage_key,
+            source,
+            target_url
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            session_id,
+            user_id,
+            browser_id,
+            anon_usage_key,
+            source,
+            DONATION_URL,
+        ),
+    )
+    donation_click_id = int(cursor.lastrowid)
+    conn.commit()
+    conn.close()
+
+    return {"success": True, "enabled": True, "donation_click_id": donation_click_id}
 
 
 @app.get("/health")
