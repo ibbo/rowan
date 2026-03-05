@@ -37,6 +37,6 @@ Status legend:
 
 ## 6) Growth & Reliability (P1/P2)
 - [ ] Uptime checks + alerting
-- [ ] Release checklist for deploy/rollback
-- [ ] Changelog + status updates flow
+- [x] Release checklist for deploy/rollback
+- [x] Changelog + status updates flow
 - [ ] Subscription model design (plans, quotas, billing hooks)

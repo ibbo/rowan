@@ -180,7 +180,10 @@ Optional:
 - Footer links to Privacy and Terms pages
 
 ### Ops Docs
-- Emergency runbook and kill switches: `docs/emergency_runbook.md`
+- [Emergency runbook and kill switches](docs/emergency_runbook.md)
+- [Release checklist](docs/release_checklist.md)
+- [Changelog and status update workflow](docs/changelog_workflow.md)
+- [Project changelog](CHANGELOG.md)
 
 ### Donation Support
 - Optional footer CTA via `DONATION_URL`
