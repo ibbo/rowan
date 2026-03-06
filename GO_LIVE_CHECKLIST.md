@@ -8,7 +8,7 @@ Status legend:
 ## 1) Observability & Session Tracking (P0)
 - [x] Add request-level tracing table and logging for `/api/query` + `/api/lesson-plan`
 - [x] Capture status, latency, model/provider, session/user/anon identifiers
-- [ ] Capture token + cost metrics accurately (currently estimate/fallback)
+- [x] Capture token + cost metrics accurately (provider-native where available, estimated fallback retained)
 - [x] Add basic admin dashboard stats (24h totals, success/error rate, p95 latency)
 - [x] Add error breakdown + top failure reasons
 
@@ -39,4 +39,4 @@ Status legend:
 - [x] Uptime checks + alerting
 - [x] Release checklist for deploy/rollback
 - [x] Changelog + status updates flow
-- [ ] Subscription model design (plans, quotas, billing hooks)
+- [x] Subscription model design (plans, quotas, billing hooks)

@@ -468,6 +468,11 @@
                     <ul id="obs-endpoints"><li><span class="muted">No data</span></li></ul>
                 </div>
                 <div>
+                    <h4>Usage source</h4>
+                    <ul id="obs-usage-sources"><li><span class="muted">No data</span></li></ul>
+                    <p class="hint" id="obs-usage-confidence">No usage confidence data yet.</p>
+                </div>
+                <div>
                     <h4>Top errors/blocks</h4>
                     <ul id="obs-errors"><li><span class="muted">No data</span></li></ul>
                 </div>
@@ -502,7 +507,7 @@
                     <li><span class="muted">No alerts yet</span></li>
                 </ul>
             </div>
-            <p class="hint">Tracks request status/latency in SQLite (`request_events`), persisted alerts in `system_alerts`, answer ratings in `assistant_feedback`, and donation click-throughs in `donation_clicks`. Token/cost values are best-effort based on provider metadata or fallback estimates.</p>
+            <p class="hint">Tracks request status/latency in SQLite (`request_events`), persisted alerts in `system_alerts`, answer ratings in `assistant_feedback`, and donation click-throughs in `donation_clicks`. Token/cost values now record whether they came from provider-native metadata, fallback estimates, or remain unknown.</p>
         </div>
 
         <div class="card">
@@ -725,6 +730,8 @@
                 document.getElementById('obs-cost').textContent = `$${(data.estimated_cost_usd ?? 0).toFixed(4)}`;
 
                 renderMiniList('obs-endpoints', data.by_endpoint || [], 'endpoint', 'count');
+                renderMiniList('obs-usage-sources', data.by_usage_source || [], 'source', 'count');
+                document.getElementById('obs-usage-confidence').textContent = data.usage_source_confidence_note || 'No usage confidence data yet.';
                 renderMiniList('obs-errors', data.top_errors || [], 'reason', 'count');
                 const feedback = data.feedback || {};
                 document.getElementById('obs-feedback-up').textContent = feedback.up_count ?? 0;

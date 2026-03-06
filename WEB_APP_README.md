@@ -167,10 +167,12 @@ Optional:
   - provider/model
   - status (`success`, `error`, `blocked`) + reason
   - latency, prompt/response sizes
-  - token usage (provider metadata when available, fallback estimates)
+  - token usage with `usage_source` (`provider`, `estimated`, `unknown`)
+  - provider-native token usage when available, with fallback estimates retained
   - estimated cost (optional; configured via env pricing)
 - Admin metrics endpoint:
   - `GET /admin/api/observability?hours=24`
+- Admin dashboard also shows usage-source counts and a short confidence note for the selected window
 - Env vars:
   - `OBS_DASHBOARD_DEFAULT_HOURS` (default `24`)
   - `OBS_ESTIMATED_INPUT_COST_PER_1M` (default `0`)
@@ -206,6 +208,7 @@ Optional:
 - [Release checklist](docs/release_checklist.md)
 - [Changelog and status update workflow](docs/changelog_workflow.md)
 - [Uptime checks and cron setup](docs/uptime_checks.md)
+- [Subscription model](docs/subscription_model.md)
 - [Project changelog](CHANGELOG.md)
 
 ### Donation Support
@@ -214,6 +217,17 @@ Optional:
 - Admin observability card shows donation click totals and recent clicks
 - API endpoint:
   - `POST /api/donation-click`
+
+### Subscription Hooks
+- Design doc: [Subscription model](docs/subscription_model.md)
+- Non-enforcing SQLite placeholders created on startup:
+  - `subscription_plans`
+  - `user_subscriptions`
+  - `usage_quotas`
+- Seeded plan rows:
+  - `free`
+  - `pro`
+- No request path enforces subscription limits yet
 
 ## File Structure
 

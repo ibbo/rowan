@@ -193,6 +193,9 @@ ALERT_COOLDOWN_MINUTES = _parse_env_int("ALERT_COOLDOWN_MINUTES", 15, min_value=
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "").strip()
 SUPPORT_URL = os.getenv("SUPPORT_URL", "").strip()
 DONATION_URL = os.getenv("DONATION_URL", "").strip()
+USAGE_SOURCE_PROVIDER = "provider"
+USAGE_SOURCE_ESTIMATED = "estimated"
+USAGE_SOURCE_UNKNOWN = "unknown"
 
 oauth = OAuth()
 
@@ -696,25 +699,151 @@ def _estimate_tokens_from_text(text: str | None) -> int:
     return max(1, (len(text) + 3) // 4)
 
 
-def _extract_usage_from_ai_message(message: Any) -> tuple[int | None, int | None]:
-    """Best-effort usage extraction from LangChain AIMessage metadata."""
-    usage = getattr(message, "usage_metadata", None)
-    if isinstance(usage, dict):
-        input_tokens = usage.get("input_tokens")
-        output_tokens = usage.get("output_tokens")
-        if isinstance(input_tokens, int) and isinstance(output_tokens, int):
-            return input_tokens, output_tokens
+def _coerce_token_count(value: Any) -> int | None:
+    if value in {None, ""} or isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None
 
-    response_meta = getattr(message, "response_metadata", None)
-    if isinstance(response_meta, dict):
-        token_usage = response_meta.get("token_usage")
-        if isinstance(token_usage, dict):
-            input_tokens = token_usage.get("prompt_tokens")
-            output_tokens = token_usage.get("completion_tokens")
-            if isinstance(input_tokens, int) and isinstance(output_tokens, int):
+
+def _extract_usage_from_payload(payload: Any, seen: set[int] | None = None) -> tuple[int | None, int | None]:
+    if seen is None:
+        seen = set()
+
+    if isinstance(payload, dict):
+        payload_id = id(payload)
+        if payload_id in seen:
+            return None, None
+        seen.add(payload_id)
+
+        usage_key_pairs = (
+            ("input_tokens", "output_tokens"),
+            ("prompt_tokens", "completion_tokens"),
+            ("prompt_token_count", "candidates_token_count"),
+            ("promptTokenCount", "candidatesTokenCount"),
+            ("input_token_count", "output_token_count"),
+            ("inputTokenCount", "outputTokenCount"),
+        )
+        for input_key, output_key in usage_key_pairs:
+            input_tokens = _coerce_token_count(payload.get(input_key))
+            output_tokens = _coerce_token_count(payload.get(output_key))
+            if input_tokens is not None and output_tokens is not None:
+                return input_tokens, output_tokens
+
+        for nested_key in (
+            "usage",
+            "usage_metadata",
+            "token_usage",
+            "tokenUsage",
+            "response_metadata",
+            "responseMetadata",
+            "generation_info",
+            "llm_output",
+            "raw",
+        ):
+            nested = payload.get(nested_key)
+            if nested is None:
+                continue
+            input_tokens, output_tokens = _extract_usage_from_payload(nested, seen)
+            if input_tokens is not None and output_tokens is not None:
+                return input_tokens, output_tokens
+
+        for nested in payload.values():
+            input_tokens, output_tokens = _extract_usage_from_payload(nested, seen)
+            if input_tokens is not None and output_tokens is not None:
+                return input_tokens, output_tokens
+
+    elif isinstance(payload, (list, tuple)):
+        payload_id = id(payload)
+        if payload_id in seen:
+            return None, None
+        seen.add(payload_id)
+        for item in payload:
+            input_tokens, output_tokens = _extract_usage_from_payload(item, seen)
+            if input_tokens is not None and output_tokens is not None:
                 return input_tokens, output_tokens
 
     return None, None
+
+
+def _extract_usage_from_ai_message(message: Any) -> tuple[int | None, int | None]:
+    """Best-effort usage extraction from LangChain AIMessage metadata."""
+    for payload in (
+        getattr(message, "usage_metadata", None),
+        getattr(message, "response_metadata", None),
+        getattr(message, "additional_kwargs", None),
+    ):
+        input_tokens, output_tokens = _extract_usage_from_payload(payload)
+        if input_tokens is not None and output_tokens is not None:
+            return input_tokens, output_tokens
+
+    return None, None
+
+
+def _new_usage_tracker(prompt_text: str) -> dict[str, Any]:
+    return {
+        "seen_fingerprints": set(),
+        "provider_input_tokens": 0,
+        "provider_output_tokens": 0,
+        "provider_message_count": 0,
+        "estimated_input_tokens": _estimate_tokens_from_text(prompt_text),
+    }
+
+
+def _message_usage_fingerprint(message: Any) -> str:
+    input_tokens, output_tokens = _extract_usage_from_ai_message(message)
+    payload = {
+        "message_type": getattr(message, "type", message.__class__.__name__),
+        "content": getattr(message, "content", ""),
+        "tool_calls": getattr(message, "tool_calls", None),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+    }
+    return _hash_text(json.dumps(payload, sort_keys=True, default=str))
+
+
+def _accumulate_provider_usage(tracker: dict[str, Any], messages: Any) -> None:
+    if not isinstance(messages, (list, tuple)):
+        return
+
+    seen_fingerprints = tracker["seen_fingerprints"]
+    for message in messages:
+        if not isinstance(message, AIMessage):
+            continue
+        fingerprint = _message_usage_fingerprint(message)
+        if fingerprint in seen_fingerprints:
+            continue
+        seen_fingerprints.add(fingerprint)
+
+        input_tokens, output_tokens = _extract_usage_from_ai_message(message)
+        if input_tokens is None or output_tokens is None:
+            continue
+
+        tracker["provider_input_tokens"] += input_tokens
+        tracker["provider_output_tokens"] += output_tokens
+        tracker["provider_message_count"] += 1
+
+
+def _finalize_request_usage(
+    tracker: dict[str, Any] | None,
+    response_text: str | None,
+) -> tuple[int | None, int | None, str]:
+    if tracker and tracker.get("provider_message_count", 0) > 0:
+        return (
+            int(tracker["provider_input_tokens"]),
+            int(tracker["provider_output_tokens"]),
+            USAGE_SOURCE_PROVIDER,
+        )
+
+    estimated_input = tracker.get("estimated_input_tokens") if tracker else None
+    estimated_output = _estimate_tokens_from_text(response_text)
+    if estimated_input is not None and (estimated_input > 0 or estimated_output > 0):
+        return estimated_input, estimated_output, USAGE_SOURCE_ESTIMATED
+
+    return None, None, USAGE_SOURCE_UNKNOWN
 
 
 def _estimate_cost_usd(input_tokens: int | None, output_tokens: int | None) -> float | None:
@@ -906,10 +1035,13 @@ def _log_request_event(
     response_chars: int,
     input_tokens: int | None,
     output_tokens: int | None,
+    usage_source: str = USAGE_SOURCE_UNKNOWN,
     error_reason: str | None = None,
     meta: dict[str, Any] | None = None,
 ) -> int:
     cost_usd = _estimate_cost_usd(input_tokens, output_tokens)
+    meta_payload = dict(meta or {})
+    meta_payload.setdefault("usage_source", usage_source)
     conn = _get_chat_conn()
     cursor = conn.cursor()
     cursor.execute(
@@ -928,9 +1060,10 @@ def _log_request_event(
             response_chars,
             input_tokens,
             output_tokens,
+            usage_source,
             cost_usd,
             meta_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             endpoint,
@@ -946,8 +1079,9 @@ def _log_request_event(
             response_chars,
             input_tokens,
             output_tokens,
+            usage_source,
             cost_usd,
-            json.dumps(meta or {}),
+            json.dumps(meta_payload),
         ),
     )
     event_id = int(cursor.lastrowid)
@@ -1017,9 +1151,19 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
 
     endpoint_counts: dict[str, int] = {}
     error_breakdown: dict[str, int] = {}
+    usage_source_counts: dict[str, int] = {
+        USAGE_SOURCE_PROVIDER: 0,
+        USAGE_SOURCE_ESTIMATED: 0,
+        USAGE_SOURCE_UNKNOWN: 0,
+    }
     for row in rows:
         endpoint = row["endpoint"] or "unknown"
         endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
+
+        usage_source = row["usage_source"] or USAGE_SOURCE_UNKNOWN
+        if usage_source not in usage_source_counts:
+            usage_source = USAGE_SOURCE_UNKNOWN
+        usage_source_counts[usage_source] += 1
 
         if row["status"] in {"error", "blocked"}:
             key = row["error_reason"] or row["status"]
@@ -1036,6 +1180,30 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
         {"endpoint": endpoint, "count": count}
         for endpoint, count in sorted(endpoint_counts.items(), key=lambda item: item[1], reverse=True)
     ]
+    by_usage_source = [
+        {"source": source, "count": usage_source_counts[source]}
+        for source in (USAGE_SOURCE_PROVIDER, USAGE_SOURCE_ESTIMATED, USAGE_SOURCE_UNKNOWN)
+    ]
+
+    provider_count = usage_source_counts[USAGE_SOURCE_PROVIDER]
+    estimated_count = usage_source_counts[USAGE_SOURCE_ESTIMATED]
+    unknown_count = usage_source_counts[USAGE_SOURCE_UNKNOWN]
+    if total_requests == 0:
+        usage_source_confidence_note = "No request usage data yet for this window."
+    elif provider_count == total_requests:
+        usage_source_confidence_note = "High confidence: all request token counts came from provider-native usage metadata."
+    elif provider_count > 0:
+        usage_source_confidence_note = (
+            f"Mixed confidence: {provider_count}/{total_requests} requests used provider-native usage, "
+            f"{estimated_count} used fallback estimates, and {unknown_count} have no token data."
+        )
+    elif estimated_count > 0:
+        usage_source_confidence_note = (
+            f"Estimated only: {estimated_count}/{total_requests} requests used fallback token estimates; "
+            "no provider-native usage metadata was captured."
+        )
+    else:
+        usage_source_confidence_note = "Low confidence: requests in this window do not include token usage data."
 
     feedback_summary = _get_feedback_summary(hours)
     donation_summary = _get_donation_summary(hours)
@@ -1057,6 +1225,8 @@ def _get_observability_summary(hours: int) -> dict[str, Any]:
         "output_tokens": output_tokens,
         "estimated_cost_usd": total_cost_usd,
         "by_endpoint": by_endpoint,
+        "by_usage_source": by_usage_source,
+        "usage_source_confidence_note": usage_source_confidence_note,
         "top_errors": top_errors,
         "feedback": feedback_summary,
         "donation": donation_summary,
@@ -1368,11 +1538,19 @@ def init_chat_db():
             response_chars INTEGER,
             input_tokens INTEGER,
             output_tokens INTEGER,
+            usage_source TEXT NOT NULL DEFAULT 'unknown',
             cost_usd REAL,
             meta_json TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    try:
+        cursor.execute(
+            "ALTER TABLE request_events ADD COLUMN usage_source TEXT NOT NULL DEFAULT 'unknown'"
+        )
+    except sqlite3.OperationalError:
+        pass
 
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_request_events_created_at
@@ -1388,6 +1566,131 @@ def init_chat_db():
         CREATE INDEX IF NOT EXISTS idx_request_events_endpoint
         ON request_events(endpoint)
     """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_request_events_usage_source
+        ON request_events(usage_source)
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS subscription_plans (
+            plan_id TEXT PRIMARY KEY,
+            display_name TEXT NOT NULL,
+            plan_status TEXT NOT NULL DEFAULT 'proposed',
+            billing_interval TEXT NOT NULL DEFAULT 'month',
+            price_cents INTEGER NOT NULL DEFAULT 0,
+            monthly_query_limit INTEGER,
+            monthly_lesson_plan_limit INTEGER,
+            features_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            plan_id TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            billing_provider TEXT,
+            billing_customer_id TEXT,
+            billing_subscription_id TEXT,
+            current_period_start TIMESTAMP,
+            current_period_end TIMESTAMP,
+            cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+            migrated_from_donation INTEGER NOT NULL DEFAULT 0,
+            metadata_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (plan_id) REFERENCES subscription_plans(plan_id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_status
+        ON user_subscriptions(user_id, status)
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usage_quotas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            anon_usage_key TEXT,
+            plan_id TEXT,
+            quota_scope TEXT NOT NULL,
+            quota_period TEXT NOT NULL,
+            period_start TIMESTAMP,
+            period_end TIMESTAMP,
+            used_count INTEGER NOT NULL DEFAULT 0,
+            soft_limit INTEGER,
+            hard_limit INTEGER,
+            source TEXT NOT NULL DEFAULT 'seed',
+            last_event_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (plan_id) REFERENCES subscription_plans(plan_id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_usage_quotas_lookup
+        ON usage_quotas(user_id, anon_usage_key, quota_scope, quota_period)
+    """)
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO subscription_plans (
+            plan_id,
+            display_name,
+            plan_status,
+            billing_interval,
+            price_cents,
+            monthly_query_limit,
+            monthly_lesson_plan_limit,
+            features_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        "free",
+        "Free",
+        "proposed",
+        "month",
+        0,
+        150,
+        12,
+        json.dumps({
+            "anonymous_access": True,
+            "signed_in_required_after_limit": True,
+            "billing_ready": False,
+        }),
+    ))
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO subscription_plans (
+            plan_id,
+            display_name,
+            plan_status,
+            billing_interval,
+            price_cents,
+            monthly_query_limit,
+            monthly_lesson_plan_limit,
+            features_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        "pro",
+        "Pro",
+        "proposed",
+        "month",
+        900,
+        1500,
+        80,
+        json.dumps({
+            "priority_support": True,
+            "billing_ready": False,
+            "migration_source": "donation_mode",
+        }),
+    ))
 
     # Assistant response feedback
     cursor.execute("""
@@ -2292,8 +2595,8 @@ async def query_stream(request: Request):
             latency_ms=latency_ms,
             prompt_chars=0,
             response_chars=0,
-            input_tokens=0,
-            output_tokens=0,
+            input_tokens=None,
+            output_tokens=None,
             error_reason="invalid_message",
         )
         return _single_event_sse_response(
@@ -2310,8 +2613,7 @@ async def query_stream(request: Request):
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the agent."""
         final_response = ""
-        input_tokens = _estimate_tokens_from_text(message)
-        output_tokens = 0
+        usage_tracker = _new_usage_tracker(message)
         log_written = False
 
         try:
@@ -2330,8 +2632,9 @@ async def query_stream(request: Request):
                     latency_ms=latency_ms,
                     prompt_chars=len(message),
                     response_chars=0,
-                    input_tokens=input_tokens,
-                    output_tokens=0,
+                    input_tokens=None,
+                    output_tokens=None,
+                    usage_source=USAGE_SOURCE_UNKNOWN,
                     error_reason="agent_init_failed",
                     meta={"error": str(e)},
                 )
@@ -2371,6 +2674,7 @@ async def query_stream(request: Request):
                 if "dance_planner" in chunk:
                     planner_data = chunk["dance_planner"]
                     messages = planner_data.get("messages", [])
+                    _accumulate_provider_usage(usage_tracker, messages)
 
                     for msg in messages:
                         # Check for tool calls
@@ -2414,9 +2718,12 @@ async def query_stream(request: Request):
                         content = getattr(msg, "content", "")
                         if content:
                             final_response = content
-                            output_tokens = _estimate_tokens_from_text(final_response)
                             assistant_message_id = save_message(
                                 session_id, "assistant", final_response, browser_id, user_id
+                            )
+                            input_tokens, output_tokens, usage_source = _finalize_request_usage(
+                                usage_tracker,
+                                final_response,
                             )
 
                             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
@@ -2433,8 +2740,12 @@ async def query_stream(request: Request):
                                 response_chars=len(final_response),
                                 input_tokens=input_tokens,
                                 output_tokens=output_tokens,
+                                usage_source=usage_source,
                                 error_reason=None,
-                                meta={"path": "rejection_handler"},
+                                meta={
+                                    "path": "rejection_handler",
+                                    "usage_messages_observed": usage_tracker["provider_message_count"],
+                                },
                             )
                             log_written = True
 
@@ -2459,6 +2770,7 @@ async def query_stream(request: Request):
             final_state = await agent_instance.graph.aget_state(config)
             if final_state and hasattr(final_state, "values"):
                 messages = final_state.values.get("messages", [])
+                _accumulate_provider_usage(usage_tracker, messages)
                 # Find the last AI message that's not a tool call and not a system message
                 for msg in reversed(messages):
                     # Skip messages with tool calls
@@ -2471,20 +2783,16 @@ async def query_stream(request: Request):
                     content = getattr(msg, "content", "")
                     if isinstance(content, str) and content and not content.startswith("You are"):
                         final_response = content
-                        usage_input, usage_output = _extract_usage_from_ai_message(msg)
-                        if usage_input is not None:
-                            input_tokens = usage_input
-                        if usage_output is not None:
-                            output_tokens = usage_output
-                        else:
-                            output_tokens = _estimate_tokens_from_text(final_response)
-
                         break
 
             assistant_message_id = None
             if final_response:
                 assistant_message_id = save_message(session_id, "assistant", final_response, browser_id, user_id)
 
+            input_tokens, output_tokens, usage_source = _finalize_request_usage(
+                usage_tracker,
+                final_response,
+            )
             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
             request_event_id = _log_request_event(
                 endpoint="/api/query",
@@ -2499,6 +2807,8 @@ async def query_stream(request: Request):
                 response_chars=len(final_response),
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
+                usage_source=usage_source,
+                meta={"usage_messages_observed": usage_tracker["provider_message_count"]},
             )
             log_written = True
 
@@ -2522,6 +2832,10 @@ async def query_stream(request: Request):
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
 
         except Exception as e:
+            input_tokens, output_tokens, usage_source = _finalize_request_usage(
+                usage_tracker,
+                final_response,
+            )
             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
             if not log_written:
                 _log_request_event(
@@ -2537,8 +2851,12 @@ async def query_stream(request: Request):
                     response_chars=len(final_response),
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
+                    usage_source=usage_source,
                     error_reason="stream_exception",
-                    meta={"error": str(e)},
+                    meta={
+                        "error": str(e),
+                        "usage_messages_observed": usage_tracker["provider_message_count"],
+                    },
                 )
             yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
 
@@ -2619,8 +2937,8 @@ async def lesson_plan_stream(request: Request):
             latency_ms=latency_ms,
             prompt_chars=0,
             response_chars=0,
-            input_tokens=0,
-            output_tokens=0,
+            input_tokens=None,
+            output_tokens=None,
             error_reason="invalid_message",
         )
         return _single_event_sse_response(
@@ -2638,8 +2956,7 @@ async def lesson_plan_stream(request: Request):
         """Generate SSE events from the lesson planner agent."""
         final_response = ""
         lesson_markdown = ""
-        input_tokens = _estimate_tokens_from_text(message)
-        output_tokens = 0
+        usage_tracker = _new_usage_tracker(message)
         log_written = False
 
         try:
@@ -2658,8 +2975,9 @@ async def lesson_plan_stream(request: Request):
                     latency_ms=latency_ms,
                     prompt_chars=len(message),
                     response_chars=0,
-                    input_tokens=input_tokens,
-                    output_tokens=0,
+                    input_tokens=None,
+                    output_tokens=None,
+                    usage_source=USAGE_SOURCE_UNKNOWN,
                     error_reason="planner_init_failed",
                     meta={"error": str(e)},
                 )
@@ -2691,6 +3009,7 @@ async def lesson_plan_stream(request: Request):
                 if "planner" in chunk:
                     planner_data = chunk["planner"]
                     messages = planner_data.get("messages", [])
+                    _accumulate_provider_usage(usage_tracker, messages)
 
                     for msg in messages:
                         # Check for tool calls
@@ -2728,18 +3047,11 @@ async def lesson_plan_stream(request: Request):
             result = await planner_instance.ainvoke(message, config)
 
             if result and "messages" in result:
+                _accumulate_provider_usage(usage_tracker, result["messages"])
                 # Find the last AI message with content
                 for msg in reversed(result["messages"]):
                     if isinstance(msg, AIMessage) and msg.content:
                         final_response = msg.content
-                        usage_input, usage_output = _extract_usage_from_ai_message(msg)
-                        if usage_input is not None:
-                            input_tokens = usage_input
-                        if usage_output is not None:
-                            output_tokens = usage_output
-                        else:
-                            output_tokens = _estimate_tokens_from_text(final_response)
-
                         # Check if this looks like a lesson plan (contains markdown headers)
                         if "##" in final_response or "# " in final_response:
                             lesson_markdown = final_response
@@ -2749,6 +3061,10 @@ async def lesson_plan_stream(request: Request):
             if final_response:
                 assistant_message_id = save_message(session_id, "assistant", final_response, browser_id, user_id)
 
+            input_tokens, output_tokens, usage_source = _finalize_request_usage(
+                usage_tracker,
+                final_response,
+            )
             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
             request_event_id = _log_request_event(
                 endpoint="/api/lesson-plan",
@@ -2763,6 +3079,8 @@ async def lesson_plan_stream(request: Request):
                 response_chars=len(final_response),
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
+                usage_source=usage_source,
+                meta={"usage_messages_observed": usage_tracker["provider_message_count"]},
             )
             log_written = True
 
@@ -2789,6 +3107,10 @@ async def lesson_plan_stream(request: Request):
         except Exception as e:
             import traceback
             traceback.print_exc()
+            input_tokens, output_tokens, usage_source = _finalize_request_usage(
+                usage_tracker,
+                final_response,
+            )
             latency_ms = int((datetime.now(timezone.utc) - request_started_at).total_seconds() * 1000)
             if not log_written:
                 _log_request_event(
@@ -2804,8 +3126,12 @@ async def lesson_plan_stream(request: Request):
                     response_chars=len(final_response),
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
+                    usage_source=usage_source,
                     error_reason="stream_exception",
-                    meta={"error": str(e)},
+                    meta={
+                        "error": str(e),
+                        "usage_messages_observed": usage_tracker["provider_message_count"],
+                    },
                 )
             yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
 
