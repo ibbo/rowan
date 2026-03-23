@@ -14,6 +14,10 @@ from typing import Any, Optional
 
 # Settings database path (same directory as chat history)
 SETTINGS_DB_PATH = "data/settings.db"
+DEFAULT_LLM_PROVIDER = "openai"
+DEFAULT_LLM_MODEL = "gpt-5.4-mini"
+DEFAULT_LLM_TEMPERATURE = "0"
+LLM_DEFAULTS_VERSION = "2026-03-23-gpt-5-4-mini"
 
 
 def _get_connection() -> sqlite3.Connection:
@@ -41,9 +45,9 @@ def init_settings_db():
         
         # Initialize default settings if not present
         defaults = {
-            "llm_provider": "openai",
-            "llm_model": "gpt-4o-mini",  # Safe default that exists
-            "llm_temperature": "0",
+            "llm_provider": DEFAULT_LLM_PROVIDER,
+            "llm_model": DEFAULT_LLM_MODEL,
+            "llm_temperature": DEFAULT_LLM_TEMPERATURE,
         }
         
         for key, value in defaults.items():
@@ -51,10 +55,44 @@ def init_settings_db():
                 INSERT OR IGNORE INTO settings (key, value, updated_at)
                 VALUES (?, ?, ?)
             """, (key, value, datetime.utcnow().isoformat()))
+
+        _migrate_default_model(cursor)
         
         conn.commit()
     finally:
         conn.close()
+
+
+def _migrate_default_model(cursor: sqlite3.Cursor):
+    """Apply one-time migrations for the app's default LLM configuration."""
+    cursor.execute("SELECT value FROM settings WHERE key = ?", ("llm_defaults_version",))
+    version_row = cursor.fetchone()
+    if version_row and version_row["value"] == LLM_DEFAULTS_VERSION:
+        return
+
+    cursor.execute("SELECT value FROM settings WHERE key = ?", ("llm_provider",))
+    provider_row = cursor.fetchone()
+    cursor.execute("SELECT value FROM settings WHERE key = ?", ("llm_model",))
+    model_row = cursor.fetchone()
+
+    provider = provider_row["value"] if provider_row else DEFAULT_LLM_PROVIDER
+    model = model_row["value"] if model_row else DEFAULT_LLM_MODEL
+    now = datetime.utcnow().isoformat()
+
+    if provider == "openai" and model == "gpt-4o-mini":
+        cursor.execute("""
+            UPDATE settings
+            SET value = ?, updated_at = ?
+            WHERE key = 'llm_model'
+        """, (DEFAULT_LLM_MODEL, now))
+
+    cursor.execute("""
+        INSERT INTO settings (key, value, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            updated_at = excluded.updated_at
+    """, ("llm_defaults_version", LLM_DEFAULTS_VERSION, now))
 
 
 def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
@@ -122,9 +160,9 @@ def get_llm_settings() -> dict[str, Any]:
         Dictionary with provider, model, and temperature
     """
     return {
-        "provider": get_setting("llm_provider", "openai"),
-        "model": get_setting("llm_model", "gpt-4o-mini"),
-        "temperature": float(get_setting("llm_temperature", "0")),
+        "provider": get_setting("llm_provider", DEFAULT_LLM_PROVIDER),
+        "model": get_setting("llm_model", DEFAULT_LLM_MODEL),
+        "temperature": float(get_setting("llm_temperature", DEFAULT_LLM_TEMPERATURE)),
     }
 
 

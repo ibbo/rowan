@@ -10,10 +10,10 @@ Usage:
     
     # Get a provider directly
     provider = get_provider("openai")
-    llm = provider.create_chat_llm("gpt-5.2-mini", temperature=0)
+    llm = provider.create_chat_llm("gpt-5.4-mini", temperature=0)
     
     # Or use the convenience function with settings
-    llm = get_llm(provider="openai", model="gpt-5.2-mini", temperature=0)
+    llm = get_llm(provider="openai", model="gpt-5.4-mini", temperature=0)
 """
 
 import os
@@ -86,6 +86,7 @@ class OpenAIProvider(BaseLLMProvider):
     display_name = "OpenAI"
     
     MODELS = [
+        {"id": "gpt-5.4-mini", "name": "GPT-5.4 Mini", "description": "Default fast and efficient model"},
         {"id": "gpt-5.2", "name": "GPT-5.2", "description": "Most capable model"},
         {"id": "gpt-5-mini", "name": "GPT-5 Mini", "description": "Fast and efficient"},
         {"id": "gpt-4o", "name": "GPT-4o", "description": "Previous generation flagship"},
@@ -235,7 +236,7 @@ def list_providers() -> list[dict]:
 
 def get_llm(
     provider: str = "openai",
-    model: str = "gpt-5.2-mini",
+    model: str = "gpt-5.4-mini",
     temperature: float = 0,
     api_key: Optional[str] = None,
 ) -> BaseChatModel:

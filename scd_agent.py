@@ -46,7 +46,7 @@ class SCDAgent:
     def __init__(
         self, 
         provider: str = "openai", 
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5.4-mini",
         temperature: float = 0,
         api_key: str | None = None
     ):
