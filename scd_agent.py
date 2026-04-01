@@ -30,6 +30,11 @@ from dance_tools import (
     find_videos, find_recordings, find_devisors, find_publications, 
     get_publication_dances, search_dance_lists, get_dance_list_detail
 )
+from concept_resolver import (
+    CanonicalConceptResolver,
+    build_grounding_decision,
+    manual_kb_available,
+)
 
 
 # Define the state that flows through the graph
@@ -38,6 +43,9 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
     is_scd_query: bool  # Whether the query is about Scottish Country Dancing
     route: str  # Routing decision from prompt checker
+    grounding_route: str
+    grounding_context: str
+    grounding_response: str
 
 
 class SCDAgent:
@@ -87,6 +95,7 @@ class SCDAgent:
             find_videos, find_recordings, find_devisors, find_publications,
             get_publication_dances, search_dance_lists, get_dance_list_detail
         ]
+        self.concept_resolver = CanonicalConceptResolver()
         
         # Bind tools to the dance planner LLM
         self.dance_planner_with_tools = self.dance_planner_llm.bind_tools(self.tools)
@@ -103,8 +112,10 @@ class SCDAgent:
         
         # Add nodes
         graph_builder.add_node("prompt_checker", self._prompt_checker_node)
+        graph_builder.add_node("concept_grounder", self._concept_grounder_node)
         graph_builder.add_node("dance_planner", self._dance_planner_node)
         graph_builder.add_node("tool_executor", self._tool_executor_node)
+        graph_builder.add_node("grounding_handler", self._grounding_handler_node)
         graph_builder.add_node("rejection_handler", self._rejection_handler_node)
         
         # Add edges
@@ -115,8 +126,17 @@ class SCDAgent:
             "prompt_checker",
             self._route_after_prompt_check,
             {
-                "dance_planner": "dance_planner",
+                "concept_grounder": "concept_grounder",
                 "reject": "rejection_handler"
+            }
+        )
+
+        graph_builder.add_conditional_edges(
+            "concept_grounder",
+            self._route_after_grounding,
+            {
+                "dance_planner": "dance_planner",
+                "grounding_handler": "grounding_handler",
             }
         )
         
@@ -185,9 +205,37 @@ Examples:
             "route": "dance_planner" if is_accepted else "reject"
         }
     
-    def _route_after_prompt_check(self, state: State) -> Literal["dance_planner", "reject"]:
+    def _route_after_prompt_check(self, state: State) -> Literal["concept_grounder", "reject"]:
         """Route based on prompt checker decision."""
-        return state["route"]
+        return "concept_grounder" if state["route"] == "dance_planner" else "reject"
+
+    async def _concept_grounder_node(self, state: State) -> dict:
+        """Resolve canonical SCD concepts before planning."""
+        print("\n🧭 Concept Grounder: Resolving canonical concepts...", file=sys.stderr)
+
+        last_message = state["messages"][-1]
+        user_query = last_message.content if isinstance(last_message.content, str) else str(last_message.content)
+
+        resolution = await self.concept_resolver.resolve(user_query)
+        decision = build_grounding_decision(
+            resolution=resolution,
+            manual_available=manual_kb_available(),
+        )
+
+        if decision.grounding_context:
+            print("🧭 Concept Grounder: Added canonical grounding context", file=sys.stderr)
+        if decision.route == "grounding_handler":
+            print("🧭 Concept Grounder: Blocking ungrounded technical answer", file=sys.stderr)
+
+        return {
+            "grounding_route": decision.route,
+            "grounding_context": decision.grounding_context,
+            "grounding_response": decision.response,
+        }
+
+    def _route_after_grounding(self, state: State) -> Literal["dance_planner", "grounding_handler"]:
+        """Route based on grounding outcome."""
+        return state.get("grounding_route", "dance_planner")
     
     def _rejection_handler_node(self, state: State) -> dict:
         """Handle rejected queries with a polite message."""
@@ -200,19 +248,20 @@ Examples:
         ))
         
         return {"messages": [rejection_message]}
-    
+
+    def _grounding_handler_node(self, state: State) -> dict:
+        """Return deterministic clarification / unsupported-grounding responses."""
+        print("🧱 Grounding Handler: Responding without planner", file=sys.stderr)
+        return {"messages": [AIMessage(content=state["grounding_response"])]}
+
     def _dance_planner_node(self, state: State) -> dict:
         """Plan and execute dance queries using tools."""
         print("\n🎯 Dance Planner: Processing query...", file=sys.stderr)
         
         # Add system message for the dance planner if this is the first planning step
         messages = state["messages"]
-        
-        # Check if we need to add system context
-        has_system_message = any(isinstance(msg, SystemMessage) for msg in messages)
-        
-        if not has_system_message:
-            system_msg = SystemMessage(content="""
+
+        system_messages = [SystemMessage(content="""
 You are a Scottish Country Dance expert assistant with access to the Scottish Country Dance Database (SCDDB).
 
 You have access to these tools:
@@ -273,8 +322,13 @@ Format links as: https://my.strathspey.org/dd/dance/{dance_id}/
 where {dance_id} is the 'id' field from the dance data.
 Example: For a dance with id=1786, link to https://my.strathspey.org/dd/dance/1786/
 Make the dance name clickable by formatting as: [Dance Name](https://my.strathspey.org/dd/dance/{id}/)
-""")
-            messages = [system_msg] + messages
+""")]
+
+        grounding_context = state.get("grounding_context", "").strip()
+        if grounding_context:
+            system_messages.append(SystemMessage(content=grounding_context))
+
+        messages = system_messages + messages
         
         # Invoke the LLM with tools
         response = self.dance_planner_with_tools.invoke(messages)
@@ -356,7 +410,10 @@ Make the dance name clickable by formatting as: [Dance Name](https://my.strathsp
         initial_state = {
             "messages": [HumanMessage(content=user_input)],
             "is_scd_query": False,
-            "route": ""
+            "route": "",
+            "grounding_route": "dance_planner",
+            "grounding_context": "",
+            "grounding_response": "",
         }
         
         # Run the graph

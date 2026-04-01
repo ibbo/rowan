@@ -1,0 +1,221 @@
+{
+  "summary": {
+    "total_cases": 11,
+    "passed": 11,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "by_category": {
+    "formation_variant": {
+      "passed": 2,
+      "failed": 0
+    },
+    "step_confusion": {
+      "passed": 5,
+      "failed": 0
+    },
+    "bar_state": {
+      "passed": 3,
+      "failed": 0
+    },
+    "evidence_boundary": {
+      "passed": 1,
+      "failed": 0
+    }
+  },
+  "confusion_matrix": {
+    "allemande_2c": {
+      "allemande_2c": 1
+    },
+    "allemande_turn": {
+      "allemande_turn": 1
+    },
+    "skip_change": {
+      "skip_change": 1
+    },
+    "pas_de_basque": {
+      "pas_de_basque": 1
+    },
+    "travelling_step": {
+      "travelling_step": 1
+    },
+    "setting_step": {
+      "setting_step": 2
+    },
+    "left_shoulder_pass": {
+      "left_shoulder_pass": 1
+    },
+    "cast_two_places": {
+      "cast_two_places": 1
+    },
+    "cross_left_hand": {
+      "cross_left_hand": 1
+    },
+    "insufficient_evidence": {
+      "insufficient_evidence": 1
+    }
+  },
+  "results": [
+    {
+      "id": "formation-allemande-2c",
+      "category": "formation_variant",
+      "target_label": "allemande_2c",
+      "predicted_label": "allemande_2c",
+      "passed": true,
+      "expected_hits": [
+        "allemande for 2 couples",
+        "2-couple allemande",
+        "allmnd;2c;"
+      ],
+      "missing_expected": [
+        "2 couple allemande"
+      ],
+      "forbidden_hits": [],
+      "output": "Allemande for 2 couples is the standard 2-couple allemande entry; token ALLMND;2C;."
+    },
+    {
+      "id": "formation-allemande-turn",
+      "category": "formation_variant",
+      "target_label": "allemande_turn",
+      "predicted_label": "allemande_turn",
+      "passed": true,
+      "expected_hits": [
+        "allemande turn",
+        "all_rl",
+        "to r or l"
+      ],
+      "missing_expected": [],
+      "forbidden_hits": [],
+      "output": "Use Allemande Turn (to R or L) for the turn variant; token ALL_RL."
+    },
+    {
+      "id": "bars-skip-change-stephen",
+      "category": "step_confusion",
+      "target_label": "skip_change",
+      "predicted_label": "skip_change",
+      "passed": true,
+      "expected_hits": [
+        "skip change"
+      ],
+      "missing_expected": [],
+      "forbidden_hits": [],
+      "output": "Bill's Friend, Stephen explicitly says first couple use skip change on bars 11-12 and again on 15-16."
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit",
+      "category": "step_confusion",
+      "target_label": "pas_de_basque",
+      "predicted_label": "pas_de_basque",
+      "passed": true,
+      "expected_hits": [
+        "pas de basque"
+      ],
+      "missing_expected": [],
+      "forbidden_hits": [],
+      "output": "Discounted Suit, The explicitly names pas de basque on bars 17-18."
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright",
+      "category": "step_confusion",
+      "target_label": "travelling_step",
+      "predicted_label": "travelling_step",
+      "passed": true,
+      "expected_hits": [
+        "travelling step"
+      ],
+      "missing_expected": [],
+      "forbidden_hits": [],
+      "output": "Dancing in Kirkcudbright names a travelling step left for the bar-4 pivot."
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey",
+      "category": "step_confusion",
+      "target_label": "setting_step",
+      "predicted_label": "setting_step",
+      "passed": true,
+      "expected_hits": [
+        "setting step",
+        "glasgow highlanders setting step"
+      ],
+      "missing_expected": [],
+      "forbidden_hits": [],
+      "output": "Circle Strathspey bars 1-8 use Glasgow Highlanders setting step."
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh",
+      "category": "bar_state",
+      "target_label": "left_shoulder_pass",
+      "predicted_label": "left_shoulder_pass",
+      "passed": true,
+      "expected_hits": [
+        "left shoulder"
+      ],
+      "missing_expected": [
+        "lsh"
+      ],
+      "forbidden_hits": [],
+      "output": "Mairi's Wedding says first couple pass partner left shoulder in bars 9-24."
+    },
+    {
+      "id": "bars-reel51-cast-two-places",
+      "category": "bar_state",
+      "target_label": "cast_two_places",
+      "predicted_label": "cast_two_places",
+      "passed": true,
+      "expected_hits": [
+        "two places"
+      ],
+      "missing_expected": [
+        "2 places"
+      ],
+      "forbidden_hits": [],
+      "output": "The Reel of the 51st Division says first couple cast off two places in bars 1-8."
+    },
+    {
+      "id": "bars-montgomeries-cross-lh",
+      "category": "bar_state",
+      "target_label": "cross_left_hand",
+      "predicted_label": "cross_left_hand",
+      "passed": true,
+      "expected_hits": [
+        "cross left hand"
+      ],
+      "missing_expected": [
+        "cross lh"
+      ],
+      "forbidden_hits": [],
+      "output": "Montgomeries' Rant, The says first couple cross left hand after the opening right-hand cross in bars 1-8."
+    },
+    {
+      "id": "bars-diplomat-setting-steps",
+      "category": "step_confusion",
+      "target_label": "setting_step",
+      "predicted_label": "setting_step",
+      "passed": true,
+      "expected_hits": [
+        "setting step",
+        "two setting steps"
+      ],
+      "missing_expected": [],
+      "forbidden_hits": [],
+      "output": "The Diplomat says first couple use two setting steps as they pass left shoulder."
+    },
+    {
+      "id": "manual-skip-change-abstain",
+      "category": "evidence_boundary",
+      "target_label": "insufficient_evidence",
+      "predicted_label": "insufficient_evidence",
+      "passed": true,
+      "expected_hits": [
+        "manual not available",
+        "cannot verify"
+      ],
+      "missing_expected": [
+        "manual knowledge base not available",
+        "can't quote"
+      ],
+      "forbidden_hits": [],
+      "output": "RSCDS manual not available locally, so I cannot verify or quote the exact wording."
+    }
+  ]
+}

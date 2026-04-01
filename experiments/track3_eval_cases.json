@@ -1,0 +1,345 @@
+{
+  "label_signals": {
+    "allemande_2c": [
+      "allemande for 2 couples",
+      "2-couple allemande",
+      "2 couple allemande",
+      "allmnd;2c;"
+    ],
+    "allemande_turn": [
+      "allemande turn",
+      "all_rl",
+      "to r or l"
+    ],
+    "skip_change": [
+      "skip change"
+    ],
+    "pas_de_basque": [
+      "pas de basque"
+    ],
+    "travelling_step": [
+      "travelling step"
+    ],
+    "setting_step": [
+      "setting step",
+      "glasgow highlanders setting step"
+    ],
+    "left_shoulder_pass": [
+      "pass left shoulder",
+      "pass partner left shoulder",
+      "pass partner lsh"
+    ],
+    "right_shoulder_pass": [
+      "pass right shoulder",
+      "pass partner right shoulder",
+      "pass partner rsh"
+    ],
+    "cast_two_places": [
+      "two places",
+      "2 places"
+    ],
+    "cast_one_place": [
+      "one place",
+      "1 place"
+    ],
+    "cross_left_hand": [
+      "cross left hand",
+      "cross lh"
+    ],
+    "reel_of_three": [
+      "reel of three",
+      "reels of 3",
+      "reels3"
+    ],
+    "insufficient_evidence": [
+      "insufficient evidence",
+      "cannot verify",
+      "can't verify",
+      "manual not available",
+      "manual knowledge base not available",
+      "can't quote",
+      "cannot quote"
+    ]
+  },
+  "cases": [
+    {
+      "id": "formation-allemande-2c",
+      "category": "formation_variant",
+      "target_label": "allemande_2c",
+      "candidate_labels": [
+        "allemande_2c",
+        "allemande_turn"
+      ],
+      "prompt": "Are 'allemande for 2 couples' and 'allemande turn' the same formation? Name the exact formation/token to use for a standard 2-couple allemande.",
+      "source": {
+        "type": "formation",
+        "name": "Allemande for 2 couples"
+      },
+      "required_any": [
+        "allemande for 2 couples",
+        "2-couple allemande",
+        "2 couple allemande",
+        "allmnd;2c;"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "same formation",
+        "same thing"
+      ]
+    },
+    {
+      "id": "formation-allemande-turn",
+      "category": "formation_variant",
+      "target_label": "allemande_turn",
+      "candidate_labels": [
+        "allemande_2c",
+        "allemande_turn"
+      ],
+      "prompt": "Which formation entry matches an allemande turn to right or left, not a two-couple allemande?",
+      "source": {
+        "type": "formation",
+        "name": "Allemande Turn (to R or L)"
+      },
+      "required_any": [
+        "allemande turn",
+        "all_rl",
+        "to r or l"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "allmnd;2c;",
+        "allemande for 2 couples"
+      ]
+    },
+    {
+      "id": "bars-skip-change-stephen",
+      "category": "step_confusion",
+      "target_label": "skip_change",
+      "candidate_labels": [
+        "skip_change",
+        "pas_de_basque",
+        "travelling_step",
+        "setting_step"
+      ],
+      "prompt": "In Bill's Friend, Stephen, what step is explicitly named on bars 11-16?",
+      "source": {
+        "type": "crib",
+        "dance": "Bill's Friend, Stephen",
+        "bars": "11-16"
+      },
+      "required_any": [
+        "skip change"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "pas de basque",
+        "travelling step",
+        "setting step"
+      ]
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit",
+      "category": "step_confusion",
+      "target_label": "pas_de_basque",
+      "candidate_labels": [
+        "skip_change",
+        "pas_de_basque",
+        "travelling_step",
+        "setting_step"
+      ],
+      "prompt": "In Discounted Suit, The, what step is explicitly named on bars 17-18?",
+      "source": {
+        "type": "crib",
+        "dance": "Discounted Suit, The",
+        "bars": "17-18"
+      },
+      "required_any": [
+        "pas de basque"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "skip change",
+        "travelling step",
+        "setting step"
+      ]
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright",
+      "category": "step_confusion",
+      "target_label": "travelling_step",
+      "candidate_labels": [
+        "skip_change",
+        "pas_de_basque",
+        "travelling_step",
+        "setting_step"
+      ],
+      "prompt": "In Dancing in Kirkcudbright, what step is named for the pivot on bar 4?",
+      "source": {
+        "type": "crib",
+        "dance": "Dancing in Kirkcudbright",
+        "bars": "1-8"
+      },
+      "required_any": [
+        "travelling step"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "setting step",
+        "skip change",
+        "pas de basque"
+      ]
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey",
+      "category": "step_confusion",
+      "target_label": "setting_step",
+      "candidate_labels": [
+        "skip_change",
+        "pas_de_basque",
+        "travelling_step",
+        "setting_step"
+      ],
+      "prompt": "Which step is named in Circle Strathspey bars 1-8?",
+      "source": {
+        "type": "crib",
+        "dance": "Circle Strathspey",
+        "bars": "1-8"
+      },
+      "required_any": [
+        "setting step",
+        "glasgow highlanders setting step"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "travelling step",
+        "skip change",
+        "pas de basque"
+      ]
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh",
+      "category": "bar_state",
+      "target_label": "left_shoulder_pass",
+      "candidate_labels": [
+        "left_shoulder_pass",
+        "right_shoulder_pass"
+      ],
+      "prompt": "In Mairi's Wedding bars 9-24, does first couple pass left shoulder or right shoulder?",
+      "source": {
+        "type": "crib",
+        "dance": "Mairi's Wedding",
+        "bars": "9-24"
+      },
+      "required_any": [
+        "left shoulder",
+        "lsh"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "right shoulder",
+        "rsh"
+      ]
+    },
+    {
+      "id": "bars-reel51-cast-two-places",
+      "category": "bar_state",
+      "target_label": "cast_two_places",
+      "candidate_labels": [
+        "cast_two_places",
+        "cast_one_place"
+      ],
+      "prompt": "In The Reel of the 51st Division bars 1-8, do first couple cast off one place or two places?",
+      "source": {
+        "type": "crib",
+        "dance": "Reel of the 51st Division, The",
+        "bars": "1-8"
+      },
+      "required_any": [
+        "two places",
+        "2 places"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "one place",
+        "1 place"
+      ]
+    },
+    {
+      "id": "bars-montgomeries-cross-lh",
+      "category": "bar_state",
+      "target_label": "cross_left_hand",
+      "candidate_labels": [
+        "cross_left_hand",
+        "reel_of_three"
+      ],
+      "prompt": "After first couple cross right hand in Montgomeries' Rant, The bars 1-8, what is the next explicitly stated action: cross left hand or start the reel of three?",
+      "source": {
+        "type": "crib",
+        "dance": "Montgomeries' Rant, The",
+        "bars": "1-8"
+      },
+      "required_any": [
+        "cross left hand",
+        "cross lh"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "reel of three",
+        "reels of 3"
+      ]
+    },
+    {
+      "id": "bars-diplomat-setting-steps",
+      "category": "step_confusion",
+      "target_label": "setting_step",
+      "candidate_labels": [
+        "skip_change",
+        "pas_de_basque",
+        "travelling_step",
+        "setting_step"
+      ],
+      "prompt": "In The Diplomat bars 17-24, what kind of steps does first couple use when they pass each other by the left shoulder?",
+      "source": {
+        "type": "crib",
+        "dance": "Diplomat, The",
+        "bars": "17-24"
+      },
+      "required_any": [
+        "setting step",
+        "two setting steps"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "travelling step",
+        "skip change",
+        "pas de basque"
+      ]
+    },
+    {
+      "id": "manual-skip-change-abstain",
+      "category": "evidence_boundary",
+      "target_label": "insufficient_evidence",
+      "candidate_labels": [
+        "insufficient_evidence",
+        "skip_change",
+        "pas_de_basque"
+      ],
+      "prompt": "Quote the exact RSCDS manual wording for how to teach skip change of step.",
+      "source": {
+        "type": "manual",
+        "term": "skip change of step"
+      },
+      "required_any": [
+        "manual not available",
+        "manual knowledge base not available",
+        "cannot verify",
+        "can't quote"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "pas de basque",
+        "spring onto the right foot"
+      ]
+    }
+  ]
+}
