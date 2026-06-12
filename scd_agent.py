@@ -37,6 +37,34 @@ from concept_resolver import (
 )
 
 
+def build_checker_transcript(messages: list, max_turns: int = 6) -> str:
+    """Format recent human/assistant turns for the prompt checker.
+
+    The checker must judge the latest message in conversation context, so
+    short follow-ups ("tell me more", "in class-friendly form") are not
+    rejected as off-topic. Tool messages and system messages are skipped,
+    and long assistant answers are truncated: the checker needs the topic,
+    not the content.
+    """
+    lines = []
+    for msg in messages:
+        if isinstance(msg, HumanMessage):
+            role = "User"
+        elif isinstance(msg, AIMessage):
+            role = "Assistant"
+        else:
+            continue
+        content = msg.content if isinstance(msg.content, str) else str(msg.content)
+        content = " ".join(content.split())
+        if not content:
+            # Tool-call-only assistant messages have no text
+            continue
+        if len(content) > 300:
+            content = content[:300] + "…"
+        lines.append(f"{role}: {content}")
+    return "\n".join(lines[-max_turns:])
+
+
 # Define the state that flows through the graph
 class State(TypedDict):
     """State that flows through the agent graph."""
@@ -166,31 +194,52 @@ class SCDAgent:
         # Get the last user message
         last_message = state["messages"][-1]
         user_query = last_message.content if isinstance(last_message.content, str) else str(last_message.content)
-        
+
+        # Recent conversation context, so follow-ups are judged as part of
+        # the thread rather than in isolation
+        transcript = build_checker_transcript(state["messages"][:-1])
+
         # System prompt for the checker
         checker_prompt = SystemMessage(content="""
-You are a prompt validator for a Scottish Country Dance assistant. Your job is to determine if a user's query is related to Scottish Country Dancing.
+You are a prompt validator for a Scottish Country Dance assistant. Your job is to determine if the user's LATEST message belongs to a conversation about Scottish Country Dancing.
 
 Scottish Country Dancing topics include:
 - Dance names, types (reels, jigs, strathspeys, etc.)
-- Dance formations and moves (poussette, allemande, etc.)
-- RSCDS (Royal Scottish Country Dance Society) publications
+- Dance formations, steps and moves (poussette, allemande, skip change of step, etc.)
+- RSCDS (Royal Scottish Country Dance Society) publications and the RSCDS manual
 - Planning dance classes or programmes
 - Dance cribs and instructions
 - Scottish dance music and timing
 
+The latest message is often a short follow-up to the conversation so far
+("tell me more", "the second one", "in class-friendly form please").
+Follow-ups, clarifications and replies to the assistant's questions are
+part of the conversation: judge them by the conversation topic, not in
+isolation.
+
 Respond with ONLY one word:
-- "ACCEPT" if the query is about Scottish Country Dancing
-- "REJECT" if the query is about something else
+- "ACCEPT" if the latest message is about Scottish Country Dancing, or is a follow-up within a conversation about Scottish Country Dancing
+- "REJECT" if it is unrelated to Scottish Country Dancing and not a follow-up to the conversation
 
 Examples:
 - "Find me some 32-bar reels" -> ACCEPT
 - "What's the weather today?" -> REJECT
 - "Tell me about The Reel of the 51st Division" -> ACCEPT
 - "How do I cook haggis?" -> REJECT
+- After the assistant explains skip change of step: "Please give me the full instructions in class-friendly form" -> ACCEPT
+- After the assistant asks "reel or strathspey poussette?": "the second one" -> ACCEPT
+- After discussing a dance programme: "Now write me a poem about cats" -> REJECT
 """)
-        
-        user_message = HumanMessage(content=f"User query: {user_query}")
+
+        if transcript:
+            checker_input = (
+                f"Recent conversation:\n{transcript}\n\n"
+                f"Latest user message: {user_query}"
+            )
+        else:
+            checker_input = f"Latest user message: {user_query}"
+
+        user_message = HumanMessage(content=checker_input)
         
         # Get decision from checker
         response = self.prompt_checker_llm.invoke([checker_prompt, user_message])
