@@ -58,7 +58,9 @@
       "manual not available",
       "manual knowledge base not available",
       "can't quote",
-      "cannot quote"
+      "cannot quote",
+      "not in the manual",
+      "no section"
     ]
   },
   "cases": [
@@ -316,9 +318,9 @@
       ]
     },
     {
-      "id": "manual-skip-change-abstain",
+      "id": "manual-skip-change-quote",
       "category": "evidence_boundary",
-      "target_label": "insufficient_evidence",
+      "target_label": "skip_change",
       "candidate_labels": [
         "insufficient_evidence",
         "skip_change",
@@ -327,18 +329,46 @@
       "prompt": "Quote the exact RSCDS manual wording for how to teach skip change of step.",
       "source": {
         "type": "manual",
-        "term": "skip change of step"
+        "term": "skip change of step",
+        "section": "5.4.1"
       },
       "required_any": [
-        "manual not available",
-        "manual knowledge base not available",
-        "cannot verify",
-        "can't quote"
+        "hop, step, close, step",
+        "5.4.1"
       ],
       "required_all": [],
       "forbidden_any": [
         "pas de basque",
-        "spring onto the right foot"
+        "spring onto the right foot",
+        "5.6.1"
+      ]
+    },
+    {
+      "id": "manual-absent-term-abstain",
+      "category": "evidence_boundary",
+      "target_label": "insufficient_evidence",
+      "candidate_labels": [
+        "insufficient_evidence",
+        "skip_change",
+        "pas_de_basque"
+      ],
+      "prompt": "Quote the exact RSCDS manual wording for teaching the 'highland swing turn'.",
+      "source": {
+        "type": "manual",
+        "term": "highland swing turn"
+      },
+      "required_any": [
+        "not in the manual",
+        "no section",
+        "cannot verify",
+        "can't quote",
+        "cannot quote"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "hop, step, close, step",
+        "pas de basque",
+        "the highland swing turn is"
       ]
     }
   ]

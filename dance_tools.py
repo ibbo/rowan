@@ -797,6 +797,16 @@ class ManualKnowledgeBase:
         # Direct lookup by name/alias
         section_ref = self.index.get("sections", {}).get(name_lower)
 
+        # Genuinely ambiguous names (e.g. "poussette" in reel vs
+        # strathspey time) carry candidates instead of a single section.
+        # Return them for disambiguation rather than guessing.
+        if section_ref and section_ref.get("ambiguous"):
+            return {
+                "ambiguous": True,
+                "query": name,
+                "candidates": section_ref.get("candidates", []),
+            }
+
         # Try section number directly
         if not section_ref and re.match(r'^\d+\.\d+', name):
             # Look through all chapters for this section number
@@ -848,7 +858,7 @@ class ManualKnowledgeBase:
                 return []
 
         query_lower = query_str.lower()
-        results = []
+        by_section: Dict[tuple, Dict] = {}
 
         for name, ref in self.index.get("sections", {}).items():
             # Score matches
@@ -860,17 +870,35 @@ class ManualKnowledgeBase:
             elif name in query_lower:
                 score = 25  # Query contains name
 
-            if score > 0:
-                results.append({
-                    "name": name,
-                    "section": ref["section"],
-                    "chapter": ref["chapter"],
-                    "page": ref.get("page", 0),
-                    "score": score
-                })
+            if score <= 0:
+                continue
 
-        # Sort by score and return top results
-        results.sort(key=lambda x: x["score"], reverse=True)
+            # Ambiguous entries expand to their candidate sections
+            refs = ref.get("candidates") if ref.get("ambiguous") else [ref]
+            for r in refs:
+                key = (r["chapter"], r["section"])
+                result = {
+                    "name": name,
+                    "section": r["section"],
+                    "chapter": r["chapter"],
+                    "page": r.get("page", 0),
+                    "score": score
+                }
+                # Keep the best-scoring (then longest, i.e. most specific)
+                # name for each section
+                existing = by_section.get(key)
+                if (existing is None
+                        or result["score"] > existing["score"]
+                        or (result["score"] == existing["score"]
+                            and len(name) > len(existing["name"]))):
+                    by_section[key] = result
+
+        # Rank by score, then prefer canonical sections (5.4.1) over deep
+        # transition subsections (5.6.1.6), then more specific name matches
+        results = sorted(
+            by_section.values(),
+            key=lambda x: (-x["score"], x["section"].count("."), -len(x["name"]))
+        )
         return results[:limit]
 
     def get_chapter_toc(self, chapter_num: str) -> Optional[List[Dict]]:
@@ -990,6 +1018,26 @@ async def search_manual(
         # First, try direct lookup by name/alias (most precise)
         section = kb.lookup(query_str)
 
+        if section and section.get("ambiguous"):
+            # The name legitimately means more than one thing (e.g.
+            # "poussette" in reel vs strathspey time). Ask rather than
+            # blending several sections into one answer.
+            print(f"DEBUG: Ambiguous lookup for '{query_str}'", file=sys.stderr)
+            lines = [
+                f"'{query_str}' matches more than one section of the RSCDS manual:",
+                ""
+            ]
+            for cand in section.get("candidates", []):
+                title = cand.get("title", "")
+                page = cand.get("page", "N/A")
+                lines.append(f"- **{cand['section']} {title}** (Page {page})")
+            lines.append("")
+            lines.append(
+                "Ask the user which one they mean (do not guess), "
+                "then look it up by its section number."
+            )
+            return "\n".join(lines)
+
         if section:
             # Found exact match!
             print(f"DEBUG: Direct lookup found: {section['section']} - {section['title']}", file=sys.stderr)
@@ -1007,8 +1055,9 @@ async def search_manual(
         lines = [f"**RSCDS Manual - Search results for '{query_str}':**", ""]
 
         for i, result in enumerate(search_results, 1):
-            # Load full section data
-            section_data = kb.lookup(result["name"]) or {}
+            # Load full section data by section number (the name may be
+            # an ambiguous alias; the section number never is)
+            section_data = kb.lookup(result["section"]) or {}
             title = section_data.get("title", result["name"])
             page = result.get("page", "N/A")
             section_num = result.get("section", "")

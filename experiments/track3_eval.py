@@ -170,12 +170,58 @@ def local_baseline_prediction(case: Dict[str, Any], connection: sqlite3.Connecti
     if case_id == "bars-diplomat-setting-steps":
         return "The Diplomat says first couple use two setting steps as they pass left shoulder."
 
-    if case_id == "manual-skip-change-abstain":
-        if MANUAL_INDEX_PATH.exists():
-            return "Manual asset exists locally, but this baseline only supports SQLite-backed reference lookups."
-        return "RSCDS manual not available locally, so I cannot verify or quote the exact wording."
+    if case_id == "manual-skip-change-quote":
+        section = manual_section_lookup("skip change of step")
+        if section is None:
+            return "RSCDS manual not available locally, so I cannot verify or quote the exact wording."
+        return (
+            f"Manual section {section['num']} ({section['title']}, page {section['page']}): "
+            f"{section['content'][:600]}"
+        )
+
+    if case_id == "manual-absent-term-abstain":
+        section = manual_section_lookup("highland swing turn")
+        if section is None:
+            return (
+                "That term is not in the manual: there is no section for it, "
+                "so I cannot quote any wording."
+            )
+        return (
+            f"Manual section {section['num']} ({section['title']}, page {section['page']}): "
+            f"{section['content'][:600]}"
+        )
 
     raise KeyError(f"Unhandled case id: {case_id}")
+
+
+def manual_section_lookup(term: str) -> Dict[str, Any] | None:
+    """Resolve a term to a single manual section via data/manual JSON.
+
+    Returns None when the manual is unavailable, the term is unknown, or
+    the term is ambiguous (multiple candidate sections).
+    """
+    if not MANUAL_INDEX_PATH.exists():
+        return None
+    index = json.loads(MANUAL_INDEX_PATH.read_text(encoding="utf-8"))
+    ref = index.get("sections", {}).get(term.lower())
+    if not ref or ref.get("ambiguous"):
+        return None
+    chapter_info = index.get("chapters", {}).get(ref["chapter"])
+    if not chapter_info:
+        return None
+    chapter_path = MANUAL_INDEX_PATH.parent / "chapters" / chapter_info["file"]
+    if not chapter_path.exists():
+        return None
+    chapter = json.loads(chapter_path.read_text(encoding="utf-8"))
+    data = chapter.get("sections", {}).get(ref["section"])
+    if not data:
+        return None
+    return {
+        "num": ref["section"],
+        "title": data.get("title", ""),
+        "page": data.get("page", "N/A"),
+        "content": data.get("content", ""),
+    }
 
 
 def evaluate_predictions(

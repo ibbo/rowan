@@ -94,13 +94,32 @@ class ManualExtractor:
         
         return index
     
+    # The manual's PDF font encodes ligatures as unrelated code points
+    # ("leĞ" = left, "seĴing" = setting), which corrupts extracted text.
+    LIGATURE_FIXES = {
+        "Ğ": "ft",
+        "Ĵ": "tt",
+        "ﬁ": "fi",
+        "ﬀ": "ff",
+        "ﬂ": "fl",
+        "ﬃ": "ffi",
+        "ﬄ": "ffl",
+        "‐": "-",
+    }
+
+    @classmethod
+    def _normalize_text(cls, text: str) -> str:
+        for bad, good in cls.LIGATURE_FIXES.items():
+            text = text.replace(bad, good)
+        return text
+
     def _extract_page_texts(self, doc: fitz.Document) -> Dict[int, str]:
         """Extract text from all pages."""
         print("📄 Extracting page texts...")
         page_texts = {}
         for page_num in range(len(doc)):
             page = doc[page_num]
-            text = page.get_text()
+            text = self._normalize_text(page.get_text())
             page_texts[page_num + 1] = text  # 1-indexed
         return page_texts
     
@@ -120,6 +139,7 @@ class ManualExtractor:
         chapter_sections = {}
         
         for level, title, page in toc:
+            title = self._normalize_text(title)
             # Skip front matter
             if page < 12:
                 continue
@@ -300,25 +320,68 @@ class ManualExtractor:
         
         return teaching_points
     
+    # Aliases that attach only when a section's *core title* IS the concept.
+    # Matched by exact comparison, never substring, so transition sections
+    # ("Slip step to skip change of step") and variants ("Pas de basque
+    # coupé") cannot claim the base concept's alias.
+    EXACT_TITLE_ALIASES = {
+        "skip change of step": ["skip change"],
+        "pas de basque": ["pas-de-basque", "pdb"],
+        "rights and lefts": ["rights & lefts", "rights n lefts"],
+        "ladies' chain": ["ladies chain", "ladies' chain", "lady's chain"],
+        "men's chain": ["mens chain", "men's chain", "men chain"],
+        "figure of eight": ["figure 8", "figure-of-eight"],
+        "hands across": ["hands-across"],
+        "hands round": ["hands-round"],
+        "set and link": ["set-and-link"],
+        "set and turn": ["set-and-turn"],
+        "lead down the middle and up": ["lead down", "down the middle", "lead down the middle"],
+        "petronella turn": ["petronella"],
+        "poussette": ["poussette"],
+        "promenade": ["promenade"],
+    }
+
+    @staticmethod
+    def _core_title(title: str) -> str:
+        """Normalize a title to its core concept name.
+
+        Strips parenthetical qualifiers, a leading "the", collapses
+        whitespace and normalizes curly apostrophes.
+        """
+        core = title.lower().replace("’", "'")
+        core = re.sub(r'\s*\(.*?\)', ' ', core)
+        core = re.sub(r'^the\s+', '', core.strip())
+        core = re.sub(r'\s+', ' ', core)
+        return core.strip()
+
     def _generate_aliases(self, title: str) -> List[str]:
         """Generate common aliases for a section title.
-        
+
         Handles:
         - Number variations (three/3, two/2, four/4)
         - Word order variations ("X for N couples" -> "N couple X")
         - Common abbreviations
         - Hyphenation variations
+
+        Aliases are only emitted when the title as a whole names the
+        concept. Substring matching is deliberately avoided: it caused
+        transition sections ("Pas de basque to skip change of step") to
+        claim step aliases like "skip change", so lookups returned the
+        wrong section. Collisions that remain (e.g. "poussette" in reel
+        vs strathspey time) are resolved or marked ambiguous when the
+        index is built.
         """
         aliases = []
         title_lower = title.lower()
-        
+        core = self._core_title(title)
+
         # Number word to digit mapping
         num_words = {
-            'one': '1', 'two': '2', 'three': '3', 'four': '4', 
+            'one': '1', 'two': '2', 'three': '3', 'four': '4',
             'five': '5', 'six': '6', 'eight': '8'
         }
         num_digits = {v: k for k, v in num_words.items()}
-        
+
         # Pattern: "X for N couples" -> "N couple X"
         # e.g., "knot for three couples" -> "3 couple knot", "three couple knot"
         # Also handles "The X for N couples"
@@ -329,7 +392,7 @@ class ManualExtractor:
             formation_name = re.sub(r'^the\s+', '', formation_name)
             num_word = match.group(2)
             num_digit = num_words.get(num_word, num_word)
-            
+
             # Add colloquial variations
             aliases.append(f"{num_digit} couple {formation_name}")
             aliases.append(f"{num_word} couple {formation_name}")
@@ -337,7 +400,7 @@ class ManualExtractor:
             # Also the base formation name alone for simple lookups
             if formation_name not in ['poussette', 'promenade']:  # Avoid overly generic
                 aliases.append(formation_name)
-        
+
         # Pattern: "X for N couples in Y" variations
         match = re.match(r'^(.+?)\s+for\s+(one|two|three|four)\s+couples?\s+(.+)$', title_lower)
         if match:
@@ -346,7 +409,7 @@ class ManualExtractor:
             suffix = match.group(3).strip()
             num_digit = num_words.get(num_word, num_word)
             aliases.append(f"{num_digit} couple {formation_name} {suffix}")
-        
+
         # Pattern: "reel of three/four" variations
         match = re.match(r'^reels?\s+of\s+(three|four|3|4)(.*)$', title_lower)
         if match:
@@ -356,53 +419,30 @@ class ManualExtractor:
                 aliases.append(f"reel of {num_words[num]}{' ' + suffix if suffix else ''}")
             if num in num_digits:
                 aliases.append(f"reel of {num_digits[num]}{' ' + suffix if suffix else ''}")
-            # Common colloquial: "reel of 3" 
+            # Common colloquial: "reel of 3"
             if num == 'three':
                 aliases.extend(["reel of 3", "3 reel"])
             elif num == 'four':
                 aliases.extend(["reel of 4", "4 reel"])
-        
-        # Specific common aliases
-        if "skip change of step" in title_lower:
-            aliases.append("skip change")
-        elif "pas de basque" in title_lower:
-            aliases.extend(["pas-de-basque", "pdb"])
-        elif "rights and lefts" in title_lower:
-            aliases.extend(["rights & lefts", "rights n lefts"])
-        elif "ladies' chain" in title_lower or "ladies' chain" in title_lower:
-            aliases.extend(["ladies chain", "lady's chain"])
-        elif "men's chain" in title_lower or "men's chain" in title_lower:
-            aliases.extend(["mens chain", "men chain"])
-        elif "figure of eight" in title_lower:
-            aliases.extend(["figure 8", "figure-of-eight"])
-        elif "hands across" in title_lower:
-            aliases.append("hands-across")
-        elif "hands round" in title_lower:
-            aliases.append("hands-round")
-        elif "set and link" in title_lower:
-            aliases.append("set-and-link")
-        elif "set and turn" in title_lower:
-            aliases.append("set-and-turn")
-        elif "lead down the middle" in title_lower:
-            aliases.extend(["lead down", "down the middle"])
-        elif "petronella" in title_lower:
-            aliases.append("petronella")
-        elif "allemande" in title_lower:
-            aliases.append("allemande")
-        elif "poussette" in title_lower and "polka" not in title_lower:
-            # Add base "poussette" for the main poussette sections
-            if "for two couples" in title_lower:
-                aliases.extend(["poussette", "2 couple poussette"])
-        elif "half" in title_lower:
-            # "half X" -> common abbreviated forms
-            base = title_lower.replace("half ", "").strip()
-            aliases.append(f"1/2 {base}")
-        
+
+        # Concept aliases: exact core-title match only
+        if core in self.EXACT_TITLE_ALIASES:
+            aliases.extend(self.EXACT_TITLE_ALIASES[core])
+
+        # "Half X" -> "1/2 X" (title must *start* with "half")
+        if core.startswith("half "):
+            aliases.append(f"1/2 {core[5:]}")
+
+        # Index the core name itself when it differs from the raw title,
+        # so "Hands round (in reel and jig time)" is findable as "hands round"
+        if core != title_lower:
+            aliases.append(core)
+
         # Remove duplicates and empty strings
         aliases = list(set(a.strip() for a in aliases if a.strip()))
-        
+
         return aliases
-    
+
     def _write_chapter_files(self, chapters: Dict[str, Dict]) -> None:
         """Write individual chapter JSON files."""
         print("💾 Writing chapter files...")
@@ -419,45 +459,103 @@ class ManualExtractor:
             section_count = len(chapter_data.get("sections", {}))
             print(f"   ✅ {filename} ({section_count} sections)")
     
+    @staticmethod
+    def _resolve_claims(name: str, refs: List[Dict]) -> Dict:
+        """Resolve multiple sections claiming the same name/alias.
+
+        Policy:
+        - A section whose exact title is the name beats alias claims
+          ("grand chain" is 6.7.1's title; the 3-couple variant only
+          claims it via a generated alias).
+        - Variants collapse into their family section: if one claimant is
+          an ancestor of another (6.2 vs 6.2.1), the descendant is dropped.
+        - If a single claimant remains, the name resolves directly to it.
+        - Otherwise the name is genuinely ambiguous (e.g. "poussette" in
+          reel vs strathspey time) and the entry lists the candidates so
+          the lookup layer can ask for clarification instead of silently
+          picking one.
+        """
+        # Dedupe by (chapter, section)
+        unique = {(r["chapter"], r["section"]): r for r in refs}
+        refs = list(unique.values())
+
+        title_claimants = [r for r in refs if r["title"].lower() == name]
+        if len(title_claimants) == 1:
+            refs = title_claimants
+
+        def is_descendant(child: Dict, parent: Dict) -> bool:
+            return (child["chapter"] == parent["chapter"]
+                    and child["section"].startswith(parent["section"] + "."))
+
+        survivors = [
+            r for r in refs
+            if not any(is_descendant(r, other) for other in refs if other is not r)
+        ]
+
+        if len(survivors) == 1:
+            ref = survivors[0]
+            return {
+                "section": ref["section"],
+                "chapter": ref["chapter"],
+                "page": ref["page"],
+            }
+
+        return {
+            "ambiguous": True,
+            "candidates": sorted(survivors, key=lambda r: (r["chapter"], r["section"])),
+        }
+
     def _build_index(self, chapters: Dict[str, Dict]) -> Dict:
         """Build master index for fast lookups."""
         print("📇 Building master index...")
-        
+
         index = {
-            "version": "1.0",
+            "version": "1.1",
             "source": str(self.pdf_path),
             "chapters": {},
-            "sections": {},  # name/alias -> section_number + chapter
+            "sections": {},  # name/alias -> section ref, or ambiguous entry
         }
-        
+
+        # Collect every name -> section claim first, then resolve
+        # collisions explicitly. The old code wrote straight into a dict,
+        # so colliding aliases silently resolved to whichever section was
+        # processed last ("skip change" -> a slip step transition).
+        claims: Dict[str, List[Dict]] = {}
+
         for chapter_num, chapter_data in chapters.items():
             info = self.chapter_info.get(chapter_num, {})
             slug = info.get("slug", f"chapter_{chapter_num}")
-            
+
             index["chapters"][chapter_num] = {
                 "name": chapter_data["name"],
                 "file": f"chapter_{chapter_num}_{slug}.json",
                 "section_count": len(chapter_data.get("sections", {}))
             }
-            
-            # Add section lookups
+
             for section_num, section_data in chapter_data.get("sections", {}).items():
-                title = section_data["title"].lower()
-                
-                # Add by title
-                index["sections"][title] = {
+                ref = {
                     "section": section_num,
                     "chapter": chapter_num,
-                    "page": section_data.get("page", 0)
+                    "page": section_data.get("page", 0),
+                    "title": section_data["title"],
                 }
-                
-                # Add by aliases
-                for alias in section_data.get("aliases", []):
-                    index["sections"][alias.lower()] = {
-                        "section": section_num,
-                        "chapter": chapter_num,
-                        "page": section_data.get("page", 0)
-                    }
+                names = {section_data["title"].lower()}
+                names.update(a.lower() for a in section_data.get("aliases", []))
+                for name in names:
+                    claims.setdefault(name, []).append(ref)
+
+        ambiguous = []
+        for name, refs in claims.items():
+            entry = self._resolve_claims(name, refs)
+            index["sections"][name] = entry
+            if entry.get("ambiguous"):
+                ambiguous.append(name)
+
+        if ambiguous:
+            print(f"   ⚠️  {len(ambiguous)} ambiguous names kept as disambiguation entries:")
+            for name in sorted(ambiguous):
+                cands = ", ".join(c["section"] for c in index["sections"][name]["candidates"])
+                print(f"      '{name}' -> {cands}")
         
         # Write index
         index_path = self.output_dir / "index.json"
