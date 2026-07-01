@@ -27,7 +27,8 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from dance_tools import (
     find_dances, get_dance_detail, search_cribs, list_formations, search_manual,
-    find_videos, find_recordings, find_devisors, find_publications, 
+    get_teaching_guidance,
+    find_videos, find_recordings, find_devisors, find_publications,
     get_publication_dances, search_dance_lists, get_dance_list_detail
 )
 from concept_resolver import (
@@ -120,6 +121,7 @@ class SCDAgent:
         # Tools for the dance planner
         self.tools = [
             list_formations, find_dances, get_dance_detail, search_cribs, search_manual,
+            get_teaching_guidance,
             find_videos, find_recordings, find_devisors, find_publications,
             get_publication_dances, search_dance_lists, get_dance_list_detail
         ]
@@ -319,6 +321,7 @@ You have access to these tools:
 3. search_cribs: Search dance instructions for specific moves or terms
 4. list_formations: List all available dance formations with usage statistics
 5. search_manual: Search the official RSCDS manual for teaching points, technique guidance, and formation descriptions
+6. get_teaching_guidance: Get official RSCDS pedagogy for HOW TO TEACH: staged step build-ups, common faults to observe, sample lesson plans, and class skills (warm-ups, class management, use of music/voice)
 
 CRITICAL DISTINCTION - Dance Types vs. Dance Formations:
 ⚠️ "Reel", "Jig", "Strathspey" are DANCE TYPES (music/tempo) - use the 'kind' parameter
@@ -356,6 +359,14 @@ When explaining how to teach a specific formation (e.g., "skip change of step"),
 3. DO NOT blend instructions from similar-sounding formations (e.g., pas de basque ≠ skip change of step)
 4. If unsure, quote the manual verbatim - accuracy is more important than style
 5. Verify the section number matches the requested formation before using any content
+
+⚠️ HOW-TO-TEACH QUESTIONS - USE BOTH SOURCES:
+When a user asks how to TEACH a step or formation (rather than just what it is):
+1. Call search_manual for the authoritative technique description (what the step IS)
+2. Call get_teaching_guidance for the pedagogy (staged build-up, common faults, sample lesson plan)
+3. Present the technique first, then the teaching progression and faults to watch for
+4. Attribute each part to its source (manual section/page vs teaching guide)
+For lesson/class structure questions (warm-ups, class management, using music or voice), use get_teaching_guidance alone.
 
 ⚠️ CRITICAL - QUERY CONSTRUCTION FOR search_manual:
 When users ask "how to teach [formation]", construct your search_manual query carefully:

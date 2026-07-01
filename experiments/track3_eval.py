@@ -191,7 +191,27 @@ def local_baseline_prediction(case: Dict[str, Any], connection: sqlite3.Connecti
             f"{section['content'][:600]}"
         )
 
+    if case_id == "teaching-skip-change-guidance":
+        bundle = teaching_guide_step_lookup("skip change of step")
+        if bundle is None:
+            return "RSCDS teaching guide not available locally, so I cannot verify the teaching guidance."
+        return (
+            f"Teaching {bundle['title']}: faults to watch: {bundle['common_faults'][:300]} "
+            f"Lesson plan: {bundle['lesson_plan'][:300]}"
+        )
+
     raise KeyError(f"Unhandled case id: {case_id}")
+
+
+TEACHING_GUIDE_PATH = Path("data/teaching_guide/teaching_guide.json")
+
+
+def teaching_guide_step_lookup(step: str) -> Dict[str, Any] | None:
+    """Load one step's bundle from the teaching guide KB, if present."""
+    if not TEACHING_GUIDE_PATH.exists():
+        return None
+    guide = json.loads(TEACHING_GUIDE_PATH.read_text(encoding="utf-8"))
+    return guide.get("steps", {}).get(step.lower())
 
 
 def manual_section_lookup(term: str) -> Dict[str, Any] | None:

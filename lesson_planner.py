@@ -26,6 +26,7 @@ from dance_tools import (
     search_cribs,
     list_formations,
     search_manual,
+    get_teaching_guidance,
     find_videos,
     find_recordings,
 )
@@ -69,6 +70,7 @@ Your role is to create comprehensive, detailed lesson plans that include:
 - `get_dance_detail`: Get dance metadata and formations
 - `get_teaching_points_for_dance`: Get RSCDS manual teaching guidance for a dance's formations
 - `search_manual`: Search the RSCDS manual directly for teaching advice
+- `get_teaching_guidance`: Official RSCDS pedagogy - staged step build-ups, common faults to observe, sample lesson plans for steps, and class skills (warm-ups, class management, use of music/voice). Use this when planning step practice or structuring a lesson.
 
 **Supporting Materials:**
 - `find_videos`: Find demonstration videos for dances
@@ -173,6 +175,7 @@ class LessonPlannerAgent:
             get_dance_detail,
             get_teaching_points_for_dance,
             search_manual,
+            get_teaching_guidance,
             # Supporting materials
             find_videos,
             find_recordings,

@@ -1081,3 +1081,141 @@ async def search_manual(
         import traceback
         traceback.print_exc(file=sys.stderr)
         return f"Error searching RSCDS manual: {str(e)}"
+
+
+# ---------------------------------------------------------------------------
+# RSCDS Teaching Guide (pedagogy: how to TEACH steps and run classes)
+# ---------------------------------------------------------------------------
+
+_teaching_guide: Optional[Dict] = None
+
+TEACHING_GUIDE_PATH = Path("data/teaching_guide/teaching_guide.json")
+
+# Colloquial names -> canonical keys in teaching_guide.json
+TEACHING_GUIDE_ALIASES = {
+    "skip change": "skip change of step",
+    "pas-de-basque": "pas de basque",
+    "pdb": "pas de basque",
+    "strathspey travelling": "strathspey travelling step",
+    "strathspey travel": "strathspey travelling step",
+    "strathspey setting step": "strathspey setting",
+    "common schottische": "strathspey setting",
+    "rights & lefts": "rights and lefts",
+    "warm up": "warm-ups and cool downs",
+    "warm ups": "warm-ups and cool downs",
+    "warm-up": "warm-ups and cool downs",
+    "cool down": "warm-ups and cool downs",
+    "lesson structure": "how to teach",
+    "teaching a step": "how to teach",
+    "teaching basics": "how to teach",
+    "music": "use of music",
+    "voice": "use of voice",
+    "faults": "observation",
+}
+
+
+def _get_teaching_guide() -> Optional[Dict]:
+    """Load and cache the teaching guide knowledge base."""
+    global _teaching_guide
+    if _teaching_guide is None and TEACHING_GUIDE_PATH.exists():
+        try:
+            with open(TEACHING_GUIDE_PATH, "r", encoding="utf-8") as f:
+                _teaching_guide = json.load(f)
+            print(
+                f"Loaded RSCDS teaching guide "
+                f"({len(_teaching_guide.get('steps', {}))} steps, "
+                f"{len(_teaching_guide.get('topics', {}))} topics)",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            print(f"Error loading teaching guide: {e}", file=sys.stderr)
+    return _teaching_guide
+
+
+def _teaching_guide_topics(guide: Dict) -> List[str]:
+    return (
+        sorted(guide.get("steps", {}))
+        + sorted(guide.get("formations", {}))
+        + sorted(guide.get("topics", {}))
+    )
+
+
+def _format_teaching_step(key: str, data: Dict, guide: Dict) -> str:
+    lines = [f"**Teaching {data.get('title', key)}** (RSCDS: {guide['title']})", ""]
+    if data.get("teaching_points"):
+        lines += ["### Main teaching points", data["teaching_points"], ""]
+    if data.get("common_faults"):
+        lines += ["### Common faults to observe and correct", data["common_faults"], ""]
+    if data.get("lesson_plan"):
+        lines += ["### Sample lesson plan", data["lesson_plan"], ""]
+        lines.append(
+            "*The lesson plan references the general teaching guidelines; "
+            "call get_teaching_guidance('how to teach') for those.*"
+        )
+    return "\n".join(lines).strip()
+
+
+@tool
+async def get_teaching_guidance(topic: str) -> str:
+    """
+    Get official RSCDS pedagogy for HOW TO TEACH Scottish Country Dancing:
+    staged step build-ups, common faults to observe and correct, sample
+    lesson plans, and class-skill guidance.
+
+    Use this tool (usually alongside search_manual, which gives the technical
+    definition of a step/formation) whenever a user asks how to TEACH
+    something, how to structure a lesson, or what faults to look for.
+
+    Args:
+        topic: One of:
+               - A step: "skip change of step", "pas de basque", "slip step",
+                 "strathspey travelling step", "strathspey setting"
+               - A formation with a sample lesson plan: "rights and lefts"
+               - A class skill: "how to teach", "observation", "presentation",
+                 "class management", "use of music", "use of voice",
+                 "warm-ups and cool downs", "dance build-up",
+                 "unit 3 lesson plan", "unit 5 lesson plan"
+
+    Returns:
+        The relevant teaching guidance from the RSCDS teaching guide,
+        or the list of available topics if no match is found.
+    """
+    print(f"DEBUG: get_teaching_guidance called with topic: '{topic}'", file=sys.stderr)
+
+    guide = _get_teaching_guide()
+    if guide is None:
+        return (
+            "RSCDS teaching guide not available. "
+            "Run 'uv run extract_teaching_guide.py' to create it."
+        )
+
+    key = topic.lower().strip()
+    key = TEACHING_GUIDE_ALIASES.get(key, key)
+
+    if key in guide.get("steps", {}):
+        return _format_teaching_step(key, guide["steps"][key], guide)
+
+    if key in guide.get("formations", {}):
+        data = guide["formations"][key]
+        return (
+            f"**Teaching {data.get('title', key)}** (RSCDS: {guide['title']})\n\n"
+            f"### Sample lesson plan\n{data.get('lesson_plan', '')}"
+        )
+
+    if key in guide.get("topics", {}):
+        data = guide["topics"][key]
+        return f"**{data.get('title', key)}** (RSCDS: {guide['title']})\n\n{data.get('content', '')}"
+
+    # Fallback: unique substring match against known names
+    candidates = {
+        name for name in _teaching_guide_topics(guide)
+        if key in name or name in key
+    }
+    if len(candidates) == 1:
+        return await get_teaching_guidance.ainvoke({"topic": candidates.pop()})
+
+    available = ", ".join(_teaching_guide_topics(guide))
+    return (
+        f"No teaching guidance found for '{topic}'. "
+        f"Available topics: {available}"
+    )

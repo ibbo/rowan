@@ -370,6 +370,31 @@
         "pas de basque",
         "the highland swing turn is"
       ]
+    },
+    {
+      "id": "teaching-skip-change-guidance",
+      "category": "evidence_boundary",
+      "target_label": "skip_change",
+      "candidate_labels": [
+        "insufficient_evidence",
+        "skip_change",
+        "pas_de_basque"
+      ],
+      "prompt": "How do I teach skip change of step to a beginner class?",
+      "source": {
+        "type": "teaching_guide",
+        "term": "skip change of step"
+      },
+      "required_any": [
+        "lack of hop",
+        "hop step close step"
+      ],
+      "required_all": [],
+      "forbidden_any": [
+        "pas de basque",
+        "jeté",
+        "spring onto the right foot"
+      ]
     }
   ]
 }

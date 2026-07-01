@@ -1,7 +1,7 @@
 {
   "summary": {
-    "total_cases": 12,
-    "passed": 12,
+    "total_cases": 13,
+    "passed": 13,
     "failed": 0,
     "pass_rate": 1.0
   },
@@ -19,7 +19,7 @@
       "failed": 0
     },
     "evidence_boundary": {
-      "passed": 2,
+      "passed": 3,
       "failed": 0
     }
   },
@@ -31,7 +31,7 @@
       "allemande_turn": 1
     },
     "skip_change": {
-      "skip_change": 2
+      "skip_change": 3
     },
     "pas_de_basque": {
       "pas_de_basque": 1
@@ -231,6 +231,20 @@
       ],
       "forbidden_hits": [],
       "output": "That term is not in the manual: there is no section for it, so I cannot quote any wording."
+    },
+    {
+      "id": "teaching-skip-change-guidance",
+      "category": "evidence_boundary",
+      "target_label": "skip_change",
+      "predicted_label": "skip_change",
+      "passed": true,
+      "expected_hits": [
+        "lack of hop",
+        "hop step close step"
+      ],
+      "missing_expected": [],
+      "forbidden_hits": [],
+      "output": "Teaching Skip Change Of Step: faults to watch: a) Lack of outward rotation from the hip.\nb) Incorrect third position \u2013 leaving gap, closing in first position or passing feet.\nc) Lack of hop.\nd) Front leg kicking up on hop.\ne) Lack of extension in knee and foot.\nf) Coming down on a bent front knee (lack of reach).\ng) Pulling in leading foot as it Lesson plan: 1. Give name and purpose and cover numbers 2, 3 and 4 from the guidelines in section 4.\n\n2. Rhythmic words \u2013 Hop Step Close Step\na) Walking words \u2013 \u201cAnd Step Close Step\u201d or \u201cAnd Right Close Right\u201d\nb) While walking, bring in music, gradually increasing speed.\nc) While music is playing introduce \u201cOn y"
     }
   ]
 }
