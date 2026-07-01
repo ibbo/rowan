@@ -7,361 +7,522 @@
     <title>ChatSCD - Scottish Country Dance Assistant</title>
     <link rel="icon" type="image/png" href="/assets/chatscd_logo.png">
     <link rel="apple-touch-icon" href="/assets/chatscd_logo.png">
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
     <style>
+        :root {
+            --bg: #f5f4f0;
+            --surface: #ffffff;
+            --sidebar-bg: #faf9f6;
+            --border: #e5e3dc;
+            --border-strong: #d6d3ca;
+            --text: #22272b;
+            --muted: #6d7378;
+            --faint: #9aa0a6;
+            --accent: #1f6e5a;
+            --accent-hover: #185846;
+            --accent-soft: #e7f1ed;
+            --accent-border: #c3ddd4;
+            --danger: #b3382f;
+            --danger-soft: #fdecea;
+            --radius: 10px;
+            --shadow-sm: 0 1px 2px rgba(30, 35, 40, 0.06);
+            --shadow-md: 0 4px 16px rgba(30, 35, 40, 0.10);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html,
+        body {
+            height: 100%;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.5;
         }
 
-        .container {
+        button {
+            font-family: inherit;
+        }
+
+        .app {
             display: flex;
             height: 100vh;
-            position: relative;
+            height: 100dvh;
+            overflow: hidden;
         }
 
+        /* ============ Sidebar ============ */
         .sidebar {
-            width: 280px;
-            min-width: 280px;
-            flex-shrink: 0;
-            background: white;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            width: 272px;
+            min-width: 272px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            transition: transform 0.3s ease, margin-left 0.3s ease;
-            position: relative;
-            z-index: 100;
+            transition: margin-left 0.25s ease;
+            z-index: 60;
         }
 
         .sidebar.collapsed {
-            transform: translateX(-280px);
-            margin-left: -280px;
+            margin-left: -272px;
         }
 
-        .sidebar-header {
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            position: relative;
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-        }
-
-        .user-bar {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        .sidebar-top {
+            padding: 14px 14px 10px;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
-        .user-info {
+        .brand {
             display: flex;
             align-items: center;
             gap: 10px;
-            color: white;
+            padding: 2px 4px;
         }
 
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(255, 255, 255, 0.6);
+        .brand img {
+            width: 30px;
+            height: 30px;
         }
 
-        .user-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+        .brand .brand-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
         }
 
-        .user-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .user-provider {
-            font-size: 0.75rem;
-            opacity: 0.8;
-        }
-
-        .user-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .user-link {
-            flex: 1;
-            text-align: center;
-            padding: 6px 10px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-            text-decoration: none;
-            font-size: 0.8rem;
-            font-weight: 600;
-            transition: background 0.2s ease;
-        }
-
-        .user-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .auth-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .auth-btn {
-            width: 100%;
-            padding: 8px 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .auth-btn.google {
-            background: white;
-            color: #1f2937;
-        }
-
-        .auth-btn.facebook {
-            background: #1877f2;
-            color: white;
-        }
-
-        .auth-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .sidebar-toggle {
-            position: fixed;
-            left: 280px;
-            top: 20px;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: none;
-            border-radius: 0 8px 8px 0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
-            transition: left 0.3s ease;
-            z-index: 101;
-        }
-
-        .sidebar-toggle.collapsed {
-            left: 0;
-        }
-
-        .sidebar-toggle:hover {
-            background: #f3f4f6;
-        }
-
-        .sidebar-toggle svg {
-            width: 20px;
-            height: 20px;
-            fill: #667eea;
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar-toggle.collapsed svg {
-            transform: rotate(180deg);
+        .brand .brand-sub {
+            font-size: 0.72rem;
+            color: var(--muted);
+            display: block;
+            margin-top: -2px;
         }
 
         .new-chat-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             width: 100%;
-            padding: 10px;
-            background: white;
-            color: #667eea;
+            padding: 9px 12px;
+            background: var(--accent);
+            color: #fff;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.15s;
         }
 
         .new-chat-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            background: var(--accent-hover);
+        }
+
+        .new-chat-btn svg {
+            width: 15px;
+            height: 15px;
+            fill: currentColor;
         }
 
         .sessions-list {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 10px;
+            padding: 4px 8px 12px;
             min-height: 0;
         }
 
+        .session-group-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--faint);
+            padding: 14px 8px 5px;
+        }
+
         .session-item {
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 8px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
+            color: var(--text);
             position: relative;
-            padding-right: 40px;
         }
 
         .session-item:hover {
-            background: #f3f4f6;
+            background: #efede7;
         }
 
         .session-item.active {
-            background: #ede9fe;
-            border-color: #667eea;
+            background: var(--accent-soft);
+        }
+
+        .session-mode-icon {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            color: var(--faint);
+            display: flex;
+            align-items: center;
+        }
+
+        .session-item.active .session-mode-icon {
+            color: var(--accent);
+        }
+
+        .session-mode-icon svg {
+            width: 15px;
+            height: 15px;
+            fill: currentColor;
+        }
+
+        .session-body {
+            flex: 1;
+            min-width: 0;
         }
 
         .session-title {
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 4px;
-            font-size: 0.9rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .session-preview {
-            font-size: 0.8rem;
-            color: #6b7280;
+            font-size: 0.86rem;
+            font-weight: 500;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .session-time {
-            font-size: 0.75rem;
-            color: #9ca3af;
-            margin-top: 4px;
+            font-size: 0.72rem;
+            color: var(--faint);
+            margin-top: 1px;
         }
 
-        .session-delete {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 28px;
-            height: 28px;
+        .session-title-input {
+            width: 100%;
+            font: inherit;
+            font-size: 0.86rem;
+            padding: 2px 4px;
+            border: 1px solid var(--accent);
+            border-radius: 5px;
+            outline: none;
+            background: #fff;
+        }
+
+        .session-actions {
+            display: none;
+            align-items: center;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
+        .session-item:hover .session-actions {
+            display: flex;
+        }
+
+        .session-action-btn {
+            width: 24px;
+            height: 24px;
             border: none;
             background: transparent;
-            color: #9ca3af;
             border-radius: 6px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.7;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-            z-index: 10;
+            color: var(--muted);
         }
 
-        .session-item:hover .session-delete {
-            opacity: 1;
-            background: #fee2e2;
-            color: #991b1b;
+        .session-action-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
         }
 
-        .session-delete:hover {
-            background: #fecaca !important;
-            color: #991b1b !important;
-            transform: translateY(-50%) scale(1.1);
+        .session-action-btn:hover {
+            background: #e2dfd7;
+            color: var(--text);
         }
 
-        .main-content {
+        .session-action-btn.delete:hover {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
+        .sessions-empty {
+            padding: 24px 12px;
+            text-align: center;
+            color: var(--faint);
+            font-size: 0.85rem;
+        }
+
+        /* Sidebar footer: account */
+        .sidebar-footer {
+            border-top: 1px solid var(--border);
+            padding: 12px 14px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-provider {
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .user-link {
+            flex: 1;
+            text-align: center;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .user-link:hover {
+            border-color: var(--border-strong);
+            background: #f4f2ec;
+        }
+
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+
+        .auth-btn:hover {
+            background: #f4f2ec;
+            border-color: var(--border-strong);
+        }
+
+        .auth-btn.facebook {
+            background: #1877f2;
+            border-color: #1877f2;
+            color: white;
+        }
+
+        .auth-btn.facebook:hover {
+            background: #166fe0;
+        }
+
+        .auth-btn.dev {
+            background: var(--accent-soft);
+            border-color: var(--accent-border);
+            color: var(--accent);
+        }
+
+        /* ============ Main column ============ */
+        .main {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            overflow: hidden;
+            min-width: 0;
         }
 
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 20px;
+        .topbar {
+            height: 54px;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 14px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
         }
 
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 8px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            color: var(--muted);
+            flex-shrink: 0;
         }
 
-        .header-logo {
-            height: 64px;
-            width: auto;
-            filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
+        .icon-btn:hover {
+            background: #f0eee8;
+            color: var(--text);
         }
 
-        .header p {
-            font-size: 1rem;
-            opacity: 0.9;
+        .icon-btn svg {
+            width: 19px;
+            height: 19px;
+            fill: currentColor;
         }
 
-        .chat-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
+        .topbar-brand {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .topbar-brand img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .sidebar.collapsed~.main .topbar-brand,
+        .app.sidebar-collapsed .topbar-brand {
+            display: flex;
+        }
+
+        .mode-switch {
+            display: inline-flex;
+            background: #edebe4;
+            border-radius: 10px;
+            padding: 3px;
+            margin: 0 auto;
+        }
+
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 16px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+
+        .mode-btn svg {
+            width: 15px;
+            height: 15px;
+            fill: currentColor;
+        }
+
+        .mode-btn.active {
+            background: var(--surface);
+            color: var(--accent);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 34px;
+            justify-content: flex-end;
+        }
+
+        .view-lesson-btn {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ============ Workspace ============ */
+        .workspace {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        .chat-pane {
+            flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
-            flex: 1;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
         }
 
         .messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            min-height: 0;
+        }
+
+        .messages-inner {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 28px 24px 16px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 18px;
         }
 
         .message {
             display: flex;
-            gap: 10px;
-            animation: slideIn 0.3s ease-out;
+            animation: fadeUp 0.25s ease-out;
         }
 
-        @keyframes slideIn {
+        @keyframes fadeUp {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(6px);
             }
 
             to {
@@ -375,209 +536,165 @@
         }
 
         .message-content {
-            max-width: 70%;
-            padding: 12px 18px;
-            border-radius: 18px;
-            line-height: 1.5;
+            max-width: 85%;
+            line-height: 1.55;
         }
 
         .message.user .message-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--accent-soft);
+            border: 1px solid var(--accent-border);
+            color: var(--text);
+            padding: 10px 15px;
+            border-radius: 14px 14px 4px 14px;
         }
 
         .message.assistant .message-content {
-            background: #f3f4f6;
-            color: #1f2937;
+            max-width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 18px;
+            box-shadow: var(--shadow-sm);
         }
 
         .message.system .message-content {
-            background: #fef3c7;
-            color: #92400e;
-            font-size: 0.9rem;
-            max-width: 100%;
+            background: #fdf6e3;
+            border: 1px solid #f0e2b6;
+            color: #7a5d0e;
+            font-size: 0.88rem;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin: 0 auto;
             text-align: center;
         }
 
+        .timestamp {
+            font-size: 0.72rem;
+            color: var(--faint);
+            margin-top: 6px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            padding: 40px 24px;
+            max-width: 620px;
+        }
+
+        .empty-state img {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 12px;
+        }
+
+        .empty-state h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .empty-state p {
+            color: var(--muted);
+            margin-top: 6px;
+            font-size: 0.92rem;
+        }
+
+        .example-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .example-btn {
+            padding: 8px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.84rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .example-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        /* Progress box */
         .progress-box {
-            background: #f0f9ff;
-            border: 2px solid #bae6fd;
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 16px;
-            margin: 10px 0;
+            padding: 12px 16px;
             max-width: 100%;
+            box-shadow: var(--shadow-sm);
         }
 
         .progress-box .progress-title {
             font-weight: 600;
-            color: #0c4a6e;
-            margin-bottom: 8px;
+            font-size: 0.88rem;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
         .progress-box .progress-content {
-            color: #075985;
-            font-size: 0.9rem;
+            color: var(--muted);
+            font-size: 0.84rem;
             line-height: 1.5;
+            margin-top: 4px;
         }
 
         .progress-box .progress-step {
-            padding: 4px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            padding: 2px 0;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--accent-soft);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .status-badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85rem;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 0.8rem;
             font-weight: 600;
             margin-right: 8px;
         }
 
-        .status-processing {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .status-success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
         .status-error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .dance-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
-            margin-top: 12px;
-        }
-
-        .dance-card {
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 12px;
-            transition: all 0.2s;
-        }
-
-        .dance-card:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-        }
-
-        .dance-card h4 {
-            color: #1f2937;
-            margin-bottom: 6px;
-            font-size: 0.95rem;
-        }
-
-        .dance-card p {
-            color: #6b7280;
-            font-size: 0.85rem;
-            margin: 4px 0;
-        }
-
-        .input-container {
-            padding: 20px;
-            background: #f9fafb;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .footer {
-            padding: 12px 20px;
-            background: #f3f4f6;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #6b7280;
-            line-height: 1.5;
-        }
-
-        .disclaimer {
-            background: #fef3c7;
-            border: 1px solid #fde68a;
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            font-size: 0.7rem;
-            color: #92400e;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            justify-content: center;
-        }
-
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        .input-form {
-            display: flex;
-            gap: 10px;
-        }
-
-        #message-input {
-            flex: 1;
-            padding: 12px 18px;
-            border: 2px solid #e5e7eb;
-            border-radius: 25px;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        #message-input:focus {
-            border-color: #667eea;
-        }
-
-        #send-button {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        #send-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        #send-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+            background: var(--danger-soft);
+            color: var(--danger);
         }
 
         .typing-indicator {
             display: flex;
             gap: 4px;
-            padding: 12px 18px;
+            padding: 12px 4px;
         }
 
         .typing-indicator span {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
-            background: #9ca3af;
+            background: var(--faint);
             animation: bounce 1.4s infinite ease-in-out;
         }
 
@@ -602,822 +719,578 @@
             }
         }
 
-        .timestamp {
-            font-size: 0.75rem;
-            color: #9ca3af;
-            margin-top: 4px;
+        /* Composer */
+        .composer {
+            flex-shrink: 0;
+            background: transparent;
+            padding: 8px 24px 10px;
         }
 
-        .examples {
+        .composer-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .input-form {
             display: flex;
+            gap: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 14px;
+            padding: 6px 6px 6px 16px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .input-form:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+        #message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: transparent;
+            color: var(--text);
+        }
+
+        #send-button {
+            width: 38px;
+            height: 38px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+
+        #send-button svg {
+            width: 17px;
+            height: 17px;
+            fill: currentColor;
+        }
+
+        #send-button:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        #send-button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .fineprint {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--faint);
+            margin-top: 7px;
+            line-height: 1.45;
+        }
+
+        .fineprint a {
+            color: var(--muted);
+            text-decoration: underline;
+        }
+
+        /* ============ Lesson pane ============ */
+        .pane-resizer {
+            width: 6px;
+            cursor: col-resize;
+            flex-shrink: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pane-resizer::after {
+            content: '';
+            width: 3px;
+            height: 44px;
+            background: var(--border-strong);
+            border-radius: 2px;
+        }
+
+        .pane-resizer:hover::after,
+        .pane-resizer.resizing::after {
+            background: var(--accent);
+        }
+
+        .planner-mode .pane-resizer {
+            display: flex;
+        }
+
+        .lesson-pane {
+            width: 0;
+            min-width: 0;
+            display: none;
+            flex-direction: column;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+        }
+
+        .planner-mode .lesson-pane {
+            display: flex;
+            width: 44%;
+            min-width: 340px;
+        }
+
+        .lesson-header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
         }
 
-        .example-btn {
-            padding: 8px 16px;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 20px;
-            font-size: 0.9rem;
+        .lesson-header h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+        }
+
+        .lesson-header h3 svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--accent);
+        }
+
+        .lesson-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .lesson-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
             cursor: pointer;
-            transition: all 0.2s;
         }
 
-        .example-btn:hover {
-            border-color: #667eea;
-            background: #f3f4f6;
+        .lesson-action-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
         }
 
-        .clear-chat-btn {
-            padding: 8px 16px;
-            background: #fee2e2;
-            border: 2px solid #fecaca;
-            border-radius: 20px;
+        .lesson-action-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .lesson-close-btn {
+            display: none;
+        }
+
+        .lesson-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 22px 26px;
+            line-height: 1.6;
+        }
+
+        .lesson-content.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--faint);
+            text-align: center;
             font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #991b1b;
+            padding: 40px;
+        }
+
+        /* ============ Markdown ============ */
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4,
+        .lesson-content h1,
+        .lesson-content h2,
+        .lesson-content h3,
+        .lesson-content h4 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 650;
+            line-height: 1.3;
+        }
+
+        .message-content> :first-child,
+        .lesson-content> :first-child {
+            margin-top: 0;
+        }
+
+        .message-content h1,
+        .lesson-content h1 {
+            font-size: 1.3rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .message-content h2,
+        .lesson-content h2 {
+            font-size: 1.15rem;
+        }
+
+        .message-content h3,
+        .lesson-content h3 {
+            font-size: 1.02rem;
+        }
+
+        .message-content p,
+        .lesson-content p {
+            margin: 8px 0;
+        }
+
+        .message-content ul,
+        .message-content ol,
+        .lesson-content ul,
+        .lesson-content ol {
+            margin: 8px 0;
+            padding-left: 22px;
+        }
+
+        .message-content li,
+        .lesson-content li {
+            margin: 3px 0;
+        }
+
+        .message-content blockquote,
+        .lesson-content blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 14px;
+            margin: 12px 0;
+            color: var(--muted);
+        }
+
+        .message-content a,
+        .lesson-content a {
+            color: var(--accent);
+            text-decoration: underline;
+            text-decoration-color: var(--accent-border);
+            text-underline-offset: 2px;
+        }
+
+        .message-content a:hover,
+        .lesson-content a:hover {
+            color: var(--accent-hover);
+        }
+
+        .message-content table,
+        .lesson-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+            font-size: 0.9rem;
+        }
+
+        .message-content th,
+        .message-content td,
+        .lesson-content th,
+        .lesson-content td {
+            border: 1px solid var(--border);
+            padding: 7px 10px;
+            text-align: left;
+        }
+
+        .message-content th,
+        .lesson-content th {
+            background: var(--bg);
             font-weight: 600;
         }
 
-        .clear-chat-btn:hover {
-            background: #fecaca;
-            border-color: #fca5a5;
-        }
-
-        /* Mobile menu button */
-        .mobile-menu-btn {
-            display: none;
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 50px;
-            height: 50px;
-            background: white;
+        .message-content hr,
+        .lesson-content hr {
             border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            z-index: 1001;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: all 0.2s;
+            border-top: 1px solid var(--border);
+            margin: 16px 0;
         }
 
-        .mobile-menu-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        pre {
+            background: #2b3138;
+            color: #eef0f2;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.84rem;
+            margin: 12px 0;
         }
 
-        .mobile-menu-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: #667eea;
+        code {
+            font-family: ui-monospace, 'SF Mono', 'Monaco', 'Menlo', monospace;
+            background: #efede7;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.88em;
         }
 
-        /* Mobile overlay */
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        /* ============ Mobile ============ */
         .sidebar-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
+            inset: 0;
+            background: rgba(20, 24, 28, 0.45);
+            z-index: 55;
         }
 
         .sidebar-overlay.active {
             display: block;
         }
 
-        /* Mobile responsiveness */
         @media (max-width: 768px) {
-            .mobile-menu-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
             .sidebar {
                 position: fixed;
                 left: 0;
                 top: 0;
-                height: 100vh;
-                z-index: 1000;
+                height: 100dvh;
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                transition: transform 0.25s ease;
+                margin-left: 0 !important;
+                box-shadow: var(--shadow-md);
             }
 
             .sidebar.mobile-open {
-                transform: translateX(0) !important;
-            }
-
-            .sidebar.collapsed {
-                transform: translateX(-100%);
-            }
-
-            .sidebar-toggle {
-                display: none;
-            }
-
-            .main-content {
-                padding: 80px 10px 10px 10px;
-            }
-
-            .header h1 {
-                font-size: 1.5rem;
-            }
-
-            .header-logo {
-                height: 48px;
-            }
-
-            .header {
-                margin-bottom: 10px;
-            }
-
-            .examples {
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .example-btn {
-                font-size: 0.8rem;
-                padding: 6px 12px;
-            }
-
-            .message-content {
-                max-width: 85%;
-            }
-        }
-
-        /* Markdown styling */
-        .message-content h1,
-        .message-content h2,
-        .message-content h3,
-        .message-content h4 {
-            margin-top: 16px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .message-content h1 {
-            font-size: 1.5rem;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 8px;
-        }
-
-        .message-content h2 {
-            font-size: 1.3rem;
-        }
-
-        .message-content h3 {
-            font-size: 1.1rem;
-        }
-
-        .message-content h4 {
-            font-size: 1rem;
-        }
-
-        .message-content p {
-            margin: 8px 0;
-            line-height: 1.6;
-        }
-
-        .message-content ul,
-        .message-content ol {
-            margin: 8px 0;
-            padding-left: 24px;
-        }
-
-        .message-content li {
-            margin: 4px 0;
-            line-height: 1.5;
-        }
-
-        .message-content strong {
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .message-content em {
-            font-style: italic;
-        }
-
-        .message-content blockquote {
-            border-left: 4px solid #667eea;
-            padding-left: 16px;
-            margin: 12px 0;
-            color: #6b7280;
-            font-style: italic;
-        }
-
-        .message-content a {
-            color: #667eea;
-            text-decoration: none;
-            border-bottom: 1px solid #667eea;
-        }
-
-        .message-content a:hover {
-            color: #764ba2;
-            border-bottom-color: #764ba2;
-        }
-
-        .message-content table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 12px 0;
-        }
-
-        .message-content th,
-        .message-content td {
-            border: 1px solid #e5e7eb;
-            padding: 8px 12px;
-            text-align: left;
-        }
-
-        .message-content th {
-            background: #f3f4f6;
-            font-weight: 600;
-        }
-
-        .message-content hr {
-            border: none;
-            border-top: 2px solid #e5e7eb;
-            margin: 16px 0;
-        }
-
-        pre {
-            background: #1f2937;
-            color: #f3f4f6;
-            padding: 12px;
-            border-radius: 8px;
-            overflow-x: auto;
-            font-size: 0.85rem;
-            margin: 12px 0;
-        }
-
-        code {
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-            background: #f3f4f6;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
-        pre code {
-            background: transparent;
-            padding: 0;
-            color: #f3f4f6;
-        }
-
-        /* ============================================
-           LESSON PLANNER MODE STYLES
-           ============================================ */
-
-        /* Mode Toggle */
-        .mode-toggle {
-            display: flex;
-            justify-content: center;
-            gap: 0;
-            margin-top: 8px;
-        }
-
-        .mode-btn {
-            padding: 8px 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            background: transparent;
-            color: white;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .mode-btn:first-child {
-            border-radius: 20px 0 0 20px;
-            border-right: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .mode-btn:last-child {
-            border-radius: 0 20px 20px 0;
-            border-left: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .mode-btn.active {
-            background: white;
-            color: #667eea;
-            border-color: white;
-        }
-
-        .mode-btn:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Split Pane Container */
-        .split-container {
-            display: flex;
-            flex: 1;
-            gap: 0;
-            overflow: hidden;
-            max-width: 1800px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .chat-pane {
-            flex: 1;
-            min-width: 400px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Resizer Handle */
-        .pane-resizer {
-            width: 8px;
-            background: transparent;
-            cursor: col-resize;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-
-        .pane-resizer:hover,
-        .pane-resizer.resizing {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .pane-resizer::after {
-            content: '';
-            width: 4px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 2px;
-        }
-
-        .lesson-planner-mode .pane-resizer {
-            display: flex;
-        }
-
-        /* Lesson Preview Pane */
-        .lesson-preview-pane {
-            width: 0;
-            min-width: 0;
-            overflow: hidden;
-            display: none;
-            flex-direction: column;
-            transition: width 0.3s ease;
-        }
-
-        .lesson-planner-mode .lesson-preview-pane {
-            display: flex;
-            width: 45%;
-            min-width: 350px;
-        }
-
-        .lesson-preview-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .lesson-preview-header {
-            padding: 16px 20px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .lesson-preview-header h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .lesson-preview-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .lesson-action-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            transition: all 0.2s;
-        }
-
-        .lesson-action-btn.pdf-btn {
-            background: white;
-            color: #059669;
-        }
-
-        .lesson-action-btn.pdf-btn:hover {
-            background: #ecfdf5;
-            transform: translateY(-1px);
-        }
-
-        .lesson-preview-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-
-        .lesson-preview-content.empty {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #9ca3af;
-            text-align: center;
-            font-style: italic;
-        }
-
-        /* Lesson Markdown Styling */
-        .lesson-preview-content h1 {
-            font-size: 1.5rem;
-            color: #1f2937;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 8px;
-            margin-bottom: 16px;
-        }
-
-        .lesson-preview-content h2 {
-            font-size: 1.25rem;
-            color: #374151;
-            margin-top: 24px;
-            margin-bottom: 12px;
-        }
-
-        .lesson-preview-content h3 {
-            font-size: 1.1rem;
-            color: #4b5563;
-            margin-top: 16px;
-            margin-bottom: 8px;
-        }
-
-        .lesson-preview-content ul,
-        .lesson-preview-content ol {
-            margin-left: 20px;
-            margin-bottom: 12px;
-        }
-
-        .lesson-preview-content li {
-            margin-bottom: 4px;
-        }
-
-        .lesson-preview-content blockquote {
-            border-left: 4px solid #10b981;
-            padding-left: 16px;
-            margin: 16px 0;
-            color: #6b7280;
-            font-style: italic;
-        }
-
-        .lesson-preview-content a {
-            color: #10b981;
-            text-decoration: none;
-        }
-
-        .lesson-preview-content a:hover {
-            text-decoration: underline;
-        }
-
-        /* Example Buttons for Lesson Planner Mode */
-        .lesson-examples {
-            display: none;
-        }
-
-        .lesson-planner-mode .chat-examples {
-            display: none;
-        }
-
-        .lesson-planner-mode .lesson-examples {
-            display: flex;
-        }
-
-        /* Adjust main content for lesson planner mode */
-        .lesson-planner-mode .chat-container {
-            max-width: none;
-        }
-
-        /* Print Styles for PDF Export */
-        @media print {
-            body {
-                background: white !important;
-                margin: 0;
-                padding: 20px;
-            }
-
-            .container,
-            .sidebar,
-            .sidebar-toggle,
-            .mobile-menu-btn,
-            .sidebar-overlay,
-            .main-content,
-            .header,
-            .chat-pane,
-            .pane-resizer,
-            .lesson-preview-header,
-            .lesson-preview-actions {
-                display: none !important;
-            }
-
-            .lesson-preview-pane,
-            .lesson-preview-container,
-            .lesson-preview-content {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                border: none !important;
-                box-shadow: none !important;
-                overflow: visible !important;
-            }
-
-            .lesson-preview-content {
-                padding: 0 !important;
-            }
-
-            .lesson-preview-content h1 {
-                font-size: 24pt;
-            }
-
-            .lesson-preview-content h2 {
-                font-size: 18pt;
-            }
-
-            .lesson-preview-content h3 {
-                font-size: 14pt;
-            }
-
-            .lesson-preview-content p,
-            .lesson-preview-content li {
-                font-size: 12pt;
-                line-height: 1.5;
-            }
-
-            a {
-                color: black !important;
-                text-decoration: underline !important;
-            }
-        }
-
-        /* Mobile Responsiveness for Lesson Planner */
-        @media (max-width: 1024px) {
-            .lesson-planner-mode .lesson-preview-pane {
-                position: fixed;
-                top: 0;
-                right: 0;
-                width: 100%;
-                height: 100vh;
-                z-index: 1000;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-            }
-
-            .lesson-planner-mode .lesson-preview-pane.visible {
                 transform: translateX(0);
             }
 
-            .lesson-planner-mode .pane-resizer {
+            .topbar-brand {
+                display: flex !important;
+            }
+
+            .mode-btn {
+                padding: 6px 10px;
+            }
+
+            .mode-btn .mode-label {
                 display: none;
             }
 
-            .lesson-preview-header {
-                padding: 12px 16px;
+            .messages-inner {
+                padding: 18px 14px 10px;
+            }
+
+            .composer {
+                padding: 6px 12px 8px;
+            }
+
+            .message-content {
+                max-width: 92%;
+            }
+
+            .planner-mode .view-lesson-btn {
+                display: flex;
+            }
+
+            .planner-mode .lesson-pane {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 100% !important;
+                min-width: 0;
+                height: 100dvh;
+                z-index: 70;
+                transform: translateX(100%);
+                transition: transform 0.25s ease;
+            }
+
+            .planner-mode .lesson-pane.visible {
+                transform: translateX(0);
+            }
+
+            .planner-mode .pane-resizer {
+                display: none;
             }
 
             .lesson-close-btn {
-                display: block;
-            }
-        }
-
-        .lesson-close-btn {
-            display: none;
-            padding: 6px 10px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-
-        @media (max-width: 1024px) {
-            .lesson-close-btn {
-                display: block;
-            }
-        }
-
-        .view-lesson-btn {
-            display: none;
-            padding: 8px 16px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-left: auto;
-        }
-
-        @media (max-width: 1024px) {
-            .lesson-planner-mode .view-lesson-btn {
-                display: block;
+                display: flex;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <!-- Mobile menu button -->
-        <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-            </svg>
-        </button>
-
+    <div class="app" id="app">
         <!-- Sidebar overlay for mobile -->
         <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 
-        <!-- Desktop sidebar toggle button -->
-        <button class="sidebar-toggle collapsed" id="sidebar-toggle" onclick="toggleSidebar()"
-            aria-label="Toggle sidebar">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-            </svg>
-        </button>
-
-        <!-- Sidebar with chat sessions -->
-        <div class="sidebar collapsed" id="sidebar">
-            <div class="sidebar-header">
-                <h2>💬 Chat History</h2>
-                <button class="new-chat-btn" onclick="createNewChat()">+ New Chat</button>
-                <div class="user-bar">
-                    {% if current_user %}
-                    <div class="user-info">
-                        {% if current_user.avatar_url %}
-                        <img src="{{ current_user.avatar_url }}" alt="User avatar" class="user-avatar">
-                        {% endif %}
-                        <div class="user-meta">
-                            <div class="user-name">
-                                {{ current_user.name or current_user.email or "Signed In" }}
-                            </div>
-                            <div class="user-provider">Signed in with {{ current_user.provider | title }}</div>
-                        </div>
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <div class="brand">
+                    <img src="/assets/chatscd_logo.png" alt="ChatSCD logo">
+                    <div>
+                        <span class="brand-name">ChatSCD</span>
+                        <span class="brand-sub">Scottish Country Dance assistant</span>
                     </div>
-                    <div class="user-actions">
-                        <a class="user-link" href="/settings">Settings</a>
-                        <a class="user-link" href="/auth/logout">Logout</a>
-                    </div>
-                    {% else %}
-                    <div class="auth-buttons">
-                        {% if oauth_providers.google %}
-                        <button class="auth-btn google" onclick="startOAuth('google')">Continue with Google</button>
-                        {% endif %}
-                        {% if oauth_providers.facebook %}
-                        <button class="auth-btn facebook" onclick="startOAuth('facebook')">Continue with Facebook</button>
-                        {% endif %}
-                        {% if dev_auth_enabled %}
-                        <button class="auth-btn" style="background: #10b981; color: white;" onclick="startDevAuth()">🔧 Dev Login (Test)</button>
-                        {% endif %}
-                        {% if not oauth_providers.google and not oauth_providers.facebook and not dev_auth_enabled %}
-                        <div style="color: rgba(255, 255, 255, 0.85); font-size: 0.85rem;">OAuth not configured</div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
                 </div>
+                <button class="new-chat-btn" onclick="createNewChat()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                    </svg>
+                    New chat
+                </button>
             </div>
             <div class="sessions-list" id="sessions-list">
-                <!-- Sessions will be loaded here -->
+                <!-- Sessions load here -->
+            </div>
+            <div class="sidebar-footer">
+                {% if current_user %}
+                <div class="user-info">
+                    {% if current_user.avatar_url %}
+                    <img src="{{ current_user.avatar_url }}" alt="User avatar" class="user-avatar">
+                    {% endif %}
+                    <div class="user-meta">
+                        <div class="user-name">{{ current_user.name or current_user.email or "Signed In" }}</div>
+                        <div class="user-provider">via {{ current_user.provider | title }}</div>
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <a class="user-link" href="/settings">Settings</a>
+                    <a class="user-link" href="/auth/logout">Log out</a>
+                </div>
+                {% else %}
+                <div class="auth-buttons">
+                    {% if oauth_providers.google %}
+                    <button class="auth-btn google" onclick="startOAuth('google')">Continue with Google</button>
+                    {% endif %}
+                    {% if oauth_providers.facebook %}
+                    <button class="auth-btn facebook" onclick="startOAuth('facebook')">Continue with Facebook</button>
+                    {% endif %}
+                    {% if dev_auth_enabled %}
+                    <button class="auth-btn dev" onclick="startDevAuth()">Dev login (test)</button>
+                    {% endif %}
+                    {% if not oauth_providers.google and not oauth_providers.facebook and not dev_auth_enabled %}
+                    <div style="color: var(--faint); font-size: 0.8rem; text-align:center;">Sign-in not configured</div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Main chat area -->
-        <div class="main-content">
-            <div class="header">
-                <h1>
-                    <img src="/assets/chatscd_logo.png" alt="ChatSCD Logo" class="header-logo">
+        <!-- Main column -->
+        <div class="main">
+            <div class="topbar">
+                <button class="icon-btn" id="sidebar-toggle-btn" onclick="handleMenuClick()" aria-label="Toggle sidebar">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+                    </svg>
+                </button>
+                <div class="topbar-brand">
+                    <img src="/assets/chatscd_logo.png" alt="">
                     ChatSCD
-                </h1>
-                <p>Your Scottish Country Dance Planning Partner</p>
-                <div class="mode-toggle">
-                    <button class="mode-btn active" id="chat-mode-btn" onclick="switchMode('chat')">💬 Chat</button>
-                    <button class="mode-btn" id="planner-mode-btn" onclick="switchMode('planner')">📋 Lesson
-                        Planner</button>
+                </div>
+                <div class="mode-switch" role="tablist">
+                    <button class="mode-btn active" id="chat-mode-btn" onclick="switchMode('chat')" role="tab">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                        </svg>
+                        <span class="mode-label">Chat</span>
+                    </button>
+                    <button class="mode-btn" id="planner-mode-btn" onclick="switchMode('planner')" role="tab">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
+                        </svg>
+                        <span class="mode-label">Lesson planner</span>
+                    </button>
+                </div>
+                <div class="topbar-right">
+                    <button class="view-lesson-btn" onclick="toggleLessonPreview()">View lesson</button>
                 </div>
             </div>
 
-            <div class="split-container" id="split-container">
+            <div class="workspace" id="workspace">
                 <div class="chat-pane">
-                    <div class="chat-container">
-                        <div class="messages" id="messages">
-                            <!-- Messages will be loaded here -->
-                        </div>
-
-                        <div class="input-container">
-                            <!-- Chat mode examples -->
-                            <div class="examples chat-examples">
-                                <button class="example-btn" onclick="setMessage('Find me some 32-bar reels')">32-bar
-                                    reels</button>
-                                <button class="example-btn" onclick="setMessage('Find easy reels for beginners')">Easy
-                                    reels</button>
-                                <button class="example-btn"
-                                    onclick="setMessage('What dances have poussette moves?')">Poussette dances</button>
-                                <button class="example-btn" onclick="setMessage('Show me RSCDS published jigs')">RSCDS
-                                    jigs</button>
-                                <button class="clear-chat-btn" onclick="clearChat()">🗑️ Clear Chat</button>
-                            </div>
-                            <!-- Lesson planner mode examples -->
-                            <div class="examples lesson-examples">
-                                <button class="example-btn"
-                                    onclick="setMessage('Plan a 45 minute lesson for intermediate dancers focusing on strathspey poussette')">45min
-                                    poussette lesson</button>
-                                <button class="example-btn"
-                                    onclick="setMessage('Create a beginner lesson with 3 easy reels')">Beginner
-                                    reels</button>
-                                <button class="example-btn"
-                                    onclick="setMessage('Plan a 1 hour class with progressively harder dances')">Progressive
-                                    difficulty</button>
-                                <button class="view-lesson-btn" id="view-lesson-mobile-btn"
-                                    onclick="toggleLessonPreview()">📋 View Lesson</button>
-                                <button class="clear-chat-btn" onclick="clearChat()">🗑️ Clear</button>
-                            </div>
-                            <form class="input-form" onsubmit="sendMessage(event)">
-                                <input type="text" id="message-input" placeholder="Ask about Scottish Country Dances..."
-                                    autocomplete="off" required>
-                                <button type="submit" id="send-button">Send</button>
-                            </form>
-                        </div>
-
-                        <div class="footer">
-                            <div class="disclaimer">
-                                <span>⚠️</span>
-                                <span><strong>Note:</strong> ChatSCD can make mistakes. Please verify dance details,
-                                    formations,
-                                    and links before using them.</span>
-                            </div>
-                            Dance data from <a href="https://my.strathspey.org/dd" target="_blank" rel="noopener">The
-                                Strathspey
-                                Server Dance Database</a>,
-                            used under <a href="http://creativecommons.org/licenses/by/3.0/de/" target="_blank"
-                                rel="noopener">Creative Commons Attribution 3.0 Germany</a> license.
-                        </div>
+                    <div class="messages" id="messages-scroll">
+                        <div class="messages-inner" id="messages"></div>
                     </div>
-                </div><!-- End chat-pane -->
-
-                <!-- Resizable divider -->
-                <div class="pane-resizer" id="pane-resizer"></div>
-
-                <!-- Lesson Preview Pane -->
-                <div class="lesson-preview-pane" id="lesson-preview-pane">
-                    <div class="lesson-preview-container">
-                        <div class="lesson-preview-header">
-                            <h3>📋 Lesson Plan</h3>
-                            <div class="lesson-preview-actions">
-                                <button class="lesson-action-btn pdf-btn" onclick="exportToPDF()"
-                                    title="Download as PDF">
-                                    📄 PDF
+                    <div class="composer">
+                        <div class="composer-inner">
+                            <form class="input-form" onsubmit="sendMessage(event)">
+                                <input type="text" id="message-input" placeholder="Ask about Scottish Country Dances…"
+                                    autocomplete="off" required>
+                                <button type="submit" id="send-button" aria-label="Send">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                                    </svg>
                                 </button>
-                                <button class="lesson-close-btn" onclick="toggleLessonPreview()">✕</button>
+                            </form>
+                            <div class="fineprint">
+                                ChatSCD can make mistakes — verify dance details before using them. Dance data from
+                                <a href="https://my.strathspey.org/dd" target="_blank" rel="noopener">the Strathspey
+                                    SCDDB</a>
+                                (<a href="http://creativecommons.org/licenses/by/3.0/de/" target="_blank"
+                                    rel="noopener">CC BY 3.0 DE</a>).
                             </div>
-                        </div>
-                        <div class="lesson-preview-content empty" id="lesson-preview-content">
-                            <p>Your lesson plan will appear here once generated.</p>
                         </div>
                     </div>
                 </div>
-            </div><!-- End split-container -->
+
+                <div class="pane-resizer" id="pane-resizer"></div>
+
+                <div class="lesson-pane" id="lesson-pane">
+                    <div class="lesson-header">
+                        <h3>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z" />
+                            </svg>
+                            Lesson plan
+                        </h3>
+                        <div class="lesson-actions">
+                            <button class="lesson-action-btn" onclick="exportToPDF()" title="Download as PDF">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                                </svg>
+                                PDF
+                            </button>
+                            <button class="lesson-action-btn lesson-close-btn" onclick="toggleLessonPreview()">Close</button>
+                        </div>
+                    </div>
+                    <div class="lesson-content empty" id="lesson-content">
+                        <p>Your lesson plan will appear here once generated — it's saved with this chat, so you can
+                            switch away and come back.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Get or create browser ID from localStorage (persistent across sessions)
+        // ---------- Identity ----------
         let browserId = localStorage.getItem('chatSCD_browserId');
         if (!browserId) {
             browserId = crypto.randomUUID();
             localStorage.setItem('chatSCD_browserId', browserId);
         }
-        console.log('Browser ID:', browserId);
+
+        let sessionId = localStorage.getItem('chatSCD_sessionId');
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            localStorage.setItem('chatSCD_sessionId', sessionId);
+        }
 
         function startOAuth(provider) {
             const next = encodeURIComponent(window.location.pathname);
@@ -1429,71 +1302,69 @@
             window.location.href = `/auth/dev-login?browser_id=${encodeURIComponent(browserId)}&next=${next}`;
         }
 
-        // Get or create session ID from localStorage
-        let sessionId = localStorage.getItem('chatSCD_sessionId');
-        if (!sessionId) {
-            sessionId = crypto.randomUUID();
-            localStorage.setItem('chatSCD_sessionId', sessionId);
-        }
-        console.log('Session ID:', sessionId);
-
+        // ---------- State ----------
         let isProcessing = false;
-        let currentMode = 'chat'; // 'chat' or 'planner'
-        let currentLessonMarkdown = ''; // Current lesson plan markdown
+        let currentMode = 'chat';
+        let currentLessonMarkdown = '';
+        let sessionsCache = [];
 
-        // Configure marked.js
-        marked.setOptions({
-            breaks: true,
-            gfm: true,
-            headerIds: false,
-            mangle: false
-        });
+        marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
 
-        // ============================================
-        // MODE SWITCHING
-        // ============================================
+        const MODE_ICONS = {
+            chat: '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>',
+            planner: '<svg viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/></svg>'
+        };
+
+        const EXAMPLES = {
+            chat: [
+                'Find me some 32-bar reels',
+                'Find easy reels for beginners',
+                'What dances have poussette moves?',
+                'How do I teach skip change of step?'
+            ],
+            planner: [
+                'Plan a 45 minute lesson for intermediate dancers focusing on strathspey poussette',
+                'Create a beginner lesson with 3 easy reels',
+                'Plan a 1 hour class with progressively harder dances'
+            ]
+        };
+
+        // ---------- Mode ----------
+        function applyMode(mode) {
+            currentMode = mode === 'planner' ? 'planner' : 'chat';
+            const workspace = document.getElementById('workspace');
+            const app = document.getElementById('app');
+            const input = document.getElementById('message-input');
+
+            workspace.classList.toggle('planner-mode', currentMode === 'planner');
+            app.classList.toggle('planner-mode', currentMode === 'planner');
+            document.getElementById('chat-mode-btn').classList.toggle('active', currentMode === 'chat');
+            document.getElementById('planner-mode-btn').classList.toggle('active', currentMode === 'planner');
+
+            input.placeholder = currentMode === 'planner'
+                ? 'Describe your lesson (e.g. "45 minute class focusing on poussette")…'
+                : 'Ask about Scottish Country Dances…';
+
+            refreshEmptyState();
+        }
 
         function switchMode(mode) {
             if (mode === currentMode) return;
-            currentMode = mode;
-
-            const mainContent = document.querySelector('.main-content');
-            const chatModeBtn = document.getElementById('chat-mode-btn');
-            const plannerModeBtn = document.getElementById('planner-mode-btn');
-            const messageInput = document.getElementById('message-input');
-
-            if (mode === 'planner') {
-                mainContent.classList.add('lesson-planner-mode');
-                chatModeBtn.classList.remove('active');
-                plannerModeBtn.classList.add('active');
-                messageInput.placeholder = 'Describe your lesson (e.g., "45 minute class focusing on poussette")...';
-            } else {
-                mainContent.classList.remove('lesson-planner-mode');
-                chatModeBtn.classList.add('active');
-                plannerModeBtn.classList.remove('active');
-                messageInput.placeholder = 'Ask about Scottish Country Dances...';
-            }
-
-            // Save mode preference
+            applyMode(mode);
             localStorage.setItem('chatSCD_mode', mode);
         }
 
         function toggleLessonPreview() {
-            const pane = document.getElementById('lesson-preview-pane');
-            pane.classList.toggle('visible');
+            document.getElementById('lesson-pane').classList.toggle('visible');
         }
 
-        // ============================================
-        // RESIZABLE PANE
-        // ============================================
-
+        // ---------- Resizer ----------
         function initResizer() {
             const resizer = document.getElementById('pane-resizer');
             const leftPane = document.querySelector('.chat-pane');
-            const rightPane = document.getElementById('lesson-preview-pane');
-            const container = document.getElementById('split-container');
-
-            if (!resizer || !leftPane || !rightPane || !container) return;
+            const rightPane = document.getElementById('lesson-pane');
+            const container = document.getElementById('workspace');
+            if (!resizer) return;
 
             let isResizing = false;
             let startX = 0;
@@ -1510,16 +1381,10 @@
 
             document.addEventListener('mousemove', (e) => {
                 if (!isResizing) return;
-
                 const containerWidth = container.offsetWidth;
-                const dx = e.clientX - startX;
-                const newLeftWidth = startLeftWidth + dx;
-
-                // Constrain widths (min 300px for each pane)
-                const minWidth = 300;
-                const maxLeftWidth = containerWidth - minWidth - 8; // 8px for resizer
-
-                if (newLeftWidth >= minWidth && newLeftWidth <= maxLeftWidth) {
+                const newLeftWidth = startLeftWidth + (e.clientX - startX);
+                const minWidth = 320;
+                if (newLeftWidth >= minWidth && newLeftWidth <= containerWidth - minWidth - 6) {
                     const leftPercent = (newLeftWidth / containerWidth) * 100;
                     leftPane.style.flex = 'none';
                     leftPane.style.width = `${leftPercent}%`;
@@ -1537,30 +1402,25 @@
             });
         }
 
-        // ============================================
-        // LESSON PLAN PREVIEW
-        // ============================================
-
+        // ---------- Lesson preview ----------
         function updateLessonPreview(markdown) {
-            const previewContent = document.getElementById('lesson-preview-content');
+            const el = document.getElementById('lesson-content');
             if (!markdown) {
-                previewContent.classList.add('empty');
-                previewContent.innerHTML = '<p>Your lesson plan will appear here once generated.</p>';
+                currentLessonMarkdown = '';
+                el.classList.add('empty');
+                el.innerHTML = '<p>Your lesson plan will appear here once generated — it\'s saved with this chat, so you can switch away and come back.</p>';
                 return;
             }
-
             currentLessonMarkdown = markdown;
-            previewContent.classList.remove('empty');
-            previewContent.innerHTML = renderMarkdown(markdown);
+            el.classList.remove('empty');
+            el.innerHTML = renderMarkdown(markdown);
         }
 
         function exportToPDF() {
             if (!currentLessonMarkdown) {
-                alert('No lesson plan to export. Generate a lesson plan first!');
+                alert('No lesson plan to export yet — generate one first.');
                 return;
             }
-
-            // Create a new window with just the lesson content for printing
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <!DOCTYPE html>
@@ -1574,15 +1434,15 @@
                             margin: 0 auto;
                             padding: 40px;
                             line-height: 1.6;
-                            color: #1f2937;
+                            color: #22272b;
                         }
-                        h1 { font-size: 24pt; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
-                        h2 { font-size: 18pt; margin-top: 24px; color: #374151; }
-                        h3 { font-size: 14pt; margin-top: 16px; color: #4b5563; }
+                        h1 { font-size: 24pt; border-bottom: 2px solid #e5e3dc; padding-bottom: 10px; }
+                        h2 { font-size: 18pt; margin-top: 24px; }
+                        h3 { font-size: 14pt; margin-top: 16px; }
                         p, li { font-size: 12pt; margin: 8px 0; }
                         ul, ol { margin-left: 20px; }
-                        blockquote { border-left: 4px solid #10b981; padding-left: 16px; color: #6b7280; font-style: italic; }
-                        a { color: #10b981; }
+                        blockquote { border-left: 4px solid #1f6e5a; padding-left: 16px; color: #6d7378; font-style: italic; }
+                        a { color: #1f6e5a; }
                         @media print {
                             body { padding: 20px; }
                             a { color: black; text-decoration: underline; }
@@ -1592,9 +1452,7 @@
                 <body>
                     ${renderMarkdown(currentLessonMarkdown)}
                     <script>
-                        window.onload = function() {
-                            window.print();
-                        };
+                        window.onload = function() { window.print(); };
                     <\/script>
                 </body>
                 </html>
@@ -1602,9 +1460,11 @@
             printWindow.document.close();
         }
 
+        // ---------- Messages ----------
         function setMessage(text) {
-            document.getElementById('message-input').value = text;
-            document.getElementById('message-input').focus();
+            const input = document.getElementById('message-input');
+            input.value = text;
+            input.focus();
         }
 
         function renderMarkdown(text) {
@@ -1616,7 +1476,39 @@
             }
         }
 
+        function clearEmptyState() {
+            const empty = document.querySelector('.empty-state');
+            if (empty) empty.remove();
+        }
+
+        function refreshEmptyState() {
+            const messagesDiv = document.getElementById('messages');
+            const empty = messagesDiv.querySelector('.empty-state');
+            if (!empty) return;
+            showEmptyState();
+        }
+
+        function showEmptyState() {
+            const messagesDiv = document.getElementById('messages');
+            const heading = currentMode === 'planner' ? 'Plan a lesson' : 'What shall we dance?';
+            const sub = currentMode === 'planner'
+                ? 'Describe the class you\'re teaching and I\'ll build a lesson plan with dances, cribs and teaching points.'
+                : 'Search dances, look up formations and steps, or ask how to teach them.';
+            const chips = EXAMPLES[currentMode]
+                .map(x => `<button class="example-btn" onclick="setMessage(${JSON.stringify(x).replace(/"/g, '&quot;')})">${x}</button>`)
+                .join('');
+            messagesDiv.innerHTML = `
+                <div class="empty-state">
+                    <img src="/assets/chatscd_logo.png" alt="">
+                    <h2>${heading}</h2>
+                    <p>${sub}</p>
+                    <div class="example-chips">${chips}</div>
+                </div>
+            `;
+        }
+
         function addMessage(type, content, timestamp = null, isMarkdown = false) {
+            clearEmptyState();
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -1624,7 +1516,6 @@
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
 
-            // Render markdown for assistant messages
             if (isMarkdown && type === 'assistant') {
                 contentDiv.innerHTML = renderMarkdown(content);
             } else {
@@ -1640,14 +1531,19 @@
 
             messageDiv.appendChild(contentDiv);
             messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
+            scrollMessagesToBottom();
             return messageDiv;
+        }
+
+        function scrollMessagesToBottom() {
+            const scroller = document.getElementById('messages-scroll');
+            scroller.scrollTop = scroller.scrollHeight;
         }
 
         function getOrCreateProgressBox() {
             let progressBox = document.getElementById('progress-box');
             if (!progressBox) {
+                clearEmptyState();
                 const messagesDiv = document.getElementById('messages');
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message assistant';
@@ -1658,32 +1554,26 @@
                 progressBox.id = 'progress-box';
                 progressBox.innerHTML = `
                     <div class="progress-title">
-                        <span id="progress-icon">⏳</span>
-                        <span id="progress-title-text">Processing...</span>
+                        <span class="spinner"></span>
+                        <span id="progress-title-text">Processing…</span>
                     </div>
                     <div class="progress-content" id="progress-content"></div>
                 `;
 
                 messageDiv.appendChild(progressBox);
                 messagesDiv.appendChild(messageDiv);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                scrollMessagesToBottom();
             }
             return progressBox;
         }
 
-        function updateProgressBox(icon, title, content) {
-            const progressBox = getOrCreateProgressBox();
-            const iconEl = document.getElementById('progress-icon');
+        function updateProgressBox(title, content) {
+            getOrCreateProgressBox();
             const titleEl = document.getElementById('progress-title-text');
             const contentEl = document.getElementById('progress-content');
-
-            if (iconEl) iconEl.textContent = icon;
             if (titleEl) titleEl.textContent = title;
             if (contentEl) contentEl.innerHTML = content;
-
-            // Scroll to bottom
-            const messagesDiv = document.getElementById('messages');
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            scrollMessagesToBottom();
         }
 
         function removeProgressBox() {
@@ -1692,6 +1582,7 @@
         }
 
         function addTypingIndicator() {
+            clearEmptyState();
             const indicator = document.createElement('div');
             indicator.className = 'message assistant';
             indicator.id = 'typing-indicator';
@@ -1705,60 +1596,31 @@
             if (indicator) indicator.remove();
         }
 
-        function formatDanceCards(dances) {
-            if (!dances || dances.length === 0) return '';
-
-            let html = '<div class="dance-cards">';
-            dances.forEach(dance => {
-                html += `
-                    <div class="dance-card">
-                        <h4>${dance.name || 'Unknown'}</h4>
-                        <p><strong>Type:</strong> ${dance.kind || 'N/A'}</p>
-                        <p><strong>Bars:</strong> ${dance.bars || 'N/A'}</p>
-                        <p><strong>Formation:</strong> ${dance.metaform || 'N/A'}</p>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            return html;
-        }
-
+        // ---------- Send ----------
         async function sendMessage(event) {
             event.preventDefault();
-
             if (isProcessing) return;
 
             const input = document.getElementById('message-input');
             const message = input.value.trim();
-
             if (!message) return;
 
-            // Add user message
-            addMessage('user', message);
+            addMessage('user', escapeHtml(message));
             input.value = '';
 
-            // Disable input
             isProcessing = true;
             document.getElementById('send-button').disabled = true;
             input.disabled = true;
 
-            // Add typing indicator
             const typingIndicator = addTypingIndicator();
-
-            // Create assistant message placeholder
             let assistantMessage = null;
-            let currentContent = '';
             let progressSteps = [];
 
             try {
-                // Choose endpoint based on mode
                 const endpoint = currentMode === 'planner' ? '/api/lesson-plan' : '/api/query';
-
                 const response = await fetch(endpoint, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         message: message,
                         session_id: sessionId,
@@ -1777,71 +1639,56 @@
                     const lines = chunk.split('\n');
 
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(line.slice(6));
-
-                                // Remove typing indicator on first real event
-                                if (typingIndicator && typingIndicator.parentNode) {
-                                    removeTypingIndicator();
-                                }
-
-                                if (data.type === 'status') {
-                                    progressSteps.push(`<div class="progress-step">⏳ ${data.message}</div>`);
-                                    updateProgressBox('⏳', 'Processing', progressSteps.join(''));
-                                }
-                                else if (data.type === 'tool_start') {
-                                    const argsStr = Object.entries(data.args || {}).map(([k, v]) => `${k}=${v}`).join(', ');
-                                    progressSteps.push(`<div class="progress-step">🔧 Running <strong>${data.tool}</strong>${argsStr ? ` (${argsStr})` : ''}</div>`);
-                                    updateProgressBox('🔧', 'Running Tools', progressSteps.join(''));
-                                }
-                                else if (data.type === 'tool_result') {
-                                    if (data.dances && data.dances.length > 0) {
-                                        progressSteps.push(`<div class="progress-step">✅ Found ${data.dances.length} dances</div>`);
-                                        updateProgressBox('✅', 'Search Complete', progressSteps.join(''));
-                                    } else {
-                                        progressSteps.push(`<div class="progress-step">✅ Tool completed</div>`);
-                                        updateProgressBox('✅', 'Complete', progressSteps.join(''));
-                                    }
-                                }
-                                else if (data.type === 'assistant' || data.type === 'final') {
-                                    // Remove progress box when we get the final response
-                                    removeProgressBox();
-
-                                    if (!assistantMessage) {
-                                        assistantMessage = addMessage('assistant', data.message, data.timestamp, true);
-                                        currentContent = data.message;
-                                    } else {
-                                        currentContent = data.message;
-                                        const contentDiv = assistantMessage.querySelector('.message-content');
-                                        contentDiv.innerHTML = renderMarkdown(currentContent);
-
-                                        // Re-add timestamp if it exists
-                                        const existingTimestamp = contentDiv.querySelector('.timestamp');
-                                        if (data.timestamp && !existingTimestamp) {
-                                            const timeDiv = document.createElement('div');
-                                            timeDiv.className = 'timestamp';
-                                            timeDiv.textContent = new Date(data.timestamp).toLocaleTimeString();
-                                            contentDiv.appendChild(timeDiv);
-                                        }
-                                    }
-
-                                    // Update lesson preview if in planner mode and markdown is present
-                                    if (currentMode === 'planner' && data.lesson_markdown) {
-                                        updateLessonPreview(data.lesson_markdown);
-                                    }
-                                }
-                                else if (data.type === 'error') {
-                                    removeProgressBox();
-                                    addMessage('system', `<span class="status-badge status-error">❌</span>${data.message}`, data.timestamp);
-                                }
-                                else if (data.type === 'complete') {
-                                    removeProgressBox();
-                                    console.log('Stream complete');
-                                }
-                            } catch (e) {
-                                console.error('Error parsing SSE data:', e);
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (typingIndicator && typingIndicator.parentNode) {
+                                removeTypingIndicator();
                             }
+
+                            if (data.type === 'status') {
+                                progressSteps.push(`<div class="progress-step">${data.message}</div>`);
+                                updateProgressBox('Working…', progressSteps.join(''));
+                            }
+                            else if (data.type === 'tool_start') {
+                                const argsStr = Object.entries(data.args || {}).map(([k, v]) => `${k}=${v}`).join(', ');
+                                const label = data.status || `Running ${data.tool}${argsStr ? ` (${argsStr})` : ''}`;
+                                progressSteps.push(`<div class="progress-step">${label}</div>`);
+                                updateProgressBox('Looking things up…', progressSteps.join(''));
+                            }
+                            else if (data.type === 'tool_result' || data.type === 'tool_complete') {
+                                if (data.dances && data.dances.length > 0) {
+                                    progressSteps.push(`<div class="progress-step">Found ${data.dances.length} dances</div>`);
+                                }
+                                updateProgressBox('Looking things up…', progressSteps.join(''));
+                            }
+                            else if (data.type === 'assistant' || data.type === 'final') {
+                                removeProgressBox();
+                                if (!assistantMessage) {
+                                    assistantMessage = addMessage('assistant', data.message, data.timestamp, true);
+                                } else {
+                                    const contentDiv = assistantMessage.querySelector('.message-content');
+                                    contentDiv.innerHTML = renderMarkdown(data.message);
+                                    if (data.timestamp) {
+                                        const timeDiv = document.createElement('div');
+                                        timeDiv.className = 'timestamp';
+                                        timeDiv.textContent = new Date(data.timestamp).toLocaleTimeString();
+                                        contentDiv.appendChild(timeDiv);
+                                    }
+                                }
+                                if (currentMode === 'planner' && data.lesson_markdown) {
+                                    updateLessonPreview(data.lesson_markdown);
+                                }
+                            }
+                            else if (data.type === 'error') {
+                                removeProgressBox();
+                                addMessage('system', `<span class="status-badge status-error">Error</span>${escapeHtml(data.message)}`, data.timestamp);
+                            }
+                            else if (data.type === 'complete') {
+                                removeProgressBox();
+                            }
+                        } catch (e) {
+                            console.error('Error parsing SSE data:', e);
                         }
                     }
                 }
@@ -1849,117 +1696,39 @@
                 console.error('Error:', error);
                 removeTypingIndicator();
                 removeProgressBox();
-                addMessage('system', `<span class="status-badge status-error">❌</span>Error: ${error.message}`);
+                addMessage('system', `<span class="status-badge status-error">Error</span>${escapeHtml(error.message)}`);
             } finally {
-                // Re-enable input
                 isProcessing = false;
                 document.getElementById('send-button').disabled = false;
                 input.disabled = false;
                 input.focus();
                 removeTypingIndicator();
-
-                // Reload sessions list to update with new message
-                // Use setTimeout to avoid blocking and prevent race conditions
-                setTimeout(() => loadSessions(), 100);
+                setTimeout(() => loadSessions(), 150);
             }
         }
 
-        async function loadSessions() {
-            try {
-                const response = await fetch(`/api/sessions?browser_id=${encodeURIComponent(browserId)}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
+        // ---------- Sessions ----------
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-                const sessionsList = document.getElementById('sessions-list');
-                if (!sessionsList) {
-                    console.error('Sessions list element not found!');
-                    return;
-                }
-
-                // Only clear if we have valid data
-                if (data.error) {
-                    console.error('API error:', data.error);
-                    return;
-                }
-
-                sessionsList.innerHTML = '';
-
-                if (data.sessions && data.sessions.length > 0) {
-                    data.sessions.forEach(session => {
-                        const sessionDiv = document.createElement('div');
-                        sessionDiv.className = 'session-item' + (session.session_id === sessionId ? ' active' : '');
-
-                        const timeAgo = formatTimeAgo(session.last_active);
-
-                        // Escape HTML to prevent XSS
-                        const escapeHtml = (text) => {
-                            const div = document.createElement('div');
-                            div.textContent = text;
-                            return div.innerHTML;
-                        };
-
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'session-delete';
-                        deleteBtn.title = 'Delete chat';
-                        deleteBtn.textContent = '🗑️';
-                        deleteBtn.setAttribute('data-session-id', session.session_id);
-
-                        // Attach delete handler directly to button - use once option to prevent multiple calls
-                        deleteBtn.addEventListener('click', async (e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-
-                            const targetSessionId = e.currentTarget.getAttribute('data-session-id');
-                            console.log('Delete clicked for session:', targetSessionId);
-                            console.log('Current session before delete:', sessionId);
-
-                            // Disable button to prevent double-clicks
-                            e.currentTarget.disabled = true;
-
-                            await deleteSession(e, targetSessionId);
-                        }, { capture: true, once: false }); // Use capture phase
-
-                        // Attach session switch handler
-                        sessionDiv.addEventListener('click', (e) => {
-                            // Don't switch if clicking delete button
-                            if (e.target.classList.contains('session-delete') || e.target.closest('.session-delete')) {
-                                return;
-                            }
-                            switchToSessionMobile(session.session_id);
-                        });
-
-                        sessionDiv.innerHTML = `
-                            <div class="session-title">${escapeHtml(session.title || 'New Chat')}</div>
-                            <div class="session-preview">${escapeHtml(session.preview || 'No messages yet')}</div>
-                            <div class="session-time">${escapeHtml(timeAgo)}</div>
-                        `;
-
-                        sessionDiv.appendChild(deleteBtn);
-
-                        sessionsList.appendChild(sessionDiv);
-                    });
-                } else {
-                    sessionsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #9ca3af;">No chats yet</div>';
-                }
-            } catch (error) {
-                console.error('Error loading sessions:', error);
-                // Don't clear the list on error - keep showing what was there
-                const sessionsList = document.getElementById('sessions-list');
-                if (sessionsList && sessionsList.children.length === 0) {
-                    sessionsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;">Failed to load sessions</div>';
-                }
-            }
+        function groupLabel(timestamp) {
+            const then = new Date(timestamp + (timestamp.includes('Z') ? '' : 'Z'));
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const days = Math.floor((startOfToday - then) / 86400000) + 1;
+            if (then >= startOfToday) return 'Today';
+            if (days <= 1) return 'Yesterday';
+            if (days <= 7) return 'Previous 7 days';
+            return 'Older';
         }
 
         function formatTimeAgo(timestamp) {
             const now = new Date();
-            // SQLite returns timestamps in UTC format without 'Z' suffix
-            // Append 'Z' to ensure it's parsed as UTC, not local time
             const then = new Date(timestamp + (timestamp.includes('Z') ? '' : 'Z'));
             const seconds = Math.floor((now - then) / 1000);
-
             if (seconds < 60) return 'Just now';
             if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
             if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -1967,50 +1736,185 @@
             return then.toLocaleDateString();
         }
 
-        async function switchToSession(newSessionId) {
-            if (newSessionId === sessionId) return;
-
-            sessionId = newSessionId;
-            localStorage.setItem('chatSCD_sessionId', sessionId);
-
-            // Update active state in sidebar
-            document.querySelectorAll('.session-item').forEach(item => {
-                item.classList.remove('active');
-                if (item.onclick && item.onclick.toString().includes(newSessionId)) {
-                    item.classList.add('active');
+        async function loadSessions() {
+            try {
+                const response = await fetch(`/api/sessions?browser_id=${encodeURIComponent(browserId)}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (data.error) {
+                    console.error('API error:', data.error);
+                    return;
                 }
+                sessionsCache = data.sessions || [];
+                renderSessions();
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                const sessionsList = document.getElementById('sessions-list');
+                if (sessionsList && sessionsList.children.length === 0) {
+                    sessionsList.innerHTML = '<div class="sessions-empty">Failed to load chats</div>';
+                }
+            }
+        }
+
+        function renderSessions() {
+            const sessionsList = document.getElementById('sessions-list');
+            sessionsList.innerHTML = '';
+
+            if (!sessionsCache.length) {
+                sessionsList.innerHTML = '<div class="sessions-empty">No chats yet.<br>Start one below!</div>';
+                return;
+            }
+
+            let lastGroup = null;
+            sessionsCache.forEach(session => {
+                const group = groupLabel(session.last_active);
+                if (group !== lastGroup) {
+                    const label = document.createElement('div');
+                    label.className = 'session-group-label';
+                    label.textContent = group;
+                    sessionsList.appendChild(label);
+                    lastGroup = group;
+                }
+                sessionsList.appendChild(buildSessionItem(session));
+            });
+        }
+
+        function buildSessionItem(session) {
+            const item = document.createElement('div');
+            item.className = 'session-item' + (session.session_id === sessionId ? ' active' : '');
+            item.title = session.title || 'New chat';
+
+            const icon = document.createElement('div');
+            icon.className = 'session-mode-icon';
+            icon.innerHTML = MODE_ICONS[session.mode === 'planner' ? 'planner' : 'chat'];
+
+            const body = document.createElement('div');
+            body.className = 'session-body';
+            body.innerHTML = `
+                <div class="session-title">${escapeHtml(session.title || 'New chat')}</div>
+                <div class="session-time">${escapeHtml(formatTimeAgo(session.last_active))}</div>
+            `;
+
+            const actions = document.createElement('div');
+            actions.className = 'session-actions';
+
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'session-action-btn';
+            renameBtn.title = 'Rename';
+            renameBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+            renameBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startRename(session, item, body);
             });
 
-            // Load chat history for this session
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'session-action-btn delete';
+            deleteBtn.title = 'Delete';
+            deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+            deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!confirm(`Delete "${session.title || 'this chat'}"? This cannot be undone.`)) return;
+                await deleteSession(session.session_id);
+            });
+
+            actions.appendChild(renameBtn);
+            actions.appendChild(deleteBtn);
+
+            item.appendChild(icon);
+            item.appendChild(body);
+            item.appendChild(actions);
+
+            item.addEventListener('click', () => switchToSessionMobile(session.session_id));
+            return item;
+        }
+
+        function startRename(session, item, body) {
+            const input = document.createElement('input');
+            input.className = 'session-title-input';
+            input.value = session.title || '';
+            input.maxLength = 80;
+
+            const titleEl = body.querySelector('.session-title');
+            titleEl.replaceWith(input);
+            input.focus();
+            input.select();
+            input.addEventListener('click', (e) => e.stopPropagation());
+
+            let finished = false;
+            const finish = async (save) => {
+                if (finished) return;
+                finished = true;
+                const newTitle = input.value.trim();
+                if (save && newTitle && newTitle !== session.title) {
+                    try {
+                        await fetch(`/api/sessions/${session.session_id}/title`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: newTitle, browser_id: browserId })
+                        });
+                    } catch (e) {
+                        console.error('Rename failed:', e);
+                    }
+                }
+                await loadSessions();
+            };
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') finish(true);
+                if (e.key === 'Escape') finish(false);
+            });
+            input.addEventListener('blur', () => finish(true));
+        }
+
+        async function deleteSession(sessionIdToDelete) {
+            try {
+                const response = await fetch(`/api/history/${sessionIdToDelete}?browser_id=${encodeURIComponent(browserId)}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Failed to delete session');
+
+                if (sessionIdToDelete === sessionId) {
+                    await createNewChat();
+                } else {
+                    await loadSessions();
+                }
+            } catch (error) {
+                console.error('Error deleting session:', error);
+                alert('Failed to delete chat. Please try again.');
+            }
+        }
+
+        async function switchToSession(newSessionId) {
+            if (newSessionId === sessionId) return;
+            sessionId = newSessionId;
+            localStorage.setItem('chatSCD_sessionId', sessionId);
+            renderSessions();
             await loadChatHistory();
+        }
+
+        function switchToSessionMobile(id) {
+            switchToSession(id);
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
         }
 
         async function createNewChat() {
             try {
                 const response = await fetch('/api/sessions/new', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        browser_id: browserId
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ browser_id: browserId, mode: currentMode })
                 });
                 const data = await response.json();
-
                 if (data.session_id) {
                     sessionId = data.session_id;
                     localStorage.setItem('chatSCD_sessionId', sessionId);
-
-                    // Clear messages and show welcome
-                    const messagesDiv = document.getElementById('messages');
-                    messagesDiv.innerHTML = '';
-                    showWelcomeMessage();
-
-                    // Reload sessions list
+                    showEmptyState();
+                    updateLessonPreview('');
                     await loadSessions();
-
-                    console.log('New chat created:', sessionId);
+                    if (window.innerWidth <= 768) closeMobileSidebar();
+                    document.getElementById('message-input').focus();
                 }
             } catch (error) {
                 console.error('Error creating new chat:', error);
@@ -2023,205 +1927,81 @@
                 const response = await fetch(`/api/history/${sessionId}?browser_id=${encodeURIComponent(browserId)}`);
                 const data = await response.json();
 
-                if (data.history && data.history.length > 0) {
-                    // Clear messages div
-                    const messagesDiv = document.getElementById('messages');
-                    messagesDiv.innerHTML = '';
+                // Restore the mode this session was last used in
+                if (data.mode) {
+                    applyMode(data.mode);
+                }
+                // Restore any saved lesson plan
+                updateLessonPreview(data.lesson_markdown || '');
 
-                    // Add each message from history
+                const messagesDiv = document.getElementById('messages');
+                if (data.history && data.history.length > 0) {
+                    messagesDiv.innerHTML = '';
                     data.history.forEach(msg => {
                         if (msg.role === 'user') {
-                            addMessage('user', msg.content, msg.timestamp);
+                            addMessage('user', escapeHtml(msg.content), msg.timestamp);
                         } else if (msg.role === 'assistant') {
                             addMessage('assistant', msg.content, msg.timestamp, true);
                         }
                     });
                 } else {
-                    // Show welcome message if no history
-                    showWelcomeMessage();
+                    showEmptyState();
                 }
             } catch (error) {
                 console.error('Error loading chat history:', error);
-                showWelcomeMessage();
+                showEmptyState();
             }
         }
 
-        function showWelcomeMessage() {
-            const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML = `
-                <div class="message system">
-                    <div class="message-content">
-                        <strong>Welcome!</strong> Ask me about Scottish Country Dances, and I'll help you find dances, get details, or plan your class.
-                    </div>
-                </div>
-            `;
-        }
-
-        async function clearChat() {
-            if (!confirm('Are you sure you want to delete this chat? This cannot be undone.')) {
-                return;
-            }
-
-            try {
-                // Clear from server
-                await fetch(`/api/history/${sessionId}?browser_id=${encodeURIComponent(browserId)}`, {
-                    method: 'DELETE'
-                });
-
-                // Create a new session
-                await createNewChat();
-
-                console.log('Chat deleted.');
-            } catch (error) {
-                console.error('Error clearing chat:', error);
-                alert('Failed to delete chat. Please try again.');
+        // ---------- Sidebar ----------
+        function handleMenuClick() {
+            if (window.innerWidth <= 768) {
+                toggleMobileSidebar();
+            } else {
+                toggleSidebar();
             }
         }
 
-        async function deleteSession(event, sessionIdToDelete) {
-            // Stop propagation to prevent switching to the session
-            event.stopPropagation();
-
-            try {
-                console.log('Deleting session:', sessionIdToDelete);
-
-                // Delete from server
-                const response = await fetch(`/api/history/${sessionIdToDelete}?browser_id=${encodeURIComponent(browserId)}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete session');
-                }
-
-                const result = await response.json();
-                console.log('Delete response:', result);
-
-                // Small delay to ensure database commit completes
-                await new Promise(resolve => setTimeout(resolve, 100));
-
-                // If we deleted the current session, create a new one
-                if (sessionIdToDelete === sessionId) {
-                    console.log('Deleted current session, creating new chat');
-                    await createNewChat();
-                } else {
-                    console.log('Deleted other session, reloading sessions list');
-                    // Reload the sessions list to reflect the deletion
-                    await loadSessions();
-                }
-
-                console.log('Session deleted successfully:', sessionIdToDelete);
-            } catch (error) {
-                console.error('Error deleting session:', error);
-                alert('Failed to delete chat. Please try again.');
-            }
-        }
-
-        // Toggle sidebar collapse/expand (desktop)
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            const toggle = document.getElementById('sidebar-toggle');
+            const app = document.getElementById('app');
             const isCollapsed = sidebar.classList.toggle('collapsed');
-            toggle.classList.toggle('collapsed');
-
-            // Save state to localStorage
+            app.classList.toggle('sidebar-collapsed', isCollapsed);
             localStorage.setItem('chatSCD_sidebarCollapsed', isCollapsed);
         }
 
-        // Toggle mobile sidebar
         function toggleMobileSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-
             const isOpen = sidebar.classList.contains('mobile-open');
-
-            if (isOpen) {
-                // Closing: remove mobile-open, add collapsed
-                sidebar.classList.remove('mobile-open');
-                sidebar.classList.add('collapsed');
-                overlay.classList.remove('active');
-            } else {
-                // Opening: remove collapsed, add mobile-open
-                sidebar.classList.remove('collapsed');
-                sidebar.classList.add('mobile-open');
-                overlay.classList.add('active');
-            }
+            sidebar.classList.toggle('mobile-open', !isOpen);
+            overlay.classList.toggle('active', !isOpen);
         }
 
-        // Close mobile sidebar when clicking a session
-        function switchToSessionMobile(sessionId) {
-            switchToSession(sessionId);
-
-            // Close sidebar on mobile after selecting
-            if (window.innerWidth <= 768) {
-                toggleMobileSidebar();
-            }
+        function closeMobileSidebar() {
+            document.getElementById('sidebar').classList.remove('mobile-open');
+            document.getElementById('sidebar-overlay').classList.remove('active');
         }
 
-        // Restore sidebar state from localStorage
         function restoreSidebarState() {
-            // Only restore collapsed state on desktop
             if (window.innerWidth > 768) {
                 const isCollapsed = localStorage.getItem('chatSCD_sidebarCollapsed') === 'true';
-                const sidebar = document.getElementById('sidebar');
-                const toggle = document.getElementById('sidebar-toggle');
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    toggle.classList.add('collapsed');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    toggle.classList.remove('collapsed');
-                }
-            } else {
-                // On mobile, always start collapsed
-                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('sidebar').classList.toggle('collapsed', isCollapsed);
+                document.getElementById('app').classList.toggle('sidebar-collapsed', isCollapsed);
             }
         }
 
-        // Ensure sidebar is always visible
-        function ensureSidebarVisible() {
-            const sidebar = document.querySelector('.sidebar');
-            const container = document.querySelector('.container');
-
-            if (sidebar && container) {
-                // Make sure sidebar is in the DOM and visible
-                if (!container.contains(sidebar)) {
-                    console.error('Sidebar not in container! Reloading page...');
-                    location.reload();
-                }
-
-                // Check if sidebar has display:none or visibility:hidden (but not collapsed)
-                if (!sidebar.classList.contains('collapsed')) {
-                    const sidebarStyle = window.getComputedStyle(sidebar);
-                    if (sidebarStyle.display === 'none' || sidebarStyle.visibility === 'hidden') {
-                        console.warn('Sidebar hidden! Forcing visibility...');
-                        sidebar.style.display = 'flex';
-                        sidebar.style.visibility = 'visible';
-                    }
-                }
-            }
-        }
-
-        // Load sessions and chat history on page load
+        // ---------- Init ----------
         window.addEventListener('load', async () => {
-            // Restore sidebar collapsed state
             restoreSidebarState();
-
-            // Initialize resizer for lesson planner mode
             initResizer();
 
-            // Restore mode preference
             const savedMode = localStorage.getItem('chatSCD_mode');
-            if (savedMode === 'planner') {
-                switchMode('planner');
-            }
+            if (savedMode === 'planner') applyMode('planner');
 
             await loadSessions();
             await loadChatHistory();
             document.getElementById('message-input').focus();
-
-            // Periodically check sidebar visibility (every 5 seconds)
-            setInterval(ensureSidebarVisible, 5000);
         });
     </script>
 </body>

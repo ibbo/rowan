@@ -239,6 +239,18 @@ def init_chat_db():
         cursor.execute("ALTER TABLE sessions ADD COLUMN user_id TEXT")
     except sqlite3.OperationalError:
         pass  # Column already exists
+
+    # Add mode column (chat | planner) if it doesn't exist
+    try:
+        cursor.execute("ALTER TABLE sessions ADD COLUMN mode TEXT DEFAULT 'chat'")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    # Add lesson_markdown column so lesson plans survive session switches
+    try:
+        cursor.execute("ALTER TABLE sessions ADD COLUMN lesson_markdown TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Create messages table
     cursor.execute("""
@@ -661,19 +673,26 @@ def _ensure_session_access(
     return allowed
 
 
+def _derive_session_title(message: str) -> str:
+    """Build a session title from the first user message."""
+    title = " ".join(message.split())
+    return title[:60] + ("…" if len(title) > 60 else "")
+
+
 def save_message(
     session_id: str,
     role: str,
     content: str,
     browser_id: str | None = None,
     user_id: str | None = None,
+    mode: str | None = None,
 ):
     """Save a message to the chat history."""
     conn = _get_chat_conn()
     cursor = conn.cursor()
-    
+
     cursor.execute(
-        "SELECT session_id, user_id, browser_id FROM sessions WHERE session_id = ?",
+        "SELECT session_id, user_id, browser_id, title FROM sessions WHERE session_id = ?",
         (session_id,),
     )
     row = cursor.fetchone()
@@ -706,22 +725,38 @@ def save_message(
     else:
         cursor.execute(
             """
-            INSERT INTO sessions (session_id, browser_id, user_id, title)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO sessions (session_id, browser_id, user_id, title, mode)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (session_id, browser_id, user_id, "New Chat"),
+            (session_id, browser_id, user_id, None, mode or "chat"),
         )
-    
+
+    # Auto-title the session from the first user message
+    if role == "user":
+        existing_title = row["title"] if row else None
+        if not existing_title or existing_title == "New Chat":
+            cursor.execute(
+                "UPDATE sessions SET title = ? WHERE session_id = ?",
+                (_derive_session_title(content), session_id),
+            )
+
+    # Track which mode the session was last used in
+    if mode:
+        cursor.execute(
+            "UPDATE sessions SET mode = ? WHERE session_id = ?",
+            (mode, session_id),
+        )
+
     # Update last active time
     cursor.execute("""
         UPDATE sessions SET last_active = CURRENT_TIMESTAMP WHERE session_id = ?
     """, (session_id,))
-    
+
     # Insert message
     cursor.execute("""
         INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)
     """, (session_id, role, content))
-    
+
     conn.commit()
     conn.close()
 
@@ -778,6 +813,33 @@ def clear_chat_history(
     conn.close()
 
 
+def save_lesson_markdown(session_id: str, markdown: str):
+    """Persist the latest lesson plan for a session so it survives switching away."""
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE sessions SET lesson_markdown = ? WHERE session_id = ?",
+        (markdown, session_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_session_meta(session_id: str) -> Dict | None:
+    """Fetch per-session metadata (mode, saved lesson plan)."""
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT mode, lesson_markdown FROM sessions WHERE session_id = ?",
+        (session_id,),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"mode": row["mode"] or "chat", "lesson_markdown": row["lesson_markdown"]}
+
+
 def get_all_sessions(user_id: str | None = None, browser_id: str | None = None) -> List[Dict]:
     """Get all chat sessions with metadata, filtered by user_id or browser_id."""
     conn = _get_chat_conn()
@@ -785,19 +847,20 @@ def get_all_sessions(user_id: str | None = None, browser_id: str | None = None) 
     
     if user_id:
         cursor.execute("""
-            SELECT 
+            SELECT
                 s.session_id,
                 s.title,
                 s.created_at,
                 s.last_active,
                 COUNT(m.id) as message_count,
                 (
-                    SELECT content 
-                    FROM messages 
+                    SELECT content
+                    FROM messages
                     WHERE session_id = s.session_id AND role = 'user'
-                    ORDER BY timestamp ASC 
+                    ORDER BY timestamp ASC
                     LIMIT 1
-                ) as first_message
+                ) as first_message,
+                s.mode
             FROM sessions s
             LEFT JOIN messages m ON s.session_id = m.session_id
             WHERE s.user_id = ?
@@ -806,19 +869,20 @@ def get_all_sessions(user_id: str | None = None, browser_id: str | None = None) 
         """, (user_id,))
     elif browser_id:
         cursor.execute("""
-            SELECT 
+            SELECT
                 s.session_id,
                 s.title,
                 s.created_at,
                 s.last_active,
                 COUNT(m.id) as message_count,
                 (
-                    SELECT content 
-                    FROM messages 
+                    SELECT content
+                    FROM messages
                     WHERE session_id = s.session_id AND role = 'user'
-                    ORDER BY timestamp ASC 
+                    ORDER BY timestamp ASC
                     LIMIT 1
-                ) as first_message
+                ) as first_message,
+                s.mode
             FROM sessions s
             LEFT JOIN messages m ON s.session_id = m.session_id
             WHERE s.browser_id = ? AND (s.user_id IS NULL OR s.user_id = '')
@@ -829,26 +893,26 @@ def get_all_sessions(user_id: str | None = None, browser_id: str | None = None) 
         # No user_id or browser_id: return empty list
         conn.close()
         return []
-    
+
     sessions = []
     for row in cursor.fetchall():
-        # Generate title from first message if not set
+        # Fall back to the first message for legacy sessions titled "New Chat"
         title = row[1]
-        if not title and row[5]:  # If no title but has first message
-            # Use first 50 chars of first message as title
+        if (not title or title == "New Chat") and row[5]:
             title = row[5][:50] + ("..." if len(row[5]) > 50 else "")
         elif not title:
             title = "New Chat"
-        
+
         sessions.append({
             "session_id": row[0],
             "title": title,
             "created_at": row[2],
             "last_active": row[3],
             "message_count": row[4],
-            "preview": row[5][:100] if row[5] else "No messages yet"
+            "preview": row[5][:100] if row[5] else "No messages yet",
+            "mode": row[6] or "chat"
         })
-    
+
     conn.close()
     return sessions
 
@@ -874,16 +938,20 @@ def update_session_title(
     conn.close()
 
 
-def create_new_session(browser_id: str | None = None, user_id: str | None = None) -> str:
+def create_new_session(
+    browser_id: str | None = None,
+    user_id: str | None = None,
+    mode: str = "chat",
+) -> str:
     """Create a new chat session and return its ID."""
     session_id = str(uuid.uuid4())
     conn = _get_chat_conn()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
-        INSERT INTO sessions (session_id, browser_id, user_id, title) VALUES (?, ?, ?, ?)
-    """, (session_id, browser_id, user_id, "New Chat"))
-    
+        INSERT INTO sessions (session_id, browser_id, user_id, title, mode) VALUES (?, ?, ?, ?, ?)
+    """, (session_id, browser_id, user_id, None, mode if mode in ("chat", "planner") else "chat"))
+
     conn.commit()
     conn.close()
     return session_id
@@ -1001,8 +1069,8 @@ async def query_stream(request: Request):
                 return
 
             # Save user message to history
-            save_message(session_id, "user", message, browser_id, user_id)
-            
+            save_message(session_id, "user", message, browser_id, user_id, mode="chat")
+
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': 'Processing your query...', 'timestamp': datetime.now().isoformat()})}\n\n"
             
@@ -1153,8 +1221,8 @@ async def lesson_plan_stream(request: Request):
                 return
 
             # Save user message to history
-            save_message(session_id, "user", message, browser_id, user_id)
-            
+            save_message(session_id, "user", message, browser_id, user_id, mode="planner")
+
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': '🎓 Planning your lesson...', 'timestamp': datetime.now().isoformat()})}\n\n"
             
@@ -1229,7 +1297,9 @@ async def lesson_plan_stream(request: Request):
             # Send the final response
             if final_response:
                 yield f"data: {json.dumps({'type': 'final', 'message': final_response, 'lesson_markdown': lesson_markdown, 'timestamp': datetime.now().isoformat()})}\n\n"
-                save_message(session_id, "assistant", final_response, browser_id, user_id)
+                save_message(session_id, "assistant", final_response, browser_id, user_id, mode="planner")
+                if lesson_markdown:
+                    save_lesson_markdown(session_id, lesson_markdown)
             
             # Send completion
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
@@ -1258,7 +1328,12 @@ async def get_history(session_id: str, request: Request):
         user = get_current_user(request)
         user_id = user["id"] if user else None
         history = get_chat_history(session_id, user_id=user_id, browser_id=browser_id)
-        return {"history": history}
+        meta = get_session_meta(session_id) or {"mode": "chat", "lesson_markdown": None}
+        return {
+            "history": history,
+            "mode": meta["mode"],
+            "lesson_markdown": meta["lesson_markdown"],
+        }
     except Exception as e:
         return {"error": str(e)}
 
@@ -1295,9 +1370,10 @@ async def new_session(request: Request):
     try:
         data = await request.json()
         browser_id = data.get("browser_id")
+        mode = data.get("mode", "chat")
         user = get_current_user(request)
         user_id = user["id"] if user else None
-        session_id = create_new_session(browser_id, user_id=user_id)
+        session_id = create_new_session(browser_id, user_id=user_id, mode=mode)
         return {"session_id": session_id}
     except Exception as e:
         return {"error": str(e)}
