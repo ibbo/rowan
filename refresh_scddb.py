@@ -219,14 +219,15 @@ def postprocess_views_indexes_fts():
     log("Building FTS index over best cribs...")
     con = sqlite3.connect(DB_PATH)
     try:
+        # Contentless FTS5 can only return rowid, so store the dance id AS
+        # the rowid; a separate dance_id column would always read back NULL.
         con.executescript("""
             DROP TABLE IF EXISTS fts_cribs;
             CREATE VIRTUAL TABLE fts_cribs USING fts5(
-              dance_id UNINDEXED,
               text,
               content=''
             );
-            INSERT INTO fts_cribs(dance_id, text)
+            INSERT INTO fts_cribs(rowid, text)
             SELECT dance_id, text FROM v_crib_best;
         """)
         con.commit()

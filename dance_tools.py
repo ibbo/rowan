@@ -7,6 +7,7 @@ formations, videos, recordings, and other dance-related data.
 
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+import sqlite3
 import sys
 import json
 import re
@@ -200,7 +201,11 @@ async def get_dance_detail(dance_id: int) -> Dict[str, Any]:
 
 
 @tool
-async def search_cribs(query_text: str, limit: int = 20) -> List[Dict[str, Any]]:
+async def search_cribs(
+    query_text: str,
+    limit: int = 20,
+    kind: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """
     Full-text search the dance cribs for specific moves, terms, or descriptions.
 
@@ -215,25 +220,43 @@ async def search_cribs(query_text: str, limit: int = 20) -> List[Dict[str, Any]]
     This is the PRIMARY tool for finding dances containing specific formations.
 
     Args:
-        query_text: Search query. Supports FTS5 syntax (e.g., 'poussette OR allemande')
+        query_text: Search terms, optionally combined with AND/OR
+            (e.g., 'poussette OR allemande'). Do NOT use column filters
+            like 'kind:Strathspey' - use the kind argument instead.
         limit: Maximum number of results (1-200, default 20)
+        kind: Optional dance TYPE filter - EXACT VALUES: 'Jig', 'Reel',
+            'Strathspey', 'Hornpipe', 'Waltz', 'March'
 
     Returns:
         List of dances that match the search query in their cribs
     """
-    print(f"DEBUG: search_cribs tool called with query: '{query_text}'", file=sys.stderr)
+    print(f"DEBUG: search_cribs tool called with query: '{query_text}' kind={kind}", file=sys.stderr)
 
-    rows = await query(
-        """
+    sql = """
         SELECT d.id, d.name, d.kind, d.metaform, d.bars
         FROM fts_cribs f
-        JOIN v_metaform d ON d.id = f.dance_id
+        JOIN v_metaform d ON d.id = f.rowid
         WHERE fts_cribs MATCH ?
-        ORDER BY rank
-        LIMIT ?
-        """,
-        (query_text, limit),
-    )
+    """
+    args: List[Any] = [query_text]
+    if kind:
+        sql += " AND d.kind = ?"
+        args.append(kind)
+    sql += " ORDER BY rank LIMIT ?"
+    args.append(limit)
+
+    try:
+        rows = await query(sql, tuple(args))
+    except sqlite3.OperationalError as e:
+        # Bad FTS5 syntax (e.g. 'kind:Strathspey' column filter) - tell the
+        # model what went wrong instead of crashing the whole run.
+        print(f"DEBUG: search_cribs FTS error: {e}", file=sys.stderr)
+        return [{
+            "error": f"Invalid search query {query_text!r}: {e}. "
+                     "Use plain search terms combined with AND/OR "
+                     "(no 'column:' filters); to filter by dance type, "
+                     "pass the kind argument instead."
+        }]
 
     print(f"DEBUG: search_cribs completed - {len(rows)} results", file=sys.stderr)
     return rows
