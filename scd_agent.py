@@ -108,8 +108,11 @@ class SCDAgent:
                 f"Example: export {env_var}='your-key-here'"
             )
         
-        # Initialize LLMs for different agents
-        self.prompt_checker_llm = llm_provider.create_chat_llm(model, temperature, api_key)
+        # Initialize LLMs for different agents. The prompt checker only
+        # emits ACCEPT/REJECT, so it always uses the provider's cheap fast
+        # model regardless of which model answers the actual query.
+        checker_model = llm_provider.get_fast_model()
+        self.prompt_checker_llm = llm_provider.create_chat_llm(checker_model, temperature, api_key)
         self.dance_planner_llm = llm_provider.create_chat_llm(model, temperature, api_key)
         
         # Store config for reference

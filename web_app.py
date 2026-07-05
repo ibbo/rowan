@@ -673,6 +673,40 @@ def _ensure_session_access(
     return allowed
 
 
+def _history_to_messages(history: List[Dict]) -> list:
+    """Convert stored chat history rows to LangChain messages."""
+    msgs = []
+    for h in history:
+        if h["role"] == "user":
+            msgs.append(HumanMessage(content=h["content"]))
+        elif h["role"] == "assistant":
+            msgs.append(AIMessage(content=h["content"]))
+    return msgs
+
+
+async def _get_seed_messages(
+    graph,
+    config: dict,
+    session_id: str,
+    user_id: str | None,
+    browser_id: str | None,
+) -> list:
+    """Rebuild agent memory from stored history when the in-memory
+    checkpointer has no state for this thread (server restart or agent
+    eviction from the LRU cache). Returns messages to prepend, or []."""
+    try:
+        existing = await graph.aget_state(config)
+        if existing and existing.values and existing.values.get("messages"):
+            return []
+    except Exception:
+        return []
+    try:
+        past = get_chat_history(session_id, user_id=user_id, browser_id=browser_id)
+    except HTTPException:
+        return []
+    return _history_to_messages(past)
+
+
 def _derive_session_title(message: str) -> str:
     """Build a session title from the first user message."""
     title = " ".join(message.split())
@@ -775,10 +809,10 @@ def get_chat_history(
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT role, content, timestamp 
-        FROM messages 
-        WHERE session_id = ? 
-        ORDER BY timestamp ASC
+        SELECT role, content, timestamp
+        FROM messages
+        WHERE session_id = ?
+        ORDER BY id ASC
         LIMIT ?
     """, (session_id, limit))
     
@@ -1068,18 +1102,23 @@ async def query_stream(request: Request):
                 yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
                 return
 
+            config = {"configurable": {"thread_id": session_id}}
+
+            # Restore conversation memory from the database if the agent's
+            # in-memory checkpointer lost it (restart / cache eviction)
+            seed_messages = await _get_seed_messages(
+                agent_instance.graph, config, session_id, user_id, browser_id
+            )
+
             # Save user message to history
             save_message(session_id, "user", message, browser_id, user_id, mode="chat")
 
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': 'Processing your query...', 'timestamp': datetime.now().isoformat()})}\n\n"
-            
-            # Stream from the agent graph
-            config = {"configurable": {"thread_id": session_id}}
-            
+
             async for chunk in agent_instance.graph.astream(
                 {
-                    "messages": [HumanMessage(content=message)],
+                    "messages": seed_messages + [HumanMessage(content=message)],
                     "is_scd_query": False,
                     "route": ""
                 },
@@ -1138,15 +1177,17 @@ async def query_stream(request: Request):
                         except:
                             yield f"data: {json.dumps({'type': 'tool_result', 'result': str(content)[:200], 'timestamp': datetime.now().isoformat()})}\n\n"
                 
-                # Handle rejection
-                if "rejection_handler" in chunk:
-                    rejection_data = chunk["rejection_handler"]
-                    messages = rejection_data.get("messages", [])
-                    for msg in messages:
-                        content = getattr(msg, "content", "")
-                        if content:
-                            yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
-                            return
+                # Handle rejection (and deterministic grounding responses)
+                for handler in ("rejection_handler", "grounding_handler"):
+                    if handler in chunk:
+                        handler_messages = chunk[handler].get("messages", [])
+                        for msg in handler_messages:
+                            content = getattr(msg, "content", "")
+                            if content:
+                                save_message(session_id, "assistant", content, browser_id, user_id)
+                                yield f"data: {json.dumps({'type': 'final', 'message': content, 'timestamp': datetime.now().isoformat()})}\n\n"
+                                yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
+                                return
             
             # Get final state and extract the final assistant response
             final_state = await agent_instance.graph.aget_state(config)
@@ -1220,18 +1261,27 @@ async def lesson_plan_stream(request: Request):
                 yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\n\n"
                 return
 
+            # Stream from the lesson planner graph
+            config = {"configurable": {"thread_id": f"lesson_{session_id}"}}
+
+            # Restore conversation memory from the database if needed
+            seed_messages = await _get_seed_messages(
+                planner_instance.graph, config, session_id, user_id, browser_id
+            )
+
             # Save user message to history
             save_message(session_id, "user", message, browser_id, user_id, mode="planner")
 
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': '🎓 Planning your lesson...', 'timestamp': datetime.now().isoformat()})}\n\n"
-            
-            # Stream from the lesson planner graph
-            config = {"configurable": {"thread_id": f"lesson_{session_id}"}}
-            
+
+            # The final assistant message is captured as it streams past, so
+            # we don't have to re-run the agent afterwards to fetch it
+            final_response = ""
+
             async for chunk in planner_instance.graph.astream(
                 {
-                    "messages": [HumanMessage(content=message)],
+                    "messages": seed_messages + [HumanMessage(content=message)],
                     "lesson_plan": None,
                     "plan_status": "gathering"
                 },
@@ -1244,10 +1294,12 @@ async def lesson_plan_stream(request: Request):
                 if "planner" in chunk:
                     planner_data = chunk["planner"]
                     messages = planner_data.get("messages", [])
-                    
+
                     for msg in messages:
-                        # Check for tool calls
+                        # A planner message without tool calls is the final answer
                         tool_calls = getattr(msg, "tool_calls", None)
+                        if not tool_calls and isinstance(msg, AIMessage) and msg.content:
+                            final_response = msg.content
                         if tool_calls:
                             for call in tool_calls:
                                 tool_name = call.get("name", "tool")
@@ -1276,24 +1328,11 @@ async def lesson_plan_stream(request: Request):
                         
                         yield f"data: {json.dumps({'type': 'tool_complete', 'tool': tool_name, 'timestamp': datetime.now().isoformat()})}\n\n"
             
-            # Get final state to extract the lesson plan
             # The lesson planner returns formatted markdown in its final message
-            final_response = ""
             lesson_markdown = ""
-            
-            # Re-invoke to get full response (since we can't get_state with compiled graph)
-            result = await planner_instance.ainvoke(message, config)
-            
-            if result and "messages" in result:
-                # Find the last AI message with content
-                for msg in reversed(result["messages"]):
-                    if isinstance(msg, AIMessage) and msg.content:
-                        final_response = msg.content
-                        # Check if this looks like a lesson plan (contains markdown headers)
-                        if "##" in final_response or "# " in final_response:
-                            lesson_markdown = final_response
-                        break
-            
+            if final_response and ("##" in final_response or "# " in final_response):
+                lesson_markdown = final_response
+
             # Send the final response
             if final_response:
                 yield f"data: {json.dumps({'type': 'final', 'message': final_response, 'lesson_markdown': lesson_markdown, 'timestamp': datetime.now().isoformat()})}\n\n"

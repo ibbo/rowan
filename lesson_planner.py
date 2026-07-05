@@ -13,6 +13,7 @@ from typing import Annotated, Any, Dict, List, Optional
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode
 from typing_extensions import TypedDict
 from dotenv import load_dotenv
@@ -189,7 +190,11 @@ class LessonPlannerAgent:
         
         # Bind tools to LLM
         self.llm_with_tools = self.llm.bind_tools(self.tools)
-        
+
+        # Checkpointer so follow-up requests ("make it 45 minutes instead")
+        # keep the conversation context, matching SCDAgent
+        self.checkpointer = MemorySaver()
+
         # Build the agent graph
         self.graph = self._build_graph()
         
@@ -220,8 +225,8 @@ class LessonPlannerAgent:
         
         # Tools always return to planner
         graph.add_edge("tools", "planner")
-        
-        return graph.compile()
+
+        return graph.compile(checkpointer=self.checkpointer)
 
     def _planner_node(self, state: LessonPlannerState) -> dict:
         """Main planning node that processes requests and calls tools."""
@@ -268,9 +273,9 @@ class LessonPlannerAgent:
             "lesson_plan": None,
             "plan_status": "gathering"
         }
-        
-        config = config or {}
-        
+
+        config = config or {"configurable": {"thread_id": "default"}}
+
         result = await self.graph.ainvoke(initial_state, config)
         return result
 
@@ -298,9 +303,9 @@ class LessonPlannerAgent:
             "lesson_plan": None,
             "plan_status": "gathering"
         }
-        
-        config = config or {}
-        
+
+        config = config or {"configurable": {"thread_id": "default"}}
+
         async for event in self.graph.astream(initial_state, config):
             yield event
 

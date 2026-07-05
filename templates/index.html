@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="/assets/chatscd_logo.png">
     <link rel="apple-touch-icon" href="/assets/chatscd_logo.png">
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <style>
         :root {
             --bg: #f5f4f0;
@@ -1467,12 +1468,29 @@
             input.focus();
         }
 
+        if (window.DOMPurify) {
+            // Open external links (Strathspey Server, YouTube) in a new tab
+            // so users keep their chat
+            DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+                if (node.tagName === 'A' && /^https?:/.test(node.getAttribute('href') || '')) {
+                    node.setAttribute('target', '_blank');
+                    node.setAttribute('rel', 'noopener noreferrer');
+                }
+            });
+        }
+
         function renderMarkdown(text) {
             try {
-                return marked.parse(text);
+                const html = marked.parse(text);
+                // Model output and crib text come from outside sources, so
+                // strip any embedded scripts/handlers before injecting HTML
+                if (window.DOMPurify) {
+                    return DOMPurify.sanitize(html, { ADD_ATTR: ['target'] });
+                }
+                return html;
             } catch (e) {
                 console.error('Markdown parsing error:', e);
-                return text;
+                return escapeHtml(text);
             }
         }
 

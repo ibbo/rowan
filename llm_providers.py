@@ -78,6 +78,11 @@ class BaseLLMProvider(ABC):
         """Get the environment variable name for this provider's API key."""
         return f"{self.name.upper()}_API_KEY"
 
+    def get_fast_model(self) -> str:
+        """Get the cheap/fast model id for lightweight internal calls
+        (e.g. the prompt checker). Providers list their fast model first."""
+        return self.list_available_models()[0]["id"]
+
 
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI LLM provider using langchain-openai."""
