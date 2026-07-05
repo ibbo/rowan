@@ -1633,6 +1633,8 @@
             const typingIndicator = addTypingIndicator();
             let assistantMessage = null;
             let progressSteps = [];
+            let streamBuffer = '';
+            let streamMsgId = null;
 
             try {
                 const endpoint = currentMode === 'planner' ? '/api/lesson-plan' : '/api/query';
@@ -1679,6 +1681,22 @@
                                     progressSteps.push(`<div class="progress-step">Found ${data.dances.length} dances</div>`);
                                 }
                                 updateProgressBox('Looking things up…', progressSteps.join(''));
+                            }
+                            else if (data.type === 'token') {
+                                // Stream tokens into the assistant bubble as
+                                // they arrive; 'final' replaces the content
+                                // with the authoritative message afterwards
+                                if (data.msg_id !== streamMsgId) {
+                                    streamMsgId = data.msg_id;
+                                    streamBuffer = '';
+                                }
+                                streamBuffer += data.token;
+                                removeProgressBox();
+                                if (!assistantMessage) {
+                                    assistantMessage = addMessage('assistant', '', null, true);
+                                }
+                                assistantMessage.querySelector('.message-content').innerHTML = renderMarkdown(streamBuffer);
+                                scrollMessagesToBottom();
                             }
                             else if (data.type === 'assistant' || data.type === 'final') {
                                 removeProgressBox();

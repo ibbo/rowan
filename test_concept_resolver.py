@@ -61,6 +61,20 @@ class CanonicalConceptResolverTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Reel of three", decision.grounding_context)
         self.assertIn("REEL;R3;", decision.grounding_context)
 
+    async def test_technical_question_with_no_match_gets_no_improvise_context(self) -> None:
+        resolution = await self.resolver.resolve(
+            "What is the footwork in the birl and twirl?"
+        )
+
+        self.assertTrue(resolution.is_technical_question)
+        self.assertFalse(resolution.exact_matches)
+        self.assertFalse(resolution.ambiguous_matches)
+
+        decision = build_grounding_decision(resolution, manual_available=True)
+        self.assertEqual(decision.route, "dance_planner")
+        self.assertIn("Do not improvise", decision.grounding_context)
+        self.assertIn("search_manual", decision.grounding_context)
+
     async def test_technical_exact_match_blocks_without_manual_grounding(self) -> None:
         resolution = await self.resolver.resolve(
             "Where are the first couple in bar 2 of the 2 couple allemande?"

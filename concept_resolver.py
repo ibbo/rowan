@@ -39,6 +39,8 @@ _TECHNICAL_PATTERNS = [
     re.compile(r"\bwhat (?:foot|hand|happens in)\b"),
     re.compile(r"\bpoints? to observe\b"),
     re.compile(r"\bteaching points?\b"),
+    re.compile(r"\bfootwork\b"),
+    re.compile(r"\btechnique\b"),
     re.compile(r"\bposition(?:s|ing)?\b"),
     re.compile(r"\bfacing\b"),
     re.compile(r"\bexplain\b"),
@@ -370,6 +372,23 @@ def build_grounding_decision(
         return GroundingDecision(
             route="grounding_handler",
             response=_build_disambiguation_response(resolution.ambiguous_matches),
+        )
+
+    if resolution.is_technical_question:
+        # Technical question but nothing resolved: the planner may proceed
+        # (the term may still match the manual), but must not improvise.
+        return GroundingDecision(
+            route="dance_planner",
+            grounding_context=(
+                "Ungrounded technical question: no canonical formation or step "
+                "matched this query. You MUST ground any technique, footwork, "
+                "positions, or teaching points in search_manual or "
+                "get_teaching_guidance results. If those tools return no "
+                "matching section, say the term is not in the RSCDS manual as "
+                "asked and request the exact formation, step, or manual section "
+                "number (e.g. 'skip change of step', '5.4.1'). Do not improvise "
+                "technical mechanics."
+            ),
         )
 
     return GroundingDecision(route="dance_planner")

@@ -62,6 +62,9 @@ lesson_planner_cache: OrderedDict[tuple, LessonPlannerAgent] = OrderedDict()
 # Chat history database path
 CHAT_DB_PATH = "data/chat_history.db"
 
+# Most recent messages replayed into agent memory after a restart/eviction
+MAX_SEED_MESSAGES = 20
+
 # Admin session management
 ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", secrets.token_hex(32))
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
@@ -704,7 +707,8 @@ async def _get_seed_messages(
         past = get_chat_history(session_id, user_id=user_id, browser_id=browser_id)
     except HTTPException:
         return []
-    return _history_to_messages(past)
+    # Long sessions get expensive fast: seed only the recent turns
+    return _history_to_messages(past)[-MAX_SEED_MESSAGES:]
 
 
 def _derive_session_title(message: str) -> str:
@@ -1116,14 +1120,27 @@ async def query_stream(request: Request):
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': 'Processing your query...', 'timestamp': datetime.now().isoformat()})}\n\n"
 
-            async for chunk in agent_instance.graph.astream(
+            async for mode, payload in agent_instance.graph.astream(
                 {
                     "messages": seed_messages + [HumanMessage(content=message)],
                     "is_scd_query": False,
                     "route": ""
                 },
-                config
+                config,
+                stream_mode=["updates", "messages"],
             ):
+                # Token-level stream from the answering LLM. Other nodes
+                # (prompt checker) also invoke LLMs, so filter by node.
+                if mode == "messages":
+                    msg_chunk, meta = payload
+                    if meta.get("langgraph_node") != "dance_planner":
+                        continue
+                    token = getattr(msg_chunk, "content", "")
+                    if isinstance(token, str) and token:
+                        yield f"data: {json.dumps({'type': 'token', 'token': token, 'msg_id': getattr(msg_chunk, 'id', None)})}\n\n"
+                    continue
+
+                chunk = payload
                 if not isinstance(chunk, dict):
                     continue
                 
@@ -1279,14 +1296,26 @@ async def lesson_plan_stream(request: Request):
             # we don't have to re-run the agent afterwards to fetch it
             final_response = ""
 
-            async for chunk in planner_instance.graph.astream(
+            async for mode, payload in planner_instance.graph.astream(
                 {
                     "messages": seed_messages + [HumanMessage(content=message)],
                     "lesson_plan": None,
                     "plan_status": "gathering"
                 },
-                config
+                config,
+                stream_mode=["updates", "messages"],
             ):
+                # Token-level stream from the planner LLM
+                if mode == "messages":
+                    msg_chunk, meta = payload
+                    if meta.get("langgraph_node") != "planner":
+                        continue
+                    token = getattr(msg_chunk, "content", "")
+                    if isinstance(token, str) and token:
+                        yield f"data: {json.dumps({'type': 'token', 'token': token, 'msg_id': getattr(msg_chunk, 'id', None)})}\n\n"
+                    continue
+
+                chunk = payload
                 if not isinstance(chunk, dict):
                     continue
                 
