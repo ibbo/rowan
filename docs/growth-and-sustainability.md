@@ -51,6 +51,12 @@ costs nothing per query.
 
 ## 4. Covering costs without commercialising
 
+*Update 2026-07-06: items 1, 3 (usage panel + IP blocking in /admin) and the
+donation link (set `DONATION_URL` in .env) are implemented. Quotas are
+`DAILY_LIMIT_ANON` (20) and `DAILY_LIMIT_USER` (50) per UTC day; users with
+their own API key are unlimited. Still to do: provider-console budget
+alerts (manual), token-usage logging, prompt caching, static library page.*
+
 Cost profile: VPS is fixed and small; the risk is LLM spend, which scales
 with (a) real users, (b) scrapers/abuse. Defaults are already cheap
 (gpt-5.4-mini, and the prompt checker now always uses the cheap model).

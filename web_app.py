@@ -65,6 +65,14 @@ CHAT_DB_PATH = "data/chat_history.db"
 # Most recent messages replayed into agent memory after a restart/eviction
 MAX_SEED_MESSAGES = 20
 
+# Daily message quotas. Users with their own API key are not limited.
+DAILY_LIMIT_ANON = int(os.getenv("DAILY_LIMIT_ANON", "20"))
+DAILY_LIMIT_USER = int(os.getenv("DAILY_LIMIT_USER", "50"))
+
+# Optional donation link (e.g. Ko-fi / GitHub Sponsors), shown in the footer
+# and in the quota-limit message when set
+DONATION_URL = os.getenv("DONATION_URL", "").strip()
+
 # Admin session management
 ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", secrets.token_hex(32))
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
@@ -278,6 +286,34 @@ def init_chat_db():
         ON sessions(user_id, last_active)
     """)
     
+    # Usage log: one row per accepted agent request, for quotas and abuse
+    # monitoring in the admin dashboard
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usage_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            date TEXT NOT NULL,
+            endpoint TEXT NOT NULL,
+            session_id TEXT,
+            user_id TEXT,
+            browser_id TEXT,
+            ip TEXT,
+            own_key INTEGER DEFAULT 0,
+            rejected INTEGER DEFAULT 0
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_date_ip ON usage_log(date, ip)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_date_browser ON usage_log(date, browser_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_date_user ON usage_log(date, user_id)")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS blocked_ips (
+            ip TEXT PRIMARY KEY,
+            reason TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Clean up expired sessions on startup
     cursor.execute(
         "DELETE FROM user_sessions WHERE expires_at < ?",
@@ -711,6 +747,153 @@ async def _get_seed_messages(
     return _history_to_messages(past)[-MAX_SEED_MESSAGES:]
 
 
+# =============================================================================
+# Usage quotas & abuse tracking
+# =============================================================================
+
+def _get_client_ip(request: Request) -> str:
+    """Client IP from the reverse proxy.
+
+    Prefer X-Real-IP (nginx sets it to the actual peer address, clients
+    cannot inject it). Fall back to the LAST X-Forwarded-For entry — nginx
+    appends the real address, so earlier entries are client-supplied and
+    spoofable. Direct connections use the socket peer.
+    """
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.client.host if request.client else ""
+
+
+def _utc_today() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def is_ip_blocked(ip: str) -> bool:
+    if not ip:
+        return False
+    conn = _get_chat_conn()
+    row = conn.execute("SELECT 1 FROM blocked_ips WHERE ip = ?", (ip,)).fetchone()
+    conn.close()
+    return row is not None
+
+
+def block_ip(ip: str, reason: str = ""):
+    conn = _get_chat_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO blocked_ips (ip, reason) VALUES (?, ?)",
+        (ip, reason),
+    )
+    conn.commit()
+    conn.close()
+
+
+def unblock_ip(ip: str):
+    conn = _get_chat_conn()
+    conn.execute("DELETE FROM blocked_ips WHERE ip = ?", (ip,))
+    conn.commit()
+    conn.close()
+
+
+def log_usage(
+    endpoint: str,
+    session_id: str,
+    user_id: str | None,
+    browser_id: str | None,
+    ip: str,
+    own_key: bool,
+) -> int:
+    """Record an accepted agent request; returns the row id."""
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO usage_log (date, endpoint, session_id, user_id, browser_id, ip, own_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (_utc_today(), endpoint, session_id, user_id, browser_id, ip, 1 if own_key else 0),
+    )
+    usage_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return usage_id
+
+
+def mark_usage_rejected(usage_id: int | None):
+    """Flag a request the prompt checker rejected (off-topic / jailbreak)."""
+    if usage_id is None:
+        return
+    conn = _get_chat_conn()
+    conn.execute("UPDATE usage_log SET rejected = 1 WHERE id = ?", (usage_id,))
+    conn.commit()
+    conn.close()
+
+
+def _count_usage_today(column: str, value: str) -> int:
+    conn = _get_chat_conn()
+    row = conn.execute(
+        f"SELECT COUNT(*) FROM usage_log WHERE date = ? AND {column} = ? AND own_key = 0",
+        (_utc_today(), value),
+    ).fetchone()
+    conn.close()
+    return row[0]
+
+
+def check_quota(
+    user_id: str | None,
+    browser_id: str | None,
+    ip: str,
+    has_own_key: bool,
+) -> tuple[bool, str]:
+    """Enforce the daily message quota. Returns (allowed, limit_message)."""
+    if has_own_key:
+        return True, ""
+
+    donation_line = (
+        f"\n\nIf ChatSCD is useful to you, you can help cover its AI costs "
+        f"[with a small donation]({DONATION_URL})."
+        if DONATION_URL else ""
+    )
+
+    if user_id:
+        if _count_usage_today("user_id", user_id) >= DAILY_LIMIT_USER:
+            return False, (
+                f"You've reached today's limit of {DAILY_LIMIT_USER} messages. "
+                "The limit keeps this free community service affordable — it resets at "
+                "midnight UTC.\n\n"
+                "If you need more, you can add your own OpenAI or Google API key in "
+                "[Settings](/settings) for unlimited use." + donation_line
+            )
+        return True, ""
+
+    # Anonymous: count by browser and by IP, take the larger, so clearing
+    # cookies or sharing an address doesn't bypass the limit
+    counts = []
+    if browser_id:
+        counts.append(_count_usage_today("browser_id", browser_id))
+    if ip:
+        counts.append(_count_usage_today("ip", ip))
+    if counts and max(counts) >= DAILY_LIMIT_ANON:
+        return False, (
+            f"You've reached today's limit of {DAILY_LIMIT_ANON} messages for "
+            "anonymous use. The limit keeps this free community service affordable — "
+            "it resets at midnight UTC.\n\n"
+            f"**Sign in** (bottom of the sidebar) to get {DAILY_LIMIT_USER} messages "
+            "a day, or add your own API key in Settings for unlimited use."
+            + donation_line
+        )
+    return True, ""
+
+
+BLOCKED_MESSAGE = (
+    "Access from your network has been restricted because of unusual activity. "
+    "If you believe this is a mistake, please get in touch."
+)
+
+
 def _derive_session_title(message: str) -> str:
     """Build a session title from the first user message."""
     title = " ".join(message.split())
@@ -1070,6 +1253,7 @@ async def index(request: Request):
             "current_user": user,
             "oauth_providers": oauth_providers,
             "dev_auth_enabled": DEV_AUTH_ENABLED,
+            "donation_url": DONATION_URL,
         },
     )
 
@@ -1093,13 +1277,27 @@ async def query_stream(request: Request):
     user = get_current_user(request)
     user_id = user["id"] if user else None
     llm_settings, api_key = get_effective_llm_settings(user_id)
-    
+    client_ip = _get_client_ip(request)
+
     if not message:
         return {"error": "Message is required"}
-    
+
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the agent."""
         try:
+            if is_ip_blocked(client_ip):
+                yield f"data: {json.dumps({'type': 'final', 'message': BLOCKED_MESSAGE, 'timestamp': datetime.now().isoformat()})}\n\n"
+                yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
+                return
+
+            allowed, limit_message = check_quota(user_id, browser_id, client_ip, bool(api_key))
+            if not allowed:
+                yield f"data: {json.dumps({'type': 'final', 'message': limit_message, 'timestamp': datetime.now().isoformat()})}\n\n"
+                yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
+                return
+
+            usage_id = log_usage("chat", session_id, user_id, browser_id, client_ip, bool(api_key))
+
             try:
                 agent_instance = get_agent_for_settings(llm_settings, api_key)
             except Exception as e:
@@ -1197,6 +1395,10 @@ async def query_stream(request: Request):
                 # Handle rejection (and deterministic grounding responses)
                 for handler in ("rejection_handler", "grounding_handler"):
                     if handler in chunk:
+                        if handler == "rejection_handler":
+                            # Off-topic / jailbreak attempts show up as
+                            # rejections in the admin usage panel
+                            mark_usage_rejected(usage_id)
                         handler_messages = chunk[handler].get("messages", [])
                         for msg in handler_messages:
                             content = getattr(msg, "content", "")
@@ -1265,13 +1467,27 @@ async def lesson_plan_stream(request: Request):
     user = get_current_user(request)
     user_id = user["id"] if user else None
     llm_settings, api_key = get_effective_llm_settings(user_id)
-    
+    client_ip = _get_client_ip(request)
+
     if not message:
         return {"error": "Message is required"}
-    
+
     async def event_generator() -> AsyncIterator[str]:
         """Generate SSE events from the lesson planner agent."""
         try:
+            if is_ip_blocked(client_ip):
+                yield f"data: {json.dumps({'type': 'final', 'message': BLOCKED_MESSAGE, 'timestamp': datetime.now().isoformat()})}\n\n"
+                yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
+                return
+
+            allowed, limit_message = check_quota(user_id, browser_id, client_ip, bool(api_key))
+            if not allowed:
+                yield f"data: {json.dumps({'type': 'final', 'message': limit_message, 'timestamp': datetime.now().isoformat()})}\n\n"
+                yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
+                return
+
+            log_usage("planner", session_id, user_id, browser_id, client_ip, bool(api_key))
+
             try:
                 planner_instance = get_lesson_planner_for_settings(llm_settings, api_key)
             except Exception as e:
@@ -1840,6 +2056,102 @@ async def update_admin_settings(request: Request):
         return {"success": True, "message": "Settings saved. Restart server to apply."}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+@app.get("/admin/api/usage")
+async def admin_usage(request: Request):
+    """Usage and abuse overview for the admin dashboard."""
+    if not verify_admin_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    today = _utc_today()
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=6)).strftime("%Y-%m-%d")
+    month_ago = (datetime.now(timezone.utc) - timedelta(days=29)).strftime("%Y-%m-%d")
+
+    conn = _get_chat_conn()
+
+    def summarize(since: str) -> dict:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS total,
+                   COALESCE(SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END), 0) AS anonymous,
+                   COALESCE(SUM(rejected), 0) AS rejected,
+                   COALESCE(SUM(own_key), 0) AS own_key,
+                   COALESCE(SUM(CASE WHEN endpoint = 'planner' THEN 1 ELSE 0 END), 0) AS planner
+            FROM usage_log WHERE date >= ?
+            """,
+            (since,),
+        ).fetchone()
+        return dict(row)
+
+    per_day = [
+        dict(r) for r in conn.execute(
+            """
+            SELECT date, COUNT(*) AS total, COALESCE(SUM(rejected), 0) AS rejected
+            FROM usage_log WHERE date >= ? GROUP BY date ORDER BY date
+            """,
+            (month_ago,),
+        ).fetchall()
+    ]
+
+    top_ips = [
+        dict(r) for r in conn.execute(
+            """
+            SELECT u.ip,
+                   COUNT(*) AS total,
+                   COALESCE(SUM(u.rejected), 0) AS rejected,
+                   COALESCE(SUM(CASE WHEN u.user_id IS NULL THEN 1 ELSE 0 END), 0) AS anonymous,
+                   COUNT(DISTINCT u.browser_id) AS browsers,
+                   EXISTS(SELECT 1 FROM blocked_ips b WHERE b.ip = u.ip) AS blocked
+            FROM usage_log u
+            WHERE u.date >= ? AND u.ip != ''
+            GROUP BY u.ip ORDER BY total DESC LIMIT 20
+            """,
+            (week_ago,),
+        ).fetchall()
+    ]
+
+    blocked = [dict(r) for r in conn.execute(
+        "SELECT ip, reason, created_at FROM blocked_ips ORDER BY created_at DESC"
+    ).fetchall()]
+
+    summary = {
+        "today": summarize(today),
+        "last_7_days": summarize(week_ago),
+        "last_30_days": summarize(month_ago),
+    }
+    conn.close()
+    return {
+        "limits": {"anonymous": DAILY_LIMIT_ANON, "signed_in": DAILY_LIMIT_USER},
+        **summary,
+        "per_day": per_day,
+        "top_ips": top_ips,
+        "blocked_ips": blocked,
+    }
+
+
+@app.post("/admin/api/block-ip")
+async def admin_block_ip(request: Request):
+    if not verify_admin_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    data = await request.json()
+    ip = (data.get("ip") or "").strip()
+    if not ip:
+        return {"success": False, "message": "IP is required"}
+    block_ip(ip, data.get("reason") or "blocked from admin dashboard")
+    return {"success": True}
+
+
+@app.post("/admin/api/unblock-ip")
+async def admin_unblock_ip(request: Request):
+    if not verify_admin_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    data = await request.json()
+    ip = (data.get("ip") or "").strip()
+    if not ip:
+        return {"success": False, "message": "IP is required"}
+    unblock_ip(ip)
+    return {"success": True}
 
 
 @app.post("/admin/api/test-connection")

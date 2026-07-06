@@ -239,6 +239,88 @@
             margin-left: 8px;
         }
 
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .stat-box .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.78rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .stat-box .stat-sub {
+            font-size: 0.72rem;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+
+        table.usage-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .usage-table th,
+        .usage-table td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .usage-table th {
+            color: #6b7280;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .usage-table tr.suspicious td {
+            background: #fef3c7;
+        }
+
+        .mini-btn {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .mini-btn.block {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .mini-btn.unblock {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .empty-note {
+            color: #9ca3af;
+            font-size: 0.88rem;
+            padding: 8px 0;
+        }
+
         @media (max-width: 600px) {
             .header {
                 flex-direction: column;
@@ -274,6 +356,47 @@
                 </div>
             </div>
             <p class="hint">⚠️ Changes require a server restart to take effect.</p>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Usage <span class="env-badge" id="limits-badge"></span></h2>
+            <div class="stats-grid" id="usage-stats">
+                <div class="empty-note">Loading…</div>
+            </div>
+
+            <h3 style="font-size:1rem; color:#374151; margin:18px 0 10px;">Top IPs — last 7 days</h3>
+            <p class="hint" style="margin-bottom:10px;">Rows highlighted amber have a high rejection rate (possible
+                jailbreak attempts) or unusually many browser IDs (possible quota evasion).</p>
+            <table class="usage-table">
+                <thead>
+                    <tr>
+                        <th>IP</th>
+                        <th>Messages</th>
+                        <th>Anonymous</th>
+                        <th>Rejected</th>
+                        <th>Browsers</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="top-ips">
+                    <tr><td colspan="6" class="empty-note">Loading…</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="font-size:1rem; color:#374151; margin:18px 0 10px;">Blocked IPs</h3>
+            <table class="usage-table">
+                <thead>
+                    <tr>
+                        <th>IP</th>
+                        <th>Reason</th>
+                        <th>Since</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="blocked-ips">
+                    <tr><td colspan="4" class="empty-note">Loading…</td></tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="card">
@@ -430,8 +553,85 @@
             }
         });
 
+        // ---------- Usage & abuse panel ----------
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = String(text ?? '');
+            return div.innerHTML;
+        }
+
+        function statBox(label, s) {
+            return `
+                <div class="stat-box">
+                    <div class="stat-value">${s.total}</div>
+                    <div class="stat-label">${label}</div>
+                    <div class="stat-sub">${s.anonymous} anon · ${s.rejected} rejected · ${s.planner} planner</div>
+                </div>`;
+        }
+
+        async function loadUsage() {
+            try {
+                const res = await fetch('/admin/api/usage');
+                const data = await res.json();
+
+                document.getElementById('limits-badge').textContent =
+                    `limits: ${data.limits.anonymous}/day anon, ${data.limits.signed_in}/day signed-in`;
+
+                document.getElementById('usage-stats').innerHTML =
+                    statBox('Today', data.today) +
+                    statBox('Last 7 days', data.last_7_days) +
+                    statBox('Last 30 days', data.last_30_days);
+
+                const ipsBody = document.getElementById('top-ips');
+                if (!data.top_ips.length) {
+                    ipsBody.innerHTML = '<tr><td colspan="6" class="empty-note">No usage recorded yet.</td></tr>';
+                } else {
+                    ipsBody.innerHTML = data.top_ips.map(row => {
+                        const suspicious = (row.total >= 5 && row.rejected / row.total >= 0.3) || row.browsers >= 5;
+                        const ip = escapeHtml(row.ip);
+                        const action = row.blocked
+                            ? `<button class="mini-btn unblock" onclick="setBlocked('${ip}', false)">Unblock</button>`
+                            : `<button class="mini-btn block" onclick="setBlocked('${ip}', true)">Block</button>`;
+                        return `<tr class="${suspicious ? 'suspicious' : ''}">
+                            <td>${ip}</td><td>${row.total}</td><td>${row.anonymous}</td>
+                            <td>${row.rejected}</td><td>${row.browsers}</td><td>${action}</td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                const blockedBody = document.getElementById('blocked-ips');
+                if (!data.blocked_ips.length) {
+                    blockedBody.innerHTML = '<tr><td colspan="4" class="empty-note">No blocked IPs.</td></tr>';
+                } else {
+                    blockedBody.innerHTML = data.blocked_ips.map(row => `<tr>
+                        <td>${escapeHtml(row.ip)}</td><td>${escapeHtml(row.reason || '')}</td>
+                        <td>${escapeHtml(row.created_at)}</td>
+                        <td><button class="mini-btn unblock" onclick="setBlocked('${escapeHtml(row.ip)}', false)">Unblock</button></td>
+                    </tr>`).join('');
+                }
+            } catch (e) {
+                document.getElementById('usage-stats').innerHTML =
+                    `<div class="empty-note">Failed to load usage: ${escapeHtml(e.message)}</div>`;
+            }
+        }
+
+        async function setBlocked(ip, blocked) {
+            let reason = '';
+            if (blocked) {
+                reason = prompt(`Block ${ip}? Optional reason:`, 'suspicious activity');
+                if (reason === null) return;
+            }
+            await fetch(blocked ? '/admin/api/block-ip' : '/admin/api/unblock-ip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip, reason })
+            });
+            loadUsage();
+        }
+
         // Initialize on page load
         updateModels();
+        loadUsage();
     </script>
 </body>
 
