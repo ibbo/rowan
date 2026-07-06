@@ -377,6 +377,90 @@
             color: var(--accent);
         }
 
+        /* ============ Response feedback ============ */
+        .feedback-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .fb-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--faint);
+            opacity: 0.55;
+            transition: opacity 0.15s, background 0.15s, color 0.15s;
+        }
+
+        .message:hover .fb-btn,
+        .fb-btn.selected {
+            opacity: 1;
+        }
+
+        .fb-btn:hover {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .fb-btn.selected {
+            color: var(--accent);
+        }
+
+        .fb-btn.selected.down {
+            color: var(--danger);
+        }
+
+        .fb-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .fb-thanks {
+            font-size: 0.78rem;
+            color: var(--faint);
+        }
+
+        .fb-comment {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            width: 100%;
+        }
+
+        .fb-comment input {
+            flex: 1;
+            font: inherit;
+            font-size: 0.85rem;
+            padding: 6px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .fb-comment input:focus {
+            border-color: var(--accent);
+        }
+
+        .fb-comment button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         /* ============ Main column ============ */
         .main {
             flex: 1;
@@ -1563,8 +1647,96 @@
 
             messageDiv.appendChild(contentDiv);
             messagesDiv.appendChild(messageDiv);
+            if (isMarkdown && type === 'assistant' && content) {
+                attachFeedbackBar(messageDiv, content);
+            }
             scrollMessagesToBottom();
             return messageDiv;
+        }
+
+        // ---------- Response feedback ----------
+        const FB_ICONS = {
+            up: '<svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zM23 10c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>',
+            down: '<svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>'
+        };
+
+        function attachFeedbackBar(messageDiv, rawContent) {
+            messageDiv.dataset.raw = rawContent;
+            if (messageDiv.querySelector('.feedback-bar')) return;
+
+            const bar = document.createElement('div');
+            bar.className = 'feedback-bar';
+            for (const rating of ['up', 'down']) {
+                const btn = document.createElement('button');
+                btn.className = `fb-btn ${rating}`;
+                btn.title = rating === 'up' ? 'Good answer' : 'Something wrong with this answer';
+                btn.innerHTML = FB_ICONS[rating];
+                btn.addEventListener('click', () => sendRating(messageDiv, bar, rating));
+                bar.appendChild(btn);
+            }
+            messageDiv.querySelector('.message-content').appendChild(bar);
+        }
+
+        async function sendRating(messageDiv, bar, rating) {
+            if (bar.dataset.done) return;
+            bar.dataset.done = '1';
+            bar.querySelectorAll('.fb-btn').forEach(b => {
+                b.disabled = true;
+                b.classList.toggle('selected', b.classList.contains(rating));
+            });
+
+            let feedbackId = null;
+            try {
+                const res = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        browser_id: browserId,
+                        rating: rating,
+                        response_text: messageDiv.dataset.raw || ''
+                    })
+                });
+                feedbackId = (await res.json()).feedback_id ?? null;
+            } catch (e) {
+                console.error('Feedback failed:', e);
+            }
+
+            // Offer an optional comment, especially useful for thumbs-down
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'fb-comment';
+            const input = document.createElement('input');
+            input.maxLength = 2000;
+            input.placeholder = rating === 'down'
+                ? 'What was wrong? (optional — helps us fix it)'
+                : 'Any comments? (optional)';
+            const send = document.createElement('button');
+            send.textContent = 'Send';
+            const finish = (thanksText) => {
+                commentDiv.remove();
+                const thanks = document.createElement('span');
+                thanks.className = 'fb-thanks';
+                thanks.textContent = thanksText;
+                bar.appendChild(thanks);
+            };
+            send.addEventListener('click', async () => {
+                const comment = input.value.trim();
+                if (comment && feedbackId !== null) {
+                    try {
+                        await fetch('/api/feedback', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ feedback_id: feedbackId, comment: comment, browser_id: browserId })
+                        });
+                    } catch (e) { console.error('Feedback comment failed:', e); }
+                }
+                finish('Thanks for your feedback!');
+            });
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send.click(); });
+            commentDiv.appendChild(input);
+            commentDiv.appendChild(send);
+            bar.insertAdjacentElement('afterend', commentDiv);
+            input.focus();
         }
 
         function scrollMessagesToBottom() {
@@ -1725,6 +1897,7 @@
                                         timeDiv.textContent = new Date(data.timestamp).toLocaleTimeString();
                                         contentDiv.appendChild(timeDiv);
                                     }
+                                    attachFeedbackBar(assistantMessage, data.message);
                                 }
                                 if (currentMode === 'planner' && data.lesson_markdown) {
                                     updateLessonPreview(data.lesson_markdown);

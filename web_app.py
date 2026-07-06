@@ -314,6 +314,25 @@ def init_chat_db():
         )
     """)
 
+    # User feedback on assistant responses. The response and surrounding
+    # conversation are snapshotted so the report stays diagnosable even if
+    # the user later deletes the chat.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            session_id TEXT,
+            message_id INTEGER,
+            rating TEXT NOT NULL,
+            comment TEXT,
+            response_text TEXT,
+            context_text TEXT,
+            user_id TEXT,
+            browser_id TEXT,
+            ip TEXT
+        )
+    """)
+
     # Usage rows are only needed for quotas (per-day) and abuse review;
     # drop them after 90 days, matching the privacy page
     cursor.execute("DELETE FROM usage_log WHERE date < date('now', '-90 days')")
@@ -898,6 +917,114 @@ BLOCKED_MESSAGE = (
 )
 
 
+# =============================================================================
+# Response feedback
+# =============================================================================
+
+MAX_FEEDBACK_COMMENT = 2000
+MAX_CONTEXT_TURNS = 6
+MAX_CONTEXT_CHARS = 6000
+
+
+def _snapshot_context(session_id: str, message_id: int | None) -> str:
+    """Format the conversation turns leading up to (and including) the rated
+    message, so feedback stays diagnosable after the chat is deleted."""
+    conn = _get_chat_conn()
+    if message_id is not None:
+        rows = conn.execute(
+            """
+            SELECT role, content FROM messages
+            WHERE session_id = ? AND id <= ?
+            ORDER BY id DESC LIMIT ?
+            """,
+            (session_id, message_id, MAX_CONTEXT_TURNS + 1),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT role, content FROM messages
+            WHERE session_id = ?
+            ORDER BY id DESC LIMIT ?
+            """,
+            (session_id, MAX_CONTEXT_TURNS + 1),
+        ).fetchall()
+    conn.close()
+
+    lines = []
+    for row in reversed(rows):
+        role = "User" if row["role"] == "user" else "Assistant"
+        content = " ".join(row["content"].split())
+        if len(content) > 1500:
+            content = content[:1500] + "…"
+        lines.append(f"{role}: {content}")
+    return "\n\n".join(lines)[:MAX_CONTEXT_CHARS]
+
+
+def save_feedback(
+    session_id: str,
+    rating: str,
+    response_text: str,
+    user_id: str | None,
+    browser_id: str | None,
+    ip: str,
+) -> int:
+    """Store a rating with a context snapshot; returns the feedback id."""
+    # Only look inside the session if the caller may access it, so a guessed
+    # session_id can't be used to exfiltrate another user's conversation
+    message_id = None
+    context_text = ""
+    if _ensure_session_access(session_id, user_id, browser_id):
+        conn = _get_chat_conn()
+        row = conn.execute(
+            """
+            SELECT id FROM messages
+            WHERE session_id = ? AND role = 'assistant' AND content = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (session_id, response_text),
+        ).fetchone()
+        conn.close()
+        message_id = row["id"] if row else None
+        context_text = _snapshot_context(session_id, message_id)
+
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO feedback (session_id, message_id, rating, response_text, context_text, user_id, browser_id, ip)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            session_id,
+            message_id,
+            rating,
+            response_text[:MAX_CONTEXT_CHARS],
+            context_text,
+            user_id,
+            browser_id,
+            ip,
+        ),
+    )
+    feedback_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return feedback_id
+
+
+def update_feedback_comment(feedback_id: int, comment: str, browser_id: str | None) -> bool:
+    """Attach the optional comment to an existing rating from the same browser."""
+    conn = _get_chat_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE feedback SET comment = ? WHERE id = ? AND (browser_id = ? OR browser_id IS NULL)",
+        (comment[:MAX_FEEDBACK_COMMENT], feedback_id, browser_id),
+    )
+    updated = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+
 def _derive_session_title(message: str) -> str:
     """Build a session title from the first user message."""
     title = " ".join(message.split())
@@ -1260,6 +1387,39 @@ async def index(request: Request):
             "donation_url": DONATION_URL,
         },
     )
+
+
+@app.post("/api/feedback")
+async def submit_feedback(request: Request):
+    """Record a thumbs up/down on an assistant response, or attach a comment
+    to an earlier rating (when feedback_id is supplied)."""
+    data = await request.json()
+    client_ip = _get_client_ip(request)
+    if is_ip_blocked(client_ip):
+        raise HTTPException(status_code=403, detail="Blocked")
+
+    browser_id = data.get("browser_id")
+    user = get_current_user(request)
+    user_id = user["id"] if user else None
+
+    feedback_id = data.get("feedback_id")
+    if feedback_id is not None:
+        comment = (data.get("comment") or "").strip()
+        if not comment:
+            return {"success": False, "message": "Comment is empty"}
+        ok = update_feedback_comment(int(feedback_id), comment, browser_id)
+        return {"success": ok}
+
+    rating = data.get("rating")
+    if rating not in ("up", "down"):
+        return {"success": False, "message": "rating must be 'up' or 'down'"}
+    response_text = (data.get("response_text") or "").strip()
+    if not response_text:
+        return {"success": False, "message": "response_text is required"}
+    session_id = data.get("session_id") or ""
+
+    new_id = save_feedback(session_id, rating, response_text, user_id, browser_id, client_ip)
+    return {"success": True, "feedback_id": new_id}
 
 
 @app.get("/privacy", response_class=HTMLResponse)
@@ -2138,6 +2298,33 @@ async def admin_usage(request: Request):
         "top_ips": top_ips,
         "blocked_ips": blocked,
     }
+
+
+@app.get("/admin/api/feedback")
+async def admin_feedback(request: Request):
+    """Recent response feedback for the admin dashboard."""
+    if not verify_admin_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    month_ago = (datetime.now(timezone.utc) - timedelta(days=29)).strftime("%Y-%m-%d %H:%M:%S")
+    conn = _get_chat_conn()
+    counts = dict(conn.execute(
+        """
+        SELECT COALESCE(SUM(CASE WHEN rating = 'up' THEN 1 ELSE 0 END), 0) AS up,
+               COALESCE(SUM(CASE WHEN rating = 'down' THEN 1 ELSE 0 END), 0) AS down
+        FROM feedback WHERE created_at >= ?
+        """,
+        (month_ago,),
+    ).fetchone())
+    items = [dict(r) for r in conn.execute(
+        """
+        SELECT id, created_at, rating, comment, response_text, context_text,
+               user_id IS NOT NULL AS signed_in
+        FROM feedback ORDER BY id DESC LIMIT 50
+        """
+    ).fetchall()]
+    conn.close()
+    return {"last_30_days": counts, "items": items}
 
 
 @app.post("/admin/api/block-ip")

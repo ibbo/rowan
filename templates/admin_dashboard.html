@@ -400,6 +400,13 @@
         </div>
 
         <div class="card">
+            <h2 class="card-title">Response Feedback <span class="env-badge" id="fb-counts"></span></h2>
+            <div id="feedback-list">
+                <div class="empty-note">Loading…</div>
+            </div>
+        </div>
+
+        <div class="card">
             <h2 class="card-title">LLM Configuration</h2>
 
             <form id="settings-form">
@@ -629,9 +636,47 @@
             loadUsage();
         }
 
+        async function loadFeedback() {
+            try {
+                const res = await fetch('/admin/api/feedback');
+                const data = await res.json();
+                document.getElementById('fb-counts').textContent =
+                    `last 30 days: ${data.last_30_days.up} 👍 · ${data.last_30_days.down} 👎`;
+
+                const list = document.getElementById('feedback-list');
+                if (!data.items.length) {
+                    list.innerHTML = '<div class="empty-note">No feedback yet.</div>';
+                    return;
+                }
+                list.innerHTML = data.items.map(item => {
+                    const icon = item.rating === 'up' ? '👍' : '👎';
+                    const comment = item.comment
+                        ? `<div style="margin:6px 0; font-weight:600;">“${escapeHtml(item.comment)}”</div>`
+                        : '';
+                    const excerpt = escapeHtml((item.response_text || '').slice(0, 200));
+                    const context = escapeHtml(item.context_text || 'No conversation context captured.');
+                    return `<div style="border-bottom:1px solid #e5e7eb; padding:10px 0;">
+                        <div style="font-size:0.8rem; color:#6b7280;">
+                            ${icon} ${escapeHtml(item.created_at)} · ${item.signed_in ? 'signed in' : 'anonymous'}
+                        </div>
+                        ${comment}
+                        <div style="font-size:0.85rem; color:#374151; margin-top:4px;">${excerpt}…</div>
+                        <details style="margin-top:6px;">
+                            <summary style="font-size:0.8rem; color:#667eea; cursor:pointer;">Conversation context</summary>
+                            <pre style="white-space:pre-wrap; font-size:0.8rem; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-top:6px;">${context}</pre>
+                        </details>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                document.getElementById('feedback-list').innerHTML =
+                    `<div class="empty-note">Failed to load feedback: ${escapeHtml(e.message)}</div>`;
+            }
+        }
+
         // Initialize on page load
         updateModels();
         loadUsage();
+        loadFeedback();
     </script>
 </body>
 
