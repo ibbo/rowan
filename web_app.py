@@ -314,6 +314,10 @@ def init_chat_db():
         )
     """)
 
+    # Usage rows are only needed for quotas (per-day) and abuse review;
+    # drop them after 90 days, matching the privacy page
+    cursor.execute("DELETE FROM usage_log WHERE date < date('now', '-90 days')")
+
     # Clean up expired sessions on startup
     cursor.execute(
         "DELETE FROM user_sessions WHERE expires_at < ?",
@@ -1258,6 +1262,12 @@ async def index(request: Request):
     )
 
 
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(request: Request):
+    """Plain-English privacy page."""
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
+
 @app.post("/api/query")
 async def query_stream(request: Request):
     """
@@ -1980,7 +1990,7 @@ async def admin_login(request: Request, password: str = Form(...)):
             "error": "Admin password not configured. Set ADMIN_PASSWORD in .env file."
         })
     
-    if password == ADMIN_PASSWORD:
+    if secrets.compare_digest(password, ADMIN_PASSWORD):
         response = RedirectResponse(url="/admin", status_code=302)
         session_token = create_admin_session()
         response.set_cookie(
