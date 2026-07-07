@@ -205,6 +205,7 @@ async def search_cribs(
     query_text: str,
     limit: int = 20,
     kind: Optional[str] = None,
+    official_rscds_dances: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
     """
     Full-text search the dance cribs for specific moves, terms, or descriptions.
@@ -226,11 +227,14 @@ async def search_cribs(
         limit: Maximum number of results (1-200, default 20)
         kind: Optional dance TYPE filter - EXACT VALUES: 'Jig', 'Reel',
             'Strathspey', 'Hornpipe', 'Waltz', 'March'
+        official_rscds_dances: True=only dances in RSCDS publications,
+            False=only non-RSCDS, None=all. ALWAYS set True when the user
+            asks for RSCDS dances.
 
     Returns:
         List of dances that match the search query in their cribs
     """
-    print(f"DEBUG: search_cribs tool called with query: '{query_text}' kind={kind}", file=sys.stderr)
+    print(f"DEBUG: search_cribs tool called with query: '{query_text}' kind={kind} rscds={official_rscds_dances}", file=sys.stderr)
 
     sql = """
         SELECT d.id, d.name, d.kind, d.metaform, d.bars
@@ -242,6 +246,14 @@ async def search_cribs(
     if kind:
         sql += " AND d.kind = ?"
         args.append(kind)
+    if official_rscds_dances is not None:
+        sql += f"""
+        AND d.id {'IN' if official_rscds_dances else 'NOT IN'} (
+            SELECT dpm.dance_id
+            FROM dancespublicationsmap dpm
+            JOIN publication p ON p.id = dpm.publication_id AND p.rscds = 1
+        )
+        """
     sql += " ORDER BY rank LIMIT ?"
     args.append(limit)
 

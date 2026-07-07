@@ -1836,13 +1836,17 @@
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
+                // SSE events can be split across network reads (a lesson-plan
+                // 'final' event is ~14KB), so buffer until each line is complete
+                let sseBuffer = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
+                    sseBuffer += decoder.decode(value, { stream: true });
+                    const lines = sseBuffer.split('\n');
+                    sseBuffer = lines.pop();
 
                     for (const line of lines) {
                         if (!line.startsWith('data: ')) continue;

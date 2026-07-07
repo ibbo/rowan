@@ -345,6 +345,11 @@ Examples of how to handle different queries:
 CRITICAL: When using find_dances, ALWAYS set random_variety=True to provide varied and diverse dance suggestions.
 Only use random_variety=False if the user specifically asks for alphabetical order or searches for a specific dance by name.
 
+CRITICAL - RSCDS-ONLY REQUESTS: When the user asks for RSCDS dances (or dances from RSCDS books),
+pass official_rscds_dances=True to EVERY find_dances AND search_cribs call. To double-check a specific
+dance, get_dance_detail lists its publications with an 'rscds' flag - a dance with no rscds=1
+publication is NOT an RSCDS dance and must not be presented as one.
+
 When helping users:
 - Use find_dances to search for dances matching criteria (ALWAYS with random_variety=True for variety)
 - Use get_dance_detail to get full information about specific dances
