@@ -1,0 +1,4264 @@
+{
+  "gpt-5.4-mini": [
+    {
+      "id": "formation-allemande-2c#1",
+      "model": "gpt-5.4-mini",
+      "answer": "No \u2014 they are not the same.\n\n- **\u201cAllemande for 2 couples\u201d** is the standard **formation/method of progression** in which two couples dance in allemande hold.\n- **\u201cAllemande turn\u201d** is a **turning figure** for two dancers facing each other.\n\nFor a standard 2-couple allemande, use the exact formation/token:\n\n- **Allemande for 2 couples** \u2014 **`ALLMND;2C;`**\n\nIf you want, I can also show the RSCDS manual wording that distinguishes the general allemande formation from the turn.",
+      "error": null,
+      "latency_s": 4.2,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande for 2 couples",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande turn",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 15540,
+        "output": 180,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_2c",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#1",
+      "model": "gpt-5.4-mini",
+      "answer": "The formation entry you want is **[Allemande Turn (to R or L)]** \u2014 token `ALL_RL`.\n\nThis is the entry for a right or left allemande turn, not the **two-couple allemande** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 2.9,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10499,
+        "output": 89,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#1",
+      "model": "gpt-5.4-mini",
+      "answer": "On bars **11\u201316**, the crib explicitly names **skip change of step**:\n\n- **11\u201312:** \u201c1s using **skip change**\u2026\u201d\n- **15\u201316:** \u201c1s using **skip change**\u2026\u201d\n\nSo the step named is **skip change of step**.",
+      "error": null,
+      "latency_s": 4.3,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10550,
+        "output": 88,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#1",
+      "model": "gpt-5.4-mini",
+      "answer": "On bars 17\u201318, the step explicitly named is **pas de basque**.\n\nCrib wording: \u201c1st couple, giving both hands and using **pas de basque**, turn halfway around moving down\u2026\u201d",
+      "error": null,
+      "latency_s": 2.7,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Discounted Suit"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10603,
+        "output": 71,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#1",
+      "model": "gpt-5.4-mini",
+      "answer": "In the crib for **[Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/)**, the step named for the pivot on bar 4 is **travelling step L**.\n\nThe crib says: \u201cOn [4] 1M & 2M pivot L (**travelling step L**) to finish behind P.\u201d\n\n",
+      "error": null,
+      "latency_s": 2.9,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10683,
+        "output": 107,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#1",
+      "model": "gpt-5.4-mini",
+      "answer": "In **Circle Strathspey**, bars **1\u20138** are:\n\n**All set facing the centre using Glasgow Highlanders setting step.**\n\nIf you want, I can also explain the rest of the crib bar by bar.",
+      "error": null,
+      "latency_s": 3.0,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10418,
+        "output": 74,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#1",
+      "model": "gpt-5.4-mini",
+      "answer": "In **Mairi\u2019s Wedding**, bars **9\u201324**, the first couple **pass left shoulder**.\n\nThe crib says: **\u201c1c \u00bdReel4 with 1cnrs (pass P Lsh)\u201d** and then repeat with the 2nd corners.  \nSo for that section, it is **left shoulder**.",
+      "error": null,
+      "latency_s": 3.3,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11054,
+        "output": 98,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#1",
+      "model": "gpt-5.4-mini",
+      "answer": "In **The Reel of the 51st Division**, bars 1\u20138, the first couple **cast off two places**.\n\nThe crib says:\n- **1c set | cast off two places (2c up) and lead up to 1cnrs**\n\nSo it is definitely **two places**, not one.\n\nDance link: [Reel of the 51st Division, The](https://my.strathspey.org/dd/dance/5525/)",
+      "error": null,
+      "latency_s": 3.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11151,
+        "output": 126,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#1",
+      "model": "gpt-5.4-mini",
+      "answer": "The next explicitly stated action is **\u201ccross LH\u201d**.\n\nFrom the crib for *The Montgomeries\u2019 Rant*:\n\n- 1st couple **cross RH**\n- cast off\n- **cross LH**\n- cast left\n\nSo it is **cross left hand**, not start the reel of three.",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11001,
+        "output": 96,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#1",
+      "model": "gpt-5.4-mini",
+      "answer": "In bars 17\u201324 of **[The Diplomat](https://my.strathspey.org/dd/dance/17880/)**, the **first couple use two setting steps** when they pass each other by the left shoulder.\n\nFrom the crib:\n- \u201c**1C with two setting steps pass each other by the left shoulder**\u201d\n\nSo the answer is: **two setting steps**.",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10496,
+        "output": 107,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#1",
+      "model": "gpt-5.4-mini",
+      "answer": "Here is the exact RSCDS manual wording for **skip change of step**:\n\n> **5.4.1 Skip change of step**  \n> This step is used to travel. One skip change of step takes one bar of music.  \n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot.  \n> 3. Bring the left foot behind the right foot to third rear position.  \n> 4. Step forward again with the right foot into fourth in front of third position.  \n> Rhythmic words: Hop, step, close, step (or similar rhythmic variations).  \n> The rhythm of jig time is particularly suitable for the practice of this step.  \n> The character of the step is light and lively. It should give the feeling of flight and easy movement.  \n> **Points to observe**  \n> 1. The hop at the beginning must be very positive, although it should not be too high or the remainder of the step will become distorted.  \n> 2. The fully extended leg should be turned out from the hip to show a firm line from hip to toe, the knee straight but not stiff, the toe pointed down and approximately 5 cm (2 inches) clear of the floor. This leading leg then extends forward into fourth in front of third position as weight is transferred so that the leading foot is not just placed straight down.  \n> 3. Each time the feet close in third position, the instep of the rear foot makes contact with the heel of the front foot, but is not tucked under that heel. The heels should not be too high off the ground and good outward rotation should be maintained. This will also ensure that the feet are maintained at the correct angle.  \n> 4. At the end of the step, the back foot is brought through and the leg extended, ready to repeat the step on the other foot.  \n>  \n> **Fourth rear:**  \n> The working leg and foot are fully extended from third rear in a straight line behind the supporting foot. Different fourth positions are used in different situations.  \n>  \n> Skip change of step is also used to travel backwards, as in advance and retire. Again, there must be a distinct hop to begin the step. The movement is \u2018Hop, back, close, back\u2019 with the \u2018close\u2019 in this instance coming to third position in front. The foot travelling from the front through to the back is taken straight from fourth position in front and reaches backwards into fourth rear position. The leg, working from the hip, is turned out, with the toes pointed towards the floor.\n\nIf you want, I can also give you the **RSCDS teaching progression** for skip change of step in a shorter class-friendly format.",
+      "error": null,
+      "latency_s": 6.5,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11162,
+        "output": 660,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#1",
+      "model": "gpt-5.4-mini",
+      "answer": "The RSCDS manual search did not return a specific entry for **\u201chighland swing turn.\u201d** The closest matching wording I could find is the manual\u2019s general entry for **Turn**:\n\n> **6.39 Turn** (Page 169)  \n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> Steps: 4 travelling steps  \n> No. of bars: 4  \n> Bars  \n> Approach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines an...\n\nIf you want, I can also look for the RSCDS wording for a related term such as:\n- **highland reel and turn**\n- **highland setting**\n- **swing**\n- **turn with one hand**",
+      "error": null,
+      "latency_s": 5.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn points to observe",
+            "num_results": 5
+          }
+        }
+      ],
+      "usage": {
+        "input": 15273,
+        "output": 241,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#1",
+      "model": "gpt-5.4-mini",
+      "answer": "Here\u2019s a beginner-friendly way to teach **skip change of step**, using the RSCDS guidance.\n\n### What the step is\nFrom the RSCDS manual, **skip change of step** is used to travel and takes **one bar of music**. The basic rhythm is:\n\n**Hop, step, close, step**\n\nThe manual describes the character as **\u201clight and lively\u201d**, giving a feeling of **\u201cflight and easy movement.\u201d**\n\n### Key teaching points\nFrom the RSCDS teaching guide, focus on:\n- **The hop**\n- **The straight front leg and the reach forward**\n- **The third position**\n\n### Common faults to watch for\nThe RSCDS guidance says to observe and correct:\n- Lack of outward rotation from the hip\n- Incorrect third position\n- Lack of hop\n- Front leg kicking up on the hop\n- Lack of extension in knee and foot\n- Coming down on a bent front knee\n- Pulling in the leading foot as it takes weight\n- Poor poise\n- Scraping\n\n### Simple beginner teaching sequence\nA good progression for a class is:\n\n1. **Name it and show the purpose**\n   - Explain that it is a travelling step.\n   - Use the rhythm words: **Hop Step Close Step**\n\n2. **Walk the rhythm first**\n   - Walk the words: **\u201cAnd Step Close Step\u201d** or **\u201cAnd Right Close Right\u201d**\n   - Then add music gradually.\n\n3. **Teach the hop**\n   - Isolate the hop and let the class copy it.\n   - Emphasize that the hop is positive, but not too high.\n\n4. **Teach the straight front leg**\n   - Show the fully extended leg forward.\n   - Practise the hop with the front leg extended.\n\n5. **Add the reach**\n   - Link the actions: **Hop, Reach Forward, Close**\n   - Practise with both feet.\n\n6. **Teach third position**\n   - Practise stepping forward and closing in third position.\n   - Repeat on toes if appropriate.\n\n7. **Put the whole step together**\n   - Dance the complete step.\n   - Then, if needed, show how it travels backwards for figures like advance and retire.\n\n### A useful teaching tip\nThe RSCDS manual notes that **jig time is particularly suitable** for practice.\n\n### Sources\n- **RSCDS Manual, 5.4.1 Skip change of step**\n- **RSCDS Teaching Guide: Teaching Skip Change of Step**\n\nIf you\u2019d like, I can also give you:\n1. a **5-minute beginner class drill** for skip change, or  \n2. a **common-faults checklist** you can use while teaching.",
+      "error": null,
+      "latency_s": 9.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11154,
+        "output": 624,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "formation-allemande-2c#2",
+      "model": "gpt-5.4-mini",
+      "answer": "No \u2014 they are not the same thing.\n\n- **\u201cAllemande for 2 couples\u201d** is the standard **formation/method of progression** with **two couples** in standard allemande hold.\n- **\u201cAllemande turn\u201d** refers to a **turning figure** done by **two dancers facing each other**.\n\nFor a standard 2-couple allemande, use:\n\n- **Formation name:** **Allemande for 2 couples**\n- **Token:** **`ALLMND;2C;`**\n\nFor reference, the RSCDS manual distinguishes the general **allemande** formation from **allemande turn to the right**.",
+      "error": null,
+      "latency_s": 4.1,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande for 2 couples",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande turn",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 15540,
+        "output": 190,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_2c",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#2",
+      "model": "gpt-5.4-mini",
+      "answer": "The formation entry you want is **[Allemande Turn (to R or L)](https://my.strathspey.org/dd/dance/302/)** in the formation list sense.\n\nIt\u2019s distinct from **Allemande for 2 couples** \u2014 that one is the actual two-couple figure.",
+      "error": null,
+      "latency_s": 2.7,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10499,
+        "output": 95,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [
+          "all_rl"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#2",
+      "model": "gpt-5.4-mini",
+      "answer": "On bars 11\u201316, the crib explicitly says **\u201cusing skip change\u201d** \u2014 i.e. **skip change of step**.\n\nDance link: [Bill's Friend, Stephen](https://my.strathspey.org/dd/dance/23334/)",
+      "error": null,
+      "latency_s": 2.6,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10550,
+        "output": 81,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#2",
+      "model": "gpt-5.4-mini",
+      "answer": "On bars 17\u201318, the step explicitly named is **pas de basque**.\n\nDance: [Discounted Suit, The](https://my.strathspey.org/dd/dance/16763/)",
+      "error": null,
+      "latency_s": 2.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Discounted Suit"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10603,
+        "output": 69,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#2",
+      "model": "gpt-5.4-mini",
+      "answer": "In the crib for **[Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/)**, the step named for the pivot on bar 4 is:\n\n**travelling step L**\n\nIt says: \u201c1M & 2M pivot L (**travelling step L**) to finish behind P.\u201d\n\n",
+      "error": null,
+      "latency_s": 3.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10683,
+        "output": 101,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#2",
+      "model": "gpt-5.4-mini",
+      "answer": "In **Circle Strathspey**, bars **1\u20138** are:\n\n- **ALL SET facing the centre using Glasgow Highlanders setting step**\n\nIf you want, I can also explain what that means in terms of the step or help with the full crib.",
+      "error": null,
+      "latency_s": 4.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10418,
+        "output": 80,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#2",
+      "model": "gpt-5.4-mini",
+      "answer": "In **Mairi\u2019s Wedding**, bars **9\u201324**, first couple **pass left shoulder** in the half reels of four.\n\nThe crib explicitly says: **\u201c\u00bdReel4 with 1cnrs (pass P Lsh) ; Repeat with 2cnrs\u201d** and so on.\n\nDance link: [Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)",
+      "error": null,
+      "latency_s": 4.3,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11054,
+        "output": 115,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#2",
+      "model": "gpt-5.4-mini",
+      "answer": "In **The Reel of the 51st Division**, bars 1\u20138, the crib says:\n\n**\u201c1c set | cast off two places (2c up) and lead up to 1cnrs\u201d**\n\nSo the **first couple cast off two places**, not one.\n\n[The Reel of the 51st Division, The](https://my.strathspey.org/dd/dance/5525/)",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11151,
+        "output": 116,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#2",
+      "model": "gpt-5.4-mini",
+      "answer": "In the crib for **[The Montgomeries\u2019 Rant](https://my.strathspey.org/dd/dance/4641/)**, after the first couple **cross RH and cast off** in bars 1\u20138, the next explicitly stated action is:\n\n**cross LH, then cast left**.\n\nSo it is **not** \u201cstart the reel of three\u201d yet; that begins in **bars 9\u201316**.",
+      "error": null,
+      "latency_s": 3.0,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11001,
+        "output": 123,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "reel_of_three",
+        "target_label": "cross_left_hand",
+        "missing_expected": [
+          "cross left hand"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#2",
+      "model": "gpt-5.4-mini",
+      "answer": "In bars 17\u201324 of **[The Diplomat](https://my.strathspey.org/dd/dance/17880/)**, the first couple use **two setting steps** when they pass each other by the left shoulder.\n\nFrom the crib:\n- \u201c1C with **two setting steps** pass each other by the left shoulder\u2026\u201d\n\nIf you\u2019d like, I can also break down exactly what happens bar by bar in that phrase.",
+      "error": null,
+      "latency_s": 3.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10496,
+        "output": 116,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#2",
+      "model": "gpt-5.4-mini",
+      "answer": "Here is the exact RSCDS manual wording for **skip change of step** from the teaching guidance:\n\n> **Teaching Skip Change Of Step** (RSCDS: Teaching Scottish Country Dancing - Guidelines for Tutors, Teachers and Candidates (RSCDS))  \n>  \n> **Main teaching points**  \n> a) The hop.  \n> b) The straight front leg and the reach forward.  \n> c) The third position.  \n>  \n> **Common faults to observe and correct**  \n> a) Lack of outward rotation from the hip.  \n> b) Incorrect third position \u2013 leaving gap, closing in first position or passing feet.  \n> c) Lack of hop.  \n> d) Front leg kicking up on hop.  \n> e) Lack of extension in knee and foot.  \n> f) Coming down on a bent front knee (lack of reach).  \n> g) Pulling in leading foot as it takes weight.  \n> h) Poor poise.  \n> i) Scraping.  \n>  \n> **Sample lesson plan**  \n> 1. Give name and purpose and cover numbers 2, 3 and 4 from the guidelines in section 4.  \n>  \n> 2. Rhythmic words \u2013 Hop Step Close Step  \n> a) Walking words \u2013 \u201cAnd Step Close Step\u201d or \u201cAnd Right Close Right\u201d  \n> b) While walking, bring in music, gradually increasing speed.  \n> c) While music is playing introduce \u201cOn your toes\u201d.  \n> d) As speed increases introduce \u201cHop Step Close Step\u201d.  \n>  \n> 3. Hop  \n> a) Isolate the movement. Demonstrate the hop and have class copy 2 or 3 times with each foot. (Avoid using spring points as the toe of the front leg is not on the floor during the \u201cHop\u201d).  \n> b) Dance step concentrating on \u201cHop\u201d.  \n>  \n> 4. Straight Front Leg  \n> a) Show position and have class show also.  \n> b) Show and practise the hop with fully extended front leg 3 or 4 times with each foot (keep front foot off floor).  \n> c) Dance step concentrating on full extension on hop.  \n>  \n> 5. Reach  \n> a) Link the three movements \u2013 Hop, Reach Forward, Close.  \n> b) Have class practise with R and L foot 3 or 4 times.  \n> c) Dance step concentrating on the \u201creach\u201d.  \n>  \n> 6. Third Position  \n> a) Practise \u2013 Step forward, close in 3rd \u2013 3 or 4 times with the same foot and then with the other.  \n> b) Repeat on toes.  \n>  \n> 7. Finally dance the complete PERFECT STEP! If necessary go on to teach skip change of step travelling backwards.\n\nIf you want, I can also quote the **manual\u2019s technical description** of skip change of step from the RSCDS manual section itself.",
+      "error": null,
+      "latency_s": 5.5,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11162,
+        "output": 681,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop, step, close, step",
+          "5.4.1"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#2",
+      "model": "gpt-5.4-mini",
+      "answer": "The RSCDS manual wording for the **Highland Schottische step** is:\n\n> **5.5.3 Highland Schottische step**  \n> One Highland Schottische step takes two bars of music. Each step has eight beats. In Scottish country dancing, \u2018to set\u2019 with Highland Schottische means one setting step to the right and one to the left in four bars of music.   \n> Counts 1, 2, 3, 4: all danced on the spot, with a hop on the supporting foot on each beat.  \n> Counts 5, 6, 7, 8: the same as strathspey setting step (Common Schottische step).  \n> Bars  \n> Hop on the left foot, while extending the right foot to second position, toe pointing down and touching the floor (count 1).  \n>   \n> Hop on the left foot, lifting the right foot to third rear aerial low (count 2).  \n>   \n> Hop on the left foot, extending the right foot to second position as in beat 1 (count 3).  \n>   \n> Hop on the left foot, lifting the right foot to third aerial low (count 4).  \n> Bending the left knee and transferring the weight to the right foot, step into second position (count 5).  \n>   \n> Close the left foot to the right foot in third rear position (count 6).  \n>   \n> Without bending the left knee, transfer the weight to the right foot again stepping to the right into second position, leaving the left leg fully extended (count 7)  \n>   \n> Hop on the right foot, drawing the left foot slowly up behind to place it in third rear aerial low (count 8).  \n> The step is repeated with the left foot leading.  \n> Rhythmic words:  Side, behind, side, in front, step, close, step, hop (or similar rhythmic variations).  \n> As this step is from the Highland dance tradition, it is acceptable in this step, for the men only, to place the foot higher against the supporting leg, just below the knee, on counts 2, 4 and 8. Men may also use the appropriate Highland dance arm positions.\n\nIf you meant a different \u201chighland swing turn,\u201d tell me the exact term you\u2019re using and I\u2019ll look it up precisely.",
+      "error": null,
+      "latency_s": 6.5,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland schottische step",
+            "num_results": 2
+          }
+        }
+      ],
+      "usage": {
+        "input": 21414,
+        "output": 577,
+        "reasoning": 0,
+        "llm_calls": 4
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#2",
+      "model": "gpt-5.4-mini",
+      "answer": "Here\u2019s a beginner-friendly way to teach **skip change of step**, using the RSCDS guidance.\n\n### What the step is\nFrom the RSCDS manual, **skip change of step** is used to travel.  \n- One skip change takes **one bar of music**.\n- Rhythm: **\u201cHop, step, close, step\u201d**\n- Character: **light and lively**, with a feeling of **flight and easy movement**.\n\n### Key teaching points\nUse these three main points first:\n1. **The hop**\n2. **The straight front leg and reach forward**\n3. **The third position**\n\n### Simple teaching progression\nA good beginner progression is:\n\n1. **Introduce the rhythm**\n   - Say and walk: **\u201cHop, step, close, step\u201d**\n   - Or walk the words: **\u201cAnd step close step\u201d**\n   - Bring in music gradually, starting slowly.\n\n2. **Teach the hop**\n   - Isolate the hop on each foot.\n   - Keep it positive, but not too high.\n\n3. **Teach the straight front leg**\n   - Show the fully extended working leg.\n   - Emphasize the leg reaching forward before stepping.\n\n4. **Teach the close to third position**\n   - Practise stepping and closing in third position.\n   - Make sure the feet do not tuck under or pass.\n\n5. **Put it all together**\n   - Combine: **hop \u2192 reach \u2192 close \u2192 step**\n   - Practise repeatedly with both feet.\n\n### Common faults to watch for\nAccording to the teaching guidance, watch for:\n- lack of outward rotation from the hip\n- incorrect third position\n- lack of hop\n- front leg kicking up on the hop\n- insufficient extension\n- coming down on a bent front knee\n- pulling in the leading foot too early\n- poor poise\n- scraping\n\n### Beginner teaching tip\nFor a first class, keep it simple:\n- use **walking rhythm first**\n- then **hop only**\n- then add **reach and close**\n- then dance the full step with music\n\n### RSCDS sources\n- Technical definition: **RSCDS Manual, 5.4.1 Skip change of step, p. 74**\n- Teaching progression and faults: **RSCDS Teaching Skip Change Of Step**\n\nIf you want, I can also give you a **5-minute beginner class script** for teaching it.",
+      "error": null,
+      "latency_s": 5.8,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11154,
+        "output": 562,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "formation-allemande-2c#3",
+      "model": "gpt-5.4-mini",
+      "answer": "No \u2014 they are not the same.\n\n- **Allemande for 2 couples** is the standard **4-dancer progression formation**: **`ALLMND;2C;`**\n- **Allemande turn** refers to a **2-dancer turning figure** such as **allemande turn to the right**, not the same thing as the 2-couple progression.\n\nSo the exact formation/token to use for a standard 2-couple allemande is:\n\n**Formation:** allemande for 2 couples  \n**Token:** **`ALLMND;2C;`**\n\nIf you want, I can also explain the difference between **allemande for 2 couples**, **allemande turn to the right**, and **allemande turn to the left**.",
+      "error": null,
+      "latency_s": 4.5,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande for 2 couples",
+            "num_results": 2
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande turn",
+            "num_results": 2
+          }
+        }
+      ],
+      "usage": {
+        "input": 15442,
+        "output": 213,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_2c",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#3",
+      "model": "gpt-5.4-mini",
+      "answer": "The formation entry you want is **[Allemande Turn (to R or L)](https://my.strathspey.org/dd/dance/302/)** \u2014 token `ALL_RL`.\n\nThat is the entry for an allemande turn right or left, **not** the two-couple allemande.",
+      "error": null,
+      "latency_s": 3.4,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10499,
+        "output": 96,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#3",
+      "model": "gpt-5.4-mini",
+      "answer": "On bars 11\u201316, the crib explicitly names **\u201cskip change\u201d** \u2014 in both places it says:\n\n- **11\u201312:** \u201c1s using skio change\u2026\u201d  \n- **15\u201316:** \u201c1s using skip change\u2026\u201d\n\nSo the step named is **skip change of step**.",
+      "error": null,
+      "latency_s": 2.9,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10550,
+        "output": 91,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#3",
+      "model": "gpt-5.4-mini",
+      "answer": "On bars 17\u201318, the step explicitly named is **pas de basque**.\n\nThe crib says: \u201c1st couple, giving both hands and **using pas de basque**, turn halfway around\u2026\u201d",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Discounted Suit"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10603,
+        "output": 69,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#3",
+      "model": "gpt-5.4-mini",
+      "answer": "In the crib for **[Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/)**, the step named for the pivot on bar 4 is **travelling step L**.\n\nThe crib says: \u201c**On [4] 1M & 2M pivot L (travelling step L)** to finish behind P.\u201d",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10683,
+        "output": 108,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#3",
+      "model": "gpt-5.4-mini",
+      "answer": "In the crib for **Circle Strathspey**, bars **1\u20138** are:\n\n**\u201cALL SET facing the centre using Glasgow Highlanders setting step.\u201d**\n\nSo the named step is **Glasgow Highlanders setting step**.",
+      "error": null,
+      "latency_s": 2.7,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10418,
+        "output": 76,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#3",
+      "model": "gpt-5.4-mini",
+      "answer": "In **Mairi\u2019s Wedding**, bars **9\u201324** say **\u201cpass Lsh\u201d** in the crib, so first couple pass **left shoulder**.  \n\nDance link: [Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)",
+      "error": null,
+      "latency_s": 3.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11054,
+        "output": 88,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#3",
+      "model": "gpt-5.4-mini",
+      "answer": "In **The Reel of the 51st Division**, bars 1\u20138 are:\n\n**1c set | cast off two places (2c up) and lead up to 1cnrs**\n\nSo the first couple cast off **two places**, not one.\n\n[The Reel of the 51st Division, The](https://my.strathspey.org/dd/dance/5525/)",
+      "error": null,
+      "latency_s": 3.3,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11151,
+        "output": 111,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#3",
+      "model": "gpt-5.4-mini",
+      "answer": "In the crib for **[The Montgomeries\u2019 Rant](https://my.strathspey.org/dd/dance/4641/)**, bars 1\u20138 read:\n\n> **1c cross RH | cast off (2c up) ; cross LH | cast L (W up, M down)**\n\nSo the next explicitly stated action after the first couple cross right hand is **cast off**.  \nThen comes **cross left hand** later in the same phrase \u2014 not the reel of three yet.\n\nThe **reel of three across** starts at bars **9\u201316**.",
+      "error": null,
+      "latency_s": 3.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11001,
+        "output": 155,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#3",
+      "model": "gpt-5.4-mini",
+      "answer": "In bars 17\u201324 of *The Diplomat*, the first couple uses **setting steps** when they pass each other by the left shoulder.\n\nFrom the crib:\n- \u201c... while **1C with two setting steps pass each other by the left shoulder** ...\u201d\n\nIf you\u2019d like, I can also break down the full bars 17\u201324 phrase step by step.",
+      "error": null,
+      "latency_s": 3.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10496,
+        "output": 102,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#3",
+      "model": "gpt-5.4-mini",
+      "answer": "Here is the **exact RSCDS manual wording** for **skip change of step**:\n\n> **5.4.1 Skip change of step**  \n> This step is used to travel. One skip change of step takes one bar of music.  \n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot.  \n> 3. Bring the left foot behind the right foot to third rear position.  \n> 4. Step forward again with the right foot into fourth in front of third position.  \n>  \n> Rhythmic words: Hop, step, close, step (or similar rhythmic variations).  \n> The rhythm of jig time is particularly suitable for the practice of this step.  \n> The character of the step is light and lively. It should give the feeling of flight and easy movement.  \n>  \n> **Points to observe**  \n> 1. The hop at the beginning must be very positive, although it should not be too high or the remainder of the step will become distorted.  \n> 2. The fully extended leg should be turned out from the hip to show a firm line from hip to toe, the knee straight but not stiff, the toe pointed down and approximately 5 cm (2 inches) clear of the floor. This leading leg then extends forward into fourth in front of third position as weight is transferred so that the leading foot is not just placed straight down.  \n> 3. Each time the feet close in third position, the instep of the rear foot makes contact with the heel of the front foot, but is not tucked under that heel. The heels should not be too high off the ground and good outward rotation should be maintained. This will also ensure that the feet are maintained at the correct angle.  \n> 4. At the end of the step, the back foot is brought through and the leg extended, ready to repeat the step on the other foot.  \n>  \n> Fourth rear: The working leg and foot are fully extended from third rear in a straight line behind the supporting foot. Different fourth positions are used in different situations.  \n>  \n> Skip change of step is also used to travel backwards, as in advance and retire. Again, there must be a distinct hop to begin the step. The movement is \u2018Hop, back, close, back\u2019 with the \u2018close\u2019 in this instance coming to third position in front. The foot travelling from the front through to the back is taken straight from fourth position in front and reaches backwards into fourth rear position. The leg, working from the hip, is turned out, with the toes pointed towards the floor.\n\nIf you want, I can also give you the **RSCDS teaching progression and common faults** for skip change of step.",
+      "error": null,
+      "latency_s": 5.2,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11162,
+        "output": 660,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#3",
+      "model": "gpt-5.4-mini",
+      "answer": "I couldn\u2019t find a manual section called exactly **\u201chighland swing turn\u201d**. The closest RSCDS manual entry returned for **\u201cturn\u201d** is:\n\n> **6.39 Turn** (Page 169)  \n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> Steps: 4 travelling steps  \n> No. of bars: 4  \n> Bars  \n> Approach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines an...\n\nIf you meant a different figure, the most likely possibilities are:\n- **Highland Schottische step**\n- **Highland Schottische poussette**\n- or a specific **turn** used in a dance crib\n\nIf you want, I can search the exact manual wording for one of those.",
+      "error": null,
+      "latency_s": 4.7,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland",
+            "num_results": 5
+          }
+        }
+      ],
+      "usage": {
+        "input": 15467,
+        "output": 245,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#3",
+      "model": "gpt-5.4-mini",
+      "answer": "Here\u2019s a beginner-friendly way to teach **skip change of step**, using the RSCDS teaching guidance.\n\n## What it is\nFrom the RSCDS manual, skip change of step is a travelling step used for one bar of music, with the rhythm:\n\n- **Hop, step, close, step**\n\nThe manual says it should have a **light and lively** character, with a feeling of **flight and easy movement**.\n\n## Main teaching points\nAccording to the RSCDS teaching guide, focus on:\n\n1. **The hop**\n2. **The straight front leg and the reach forward**\n3. **The third position**\n\n## How to teach it to beginners\nA simple progression:\n\n1. **Introduce the rhythm first**\n   - Have them walk the rhythm as:\n     - \u201cAnd step close step\u201d\n     - or \u201cAnd right close right\u201d\n   - Then bring in the music gradually.\n   - When ready, change to:\n     - **Hop, step, close, step**\n\n2. **Teach the hop alone**\n   - Demonstrate the hop and let the class copy it.\n   - Keep it light and avoid making it too high.\n\n3. **Teach the straight front leg**\n   - Show the starting shape: the free leg is extended forward.\n   - Practise the hop with the front leg fully extended.\n\n4. **Teach the reach**\n   - Link the parts: **Hop, reach forward, close**\n   - Practise slowly with both feet.\n\n5. **Teach third position**\n   - Practise stepping forward and closing in third position.\n   - Make sure they do not leave a gap, close in first position, or pass the feet.\n\n6. **Put it all together**\n   - Dance the full step to music.\n   - Then, if needed, introduce travelling backwards later.\n\n## Common faults to watch for\nThe RSCDS teaching guide lists these common faults:\n\n- lack of outward rotation from the hip\n- incorrect third position\n- lack of hop\n- front leg kicking up on the hop\n- lack of extension in knee and foot\n- coming down on a bent front knee\n- pulling in the leading foot as it takes weight\n- poor poise\n- scraping\n\n## Helpful teaching tips\n- Keep it **light**, not forceful.\n- Use **jig time** for practice if possible, since the rhythm suits the step well.\n- Encourage the feeling of moving forward smoothly rather than stepping heavily.\n\n## Official sources\n- RSCDS Manual: **5.4.1 Skip change of step**, p. 74\n- RSCDS Teaching Guidance: **Teaching Skip Change Of Step**\n\nIf you\u2019d like, I can also give you a **5-minute beginner class plan** for teaching skip change of step.",
+      "error": null,
+      "latency_s": 6.4,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11154,
+        "output": 633,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    }
+  ],
+  "gpt-5.6-luna": [
+    {
+      "id": "formation-allemande-2c#1",
+      "model": "gpt-5.6-luna",
+      "answer": "No. They are distinct database formations:\n\n- **Allemande Turn (to R or L)** \u2014 token `ALL_RL`  \n  A general turning movement, usually specified as turning right or left.\n\n- **Allemande for 2 couples** \u2014 token **`ALLMND;2C;`**  \n  This is the exact formation to use for a standard two-couple allemande.\n\nDo not use `ALL_RL` when searching for the standard two-couple allemande; use **`ALLMND;2C;`**.",
+      "error": null,
+      "latency_s": 4.0,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande for 2 couples",
+            "num_results": 5
+          }
+        }
+      ],
+      "usage": {
+        "input": 10706,
+        "output": 187,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2-couple allemande",
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#1",
+      "model": "gpt-5.6-luna",
+      "answer": "The matching formation entry is **Allemande Turn (to R or L)**.\n\n- **Formation token:** `ALL_RL`\n- **Database ID:** 302\n\nThis is distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 3.4,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10499,
+        "output": 88,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#1",
+      "model": "gpt-5.6-luna",
+      "answer": "The step explicitly named on bars **11\u201316** is the **skip change of step**:\n\n- Bars 11\u201312: \u201cusing skio [skip] change\u201d\n- Bars 15\u201316: \u201cusing skip change\u201d\n\n[Bill\u2019s Friend, Stephen](https://my.strathspey.org/dd/dance/23334/) is a reel.",
+      "error": null,
+      "latency_s": 3.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10550,
+        "output": 101,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#1",
+      "model": "gpt-5.6-luna",
+      "answer": "The step explicitly named on bars 17\u201318 is **pas de basque**. The [dance instructions](https://my.strathspey.org/dd/dance/16763/) say the 1st couple turn halfway around \u201cusing pas de basque.\u201d",
+      "error": null,
+      "latency_s": 3.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Discounted Suit, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10604,
+        "output": 81,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#1",
+      "model": "gpt-5.6-luna",
+      "answer": "In **[Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/)**, the step on bar 4 is named **travelling step to the left**: the first man and second man pivot left, using travelling step, to finish behind their partners.\n\nThe RSCDS manual does not contain a separate entry for the term \u201cpivot travelling step.\u201d",
+      "error": null,
+      "latency_s": 4.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pivot travelling step",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 16473,
+        "output": 137,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#1",
+      "model": "gpt-5.6-luna",
+      "answer": "In [Circle Strathspey](https://my.strathspey.org/dd/dance/16390/), bars 1\u20138 use the **Glasgow Highlanders setting step**, while all facing the centre.",
+      "error": null,
+      "latency_s": 4.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10418,
+        "output": 73,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#1",
+      "model": "gpt-5.6-luna",
+      "answer": "In **bars 9\u201324 of [Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)**, the first couple pass **left shoulder** during the half reels of four:\n\n- Bars 9\u201312: with the first corners  \n- Bars 13\u201316: with the second corners  \n- Bars 17\u201320: with the third corners  \n- Bars 21\u201324: with the fourth corners  \n\nThe database notes that a right-shoulder pass is sometimes danced, humorously called \u201cMairi\u2019s Divorce,\u201d but the specified instruction is **left shoulder**.",
+      "error": null,
+      "latency_s": 3.7,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11054,
+        "output": 156,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [
+          "lsh"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#1",
+      "model": "gpt-5.6-luna",
+      "answer": "The first couple **cast off two places** in bars 1\u20138, with the second couple moving up. They then **lead up to first corners**.\n\n[The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/) is a 32-bar Reel.",
+      "error": null,
+      "latency_s": 3.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11151,
+        "output": 95,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#1",
+      "model": "gpt-5.6-luna",
+      "answer": "The next explicitly stated action is **cross left hand**.\n\nBars 1\u20138 are: **cross RH, cast off; cross LH, cast left**. The **reel of three** begins in bars 9\u201316.\n\n[Montgomeries\u2019 Rant, The](https://my.strathspey.org/dd/dance/4641/)",
+      "error": null,
+      "latency_s": 3.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11001,
+        "output": 105,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#1",
+      "model": "gpt-5.6-luna",
+      "answer": "In bars 17\u201324 of **[The Diplomat](https://my.strathspey.org/dd/dance/17880/)**, the first couple pass each other by the left shoulder using **two setting steps**\u2014specifically, **strathspey setting steps**.",
+      "error": null,
+      "latency_s": 3.3,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10496,
+        "output": 84,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#1",
+      "model": "gpt-5.6-luna",
+      "answer": "**RSCDS Manual, \u00a75.4.1 \u201cSkip change of step,\u201d p. 74:**\n\n> This step is used to travel. One skip change of step takes one bar of music.  \n>\n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot\u2026\n\nThe retrieved manual excerpt is truncated after this point. The RSCDS teaching guidance gives the teaching sequence as:\n\n> **Hop Step Close Step**  \n>\n> 1. Give name and purpose and cover numbers 2, 3 and 4 from the guidelines in section 4.  \n> 2. Rhythmic words \u2013 Hop Step Close Step  \n> 3. Hop  \n> 4. Straight Front Leg  \n> 5. Reach  \n> 6. Third Position  \n> 7. Finally dance the complete PERFECT STEP! If necessary go on to teach skip change of step travelling backwards.\n\nThe guidance also identifies the main teaching points as:\n\n> a) The hop.  \n> b) The straight front leg and the reach forward.  \n> c) The third position.",
+      "error": null,
+      "latency_s": 4.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10607,
+        "output": 323,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop, step, close, step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#1",
+      "model": "gpt-5.6-luna",
+      "answer": "I couldn\u2019t locate an RSCDS manual section specifically titled **\u201cHighland swing turn.\u201d** The closest manual entry returned is **Section 6.39, \u201cTurn\u201d (p. 169)**:\n\n> \u201cApproach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines \u2026\u201d\n\nThe search result is truncated, and the RSCDS teaching guide has no separate entry for \u201chighland swing turn,\u201d so I can\u2019t responsibly supply further wording as an exact quotation.",
+      "error": null,
+      "latency_s": 5.7,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "highland swing turn"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10167,
+        "output": 191,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#1",
+      "model": "gpt-5.6-luna",
+      "answer": "## Teaching skip-change of step to beginners\n\n### 1. Explain its purpose and rhythm\nThe RSCDS Manual describes skip-change as a travelling step; one step takes **one bar of music**.\n\nUse the rhythm:\n\n> **Hop \u2013 Step \u2013 Close \u2013 Step**\n\nYou can initially say:\n\n> **\u201cAnd step, close, step\u201d**\n\nThen progress to:\n\n> **\u201cHop, step, close, step.\u201d**\n\nBegin walking the rhythm slowly, gradually bringing in music and increasing the speed.\n\n### 2. Isolate the hop\nHave the class practise hopping on one foot, then the other, two or three times each.\n\nEmphasise that the front foot is **off the floor during the hop**\u2014avoid teaching this as a spring point.\n\n### 3. Add the extended front leg\nOn the hop, the other leg reaches forward with the knee and foot fully extended. Practise the hop with the straight front leg several times on each side.\n\nThe main teaching points are:\n\n- the hop;\n- the straight front leg and reach forward;\n- the third position.\n\n### 4. Add the reach and close\nLink the movements:\n\n> **Hop \u2013 reach forward \u2013 close**\n\nPractise slowly, first with the right foot leading and then with the left.\n\n### 5. Introduce third position\nPractise stepping forward and closing in **third position**, first with one foot leading and then the other. Repeat on the toes if appropriate.\n\nThen combine everything:\n\n> **Hop on the left, reach forward with the right, step right, close in third position, then step right.**  \n> Reverse the feet for the other side.\n\nFinally, let the class dance the complete step to music, returning to a slower tempo whenever the rhythm or placement deteriorates.\n\n## Faults to watch for\n\nAccording to the RSCDS teaching guidance, observe and correct:\n\n- insufficient outward rotation from the hip;\n- an incorrect third position\u2014leaving a gap, closing in first position, or passing the feet;\n- lack of hop;\n- the front leg kicking upward on the hop;\n- insufficient extension of the knee and foot;\n- landing with a bent front knee instead of reaching forward;\n- pulling the leading foot in as it takes weight;\n- poor poise;\n- scraping the feet.\n\nKeep the early practice small and controlled: establish the rhythm and shape before asking beginners to travel quickly.",
+      "error": null,
+      "latency_s": 8.0,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10599,
+        "output": 557,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "formation-allemande-2c#2",
+      "model": "gpt-5.6-luna",
+      "answer": "No. They are distinct database formations:\n\n- **Allemande turn (to R or L)** \u2014 token `ALL_RL`  \n  A generic turn/turning action in allemande hold.\n\n- **Allemande for 2 couples** \u2014 token **`ALLMND;2C;`**  \n  This is the exact formation to use for a standard two-couple allemande.\n\nThe two-couple formation is also commonly represented by the Napier name `ALL2C`.",
+      "error": null,
+      "latency_s": 3.3,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10533,
+        "output": 132,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2-couple allemande",
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#2",
+      "model": "gpt-5.6-luna",
+      "answer": "The matching formation entry is **Allemande Turn (to R or L)**, with token `ALL_RL`.\n\nIt is distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10499,
+        "output": 77,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#2",
+      "model": "gpt-5.6-luna",
+      "answer": "Bars 11\u201316 explicitly name the **skip change of step**:\n\n- **Bars 11\u201312:** \u201cusing skio [sic] change\u201d \u2014 evidently a typo for **skip change**\n- **Bars 15\u201316:** \u201cusing skip change\u201d",
+      "error": null,
+      "latency_s": 6.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10550,
+        "output": 81,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#2",
+      "model": "gpt-5.6-luna",
+      "answer": "On bars **17\u201318**, the 1st couple explicitly uses **pas de basque** while turning halfway around.\n\n[The Discounted Suit](https://my.strathspey.org/dd/dance/16763/)",
+      "error": null,
+      "latency_s": 3.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Discounted Suit, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10604,
+        "output": 73,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#2",
+      "model": "gpt-5.6-luna",
+      "answer": "In [Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/), the step on bar 4 is named **travelling step**\u2014specifically, the men pivot left using **travelling step to the left**.",
+      "error": null,
+      "latency_s": 4.9,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pivot travelling step",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 16473,
+        "output": 111,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#2",
+      "model": "gpt-5.6-luna",
+      "answer": "In [Circle Strathspey](https://my.strathspey.org/dd/dance/16390/), bars 1\u20138 use the **Glasgow Highlanders setting step**, while all dancers set facing the centre.",
+      "error": null,
+      "latency_s": 3.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10418,
+        "output": 75,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#2",
+      "model": "gpt-5.6-luna",
+      "answer": "In bars **9\u201324 of [Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)**, the first couple pass **left shoulder** in each half-reel of four:\n\n- Bars 9\u201316: with the first corners \u2014 pass left shoulder  \n- Bars 17\u201324: with the second corners \u2014 pass left shoulder  \n\nA right-shoulder version is sometimes danced and jokingly called \u201cMairi\u2019s Divorce,\u201d but the specified instruction is **left shoulder**.",
+      "error": null,
+      "latency_s": 3.0,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11054,
+        "output": 136,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [
+          "lsh"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#2",
+      "model": "gpt-5.6-luna",
+      "answer": "The first couple **cast off two places** in bars 1\u20134, with the second couple moving up. They then **lead up to first corners** in bars 5\u20138.\n\n[The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/) is a 32-bar reel.",
+      "error": null,
+      "latency_s": 3.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11151,
+        "output": 101,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#2",
+      "model": "gpt-5.6-luna",
+      "answer": "The next explicitly stated action is **cross left hand**, followed by casting off\u2014not starting the reel of three.\n\nThe crib gives bars 1\u20138 as:\n\n> \u201c1c cross RH | cast off (2c up) ; **cross LH** | cast L\u2026\u201d\n\nThe reel of three begins in bars 9\u201316. ([Montgomeries' Rant, The](https://my.strathspey.org/dd/dance/4641/))",
+      "error": null,
+      "latency_s": 3.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11001,
+        "output": 125,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#2",
+      "model": "gpt-5.6-luna",
+      "answer": "In bars 17\u201324 of [The Diplomat](https://my.strathspey.org/dd/dance/17880/), the first couple pass each other by the left shoulder using **two setting steps**\u2014that is, **strathspey setting steps**.",
+      "error": null,
+      "latency_s": 3.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10496,
+        "output": 82,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#2",
+      "model": "gpt-5.6-luna",
+      "answer": "The RSCDS manual\u2019s exact wording for **Skip change of step** is:\n\n> **5.4.1 Skip change of step**  \n> This step is used to travel. One skip change of step takes one bar of music.  \n>\n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot\u2026\n\nThe manual extract returned here is truncated after the second instruction. The accompanying RSCDS teaching guidance identifies the main teaching points as:\n\n> a) The hop.  \n> b) The straight front leg and the reach forward.  \n> c) The third position.\n\nIt also gives the teaching progression **\u201cHop Step Close Step\u201d**, isolating the hop, straight front leg, reach, and third position before dancing the complete step.",
+      "error": null,
+      "latency_s": 4.7,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10607,
+        "output": 255,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop, step, close, step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#2",
+      "model": "gpt-5.6-luna",
+      "answer": "I can\u2019t locate an RSCDS manual section specifically titled **\u201cHighland swing turn.\u201d** The relevant manual entry appears to be **\u00a76.39, \u201cTurn with the right or left hand\u201d (p. 169)**. Its wording is:\n\n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> **Steps:** 4 travelling steps  \n> **No. of bars:** 4  \n>  \n> \u201cApproach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines \u2026\u201d\n\nThe available extract is truncated, so I can\u2019t responsibly supply wording beyond what the manual search returns.",
+      "error": null,
+      "latency_s": 6.4,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "highland swing turn"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland set HLSet swing turn",
+            "num_results": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 15573,
+        "output": 253,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#2",
+      "model": "gpt-5.6-luna",
+      "answer": "## Skip-change of step: beginner lesson\n\n### 1. Explain the purpose and rhythm\nThe RSCDS Manual describes skip-change as a travelling step, with **one step taking one bar of music**.\n\nUse the rhythm:\n\n> **Hop \u2013 Step \u2013 Close \u2013 Step**\n\nInitially, say:\n\n> **\u201cAnd \u2013 step \u2013 close \u2013 step\u201d**\n\nThen progress to:\n\n> **\u201cHop \u2013 step \u2013 close \u2013 step.\u201d**\n\n### 2. Teach the components separately\n\n#### A. The hop\n- Demonstrate a small hop on the supporting foot.\n- Practise two or three hops on each foot.\n- Avoid using spring points at this stage: the front toe is not on the floor during the hop.\n\n#### B. The extended front leg\n- On the hop, extend the other leg fully forward.\n- Keep the knee and foot stretched, with the front foot off the floor.\n- Practise this several times on each side.\n\n#### C. The reach and close\nLink the movements:\n\n> **Hop \u2013 reach forward \u2013 close**\n\nThen practise stepping forward and closing in **third position**.\n\n#### D. Third position\n- Step forward.\n- Close the other foot neatly behind or in front, as appropriate.\n- Practise with both feet.\n- Repeat on the toes.\n\n### 3. Put the step together\nHave the class dance slowly while you call:\n\n> **\u201cHop, step, close, step.\u201d**\n\nBegin in place or with very little travel. Once the action is secure, gradually increase the speed and introduce music.\n\n### 4. Points to observe\n\nAccording to the RSCDS teaching guidance, watch for:\n\n- Lack of outward rotation from the hip.\n- An incorrect third position: a gap, closing in first position, or passing the feet.\n- Lack of hop.\n- The front leg kicking upward on the hop.\n- Insufficient extension of the knee and foot.\n- Landing with a bent front knee instead of reaching forward.\n- Pulling the leading foot back as it takes weight.\n- Poor poise.\n- Scraping the feet.\n\nKeep the hop small and encourage an upright, balanced posture. Correct only one or two faults at a time so beginners are not overloaded.\n\n### Suggested progression\n\n1. Walking rhythm: **\u201cAnd, step, close, step.\u201d**\n2. Add music gradually.\n3. Isolate and practise the hop.\n4. Add the straight front leg.\n5. Add the forward reach.\n6. Practise closing in third position.\n7. Combine everything into the complete step.\n8. Use it in a simple travelling exercise before putting it into a dance.\n\n**Sources:** RSCDS Manual, section **5.4.1, \u201cSkip change of step,\u201d p. 74**; RSCDS *Teaching Scottish Country Dancing* guidance, \u201cTeaching Skip Change Of Step.\u201d",
+      "error": null,
+      "latency_s": 7.9,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10599,
+        "output": 649,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "formation-allemande-2c#3",
+      "model": "gpt-5.6-luna",
+      "answer": "No. They are distinct database formations:\n\n- **Allemande turn (to R or L)** \u2014 token `ALL_RL`  \n  A generic turn/rotation in allemande hold.\n\n- **Allemande for 2 couples** \u2014 token **`ALLMND;2C;`**  \n  This is the exact formation to use for a standard two-couple allemande.\n\nSo, for searching or tagging a normal 2-couple allemande, use **`ALLMND;2C;`**, not `ALL_RL`.",
+      "error": null,
+      "latency_s": 3.5,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10533,
+        "output": 144,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_2c",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#3",
+      "model": "gpt-5.6-luna",
+      "answer": "The matching formation entry is **Allemande Turn (to R or L)**, with token `ALL_RL`.\n\nIt is distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 2.6,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10499,
+        "output": 77,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#3",
+      "model": "gpt-5.6-luna",
+      "answer": "The step explicitly named on bars **11\u201316** is the **skip change of step**. It is used by the first couple in both sections:\n\n- **Bars 11\u201312:** \u201cusing skip change\u201d\n- **Bars 15\u201316:** \u201cusing skip change\u201d\n\n[Bill\u2019s Friend, Stephen](https://my.strathspey.org/dd/dance/23334/)",
+      "error": null,
+      "latency_s": 3.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10550,
+        "output": 106,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#3",
+      "model": "gpt-5.6-luna",
+      "answer": "The step explicitly named on bars 17\u201318 is **pas de basque**. The 1st couple use it while turning halfway around.",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Discounted Suit, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10604,
+        "output": 57,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#3",
+      "model": "gpt-5.6-luna",
+      "answer": "In [Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/), the pivot on bar 4 is named **\u201cpivot left\u201d**, using a **left-travelling step**.",
+      "error": null,
+      "latency_s": 3.0,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10683,
+        "output": 79,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#3",
+      "model": "gpt-5.6-luna",
+      "answer": "In **[Circle Strathspey](https://my.strathspey.org/dd/dance/16390/)**, bars 1\u20138 use the **Glasgow Highlanders setting step**, facing the centre.",
+      "error": null,
+      "latency_s": 3.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10418,
+        "output": 73,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#3",
+      "model": "gpt-5.6-luna",
+      "answer": "In **[Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)**, bars **9\u201324**: the first couple pass **left shoulder** during each half-reel of four.\n\nThe crib specifies: **\u201c1c \u00bd Reel 4 with 1st corners (pass Lsh); repeat with 2nd corners.\u201d**",
+      "error": null,
+      "latency_s": 3.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11054,
+        "output": 107,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#3",
+      "model": "gpt-5.6-luna",
+      "answer": "The first couple **cast off two places** in bars 1\u20134, with the second couple moving up. They then **lead up to first corners** in bars 5\u20138.\n\n[The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/) is a 32-bar reel.",
+      "error": null,
+      "latency_s": 2.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11151,
+        "output": 101,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#3",
+      "model": "gpt-5.6-luna",
+      "answer": "The next explicitly stated action is **cross left hand**, followed by casting off to the left. The reel of three begins at **bars 9\u201316**.\n\n[Montgomeries\u2019 Rant, The](https://my.strathspey.org/dd/dance/4641/)",
+      "error": null,
+      "latency_s": 3.7,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 11001,
+        "output": 90,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [
+          "cross lh"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#3",
+      "model": "gpt-5.6-luna",
+      "answer": "In bars 17\u201324 of **[The Diplomat](https://my.strathspey.org/dd/dance/17880/)**, the first couple use **two setting steps** as they pass each other by the left shoulder. It is a **Strathspey**.",
+      "error": null,
+      "latency_s": 3.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10496,
+        "output": 84,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#3",
+      "model": "gpt-5.6-luna",
+      "answer": "### RSCDS Manual \u2014 Section 5.4.1, \u201cSkip change of step\u201d (p. 74)\n\n> This step is used to travel. One skip change of step takes one bar of music.  \n>\n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot\u2026\n\nThe manual search result truncates the remaining wording. The accompanying RSCDS teaching guidance gives these exact teaching points:\n\n> **Main teaching points**  \n> a) The hop.  \n> b) The straight front leg and the reach forward.  \n> c) The third position.\n\n> **Common faults to observe and correct**  \n> a) Lack of outward rotation from the hip.  \n> b) Incorrect third position \u2013 leaving gap, closing in first position or passing feet.  \n> c) Lack of hop.  \n> d) Front leg kicking up on hop.  \n> e) Lack of extension in knee and foot.  \n> f) Coming down on a bent front knee (lack of reach).  \n> g) Pulling in leading foot as it takes weight.  \n> h) Poor poise.  \n> i) Scraping.\n\n> **Rhythmic words \u2013 Hop Step Close Step**  \n> a) Walking words \u2013 \u201cAnd Step Close Step\u201d or \u201cAnd Right Close Right\u201d  \n> b) While walking, bring in music, gradually increasing speed.  \n> c) While music is playing introduce \u201cOn your toes\u201d.  \n> d) As speed increases introduce \u201cHop Step Close Step\u201d.\n\n> **Hop**  \n> a) Isolate the movement. Demonstrate the hop and have class copy 2 or 3 times with each foot. (Avoid using spring points as the toe of the front leg is not on the floor during the \u201cHop\u201d).  \n> b) Dance step concentrating on \u201cHop\u201d.\n\n> **Straight Front Leg**  \n> a) Show position and have class show also.  \n> b) Show and practise the hop with fully extended front leg 3 or 4 times with each foot (keep front foot off floor).  \n> c) Dance step concentrating on full extension on hop.\n\n> **Reach**  \n> a) Link the three movements \u2013 Hop, Reach Forward, Close.  \n> b) Have class practise with R and L foot 3 or 4 times.  \n> c) Dance step concentrating on the \u201creach\u201d.\n\n> **Third Position**  \n> a) Practise \u2013 Step forward, close in 3rd \u2013 3 or 4 times with the same foot and then with the other.  \n> b) Repeat on toes.\n\n> Finally dance the complete PERFECT STEP! If necessary go on to teach skip change of step travelling backwards.",
+      "error": null,
+      "latency_s": 6.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10607,
+        "output": 654,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop, step, close, step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#3",
+      "model": "gpt-5.6-luna",
+      "answer": "I can\u2019t find an RSCDS manual entry specifically titled **\u201cHighland swing turn.\u201d** The closest relevant manual entry is **Section 6.39, \u201cTurn\u201d (p. 169)**:\n\n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> **Steps:** 4 travelling steps  \n> **No. of bars:** 4  \n>  \n> Approach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines and\u2026\n\nThe available manual text is truncated, and the RSCDS teaching guide has no separate topic for \u201cHighland swing turn.\u201d",
+      "error": null,
+      "latency_s": 5.0,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "highland swing turn"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland set Highland step swing turn teaching points",
+            "num_results": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 15577,
+        "output": 248,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#3",
+      "model": "gpt-5.6-luna",
+      "answer": "## Skip-change of step: beginner lesson\n\n### 1. Explain the purpose and rhythm\nThe RSCDS Manual describes skip-change as a travelling step: **one skip-change takes one bar of music**.\n\nUse the rhythm:\n\n> **Hop \u2013 Step \u2013 Close \u2013 Step**\n\nYou can initially say:\n\n> **\u201cAnd \u2013 Step \u2013 Close \u2013 Step\u201d**\n\nThen introduce the hop as the class becomes comfortable.\n\n### 2. Teach the components separately\n\n#### A. The hop\n- Demonstrate a small hop on the left foot, then on the right.\n- Have the class copy two or three times on each foot.\n- Keep the movement light and controlled.\n\n#### B. The extended front leg\n- On the hop, extend the other leg straight forward.\n- Emphasise a fully extended knee and foot.\n- The front foot remains off the floor during the hop; avoid turning this into a spring point.\n\n#### C. The reach and step\nLink the movements:\n\n> **Hop \u2013 reach forward \u2013 step \u2013 close**\n\nPractise slowly, alternating feet.\n\n#### D. Third position\n- Step forward.\n- Close the other foot neatly behind in third position.\n- Practise this first without hopping, then on the toes.\n- Ensure the feet neither leave a gap nor pass each other.\n\n### 3. Put the step together\nHave the class dance the complete step slowly, first without music and then with music. Gradually increase the speed while maintaining:\n\n- a clear hop;\n- a straight, extended front leg;\n- a forward reach;\n- a neat third position;\n- good poise and turnout.\n\n### 4. Useful teaching progression\nA practical sequence from the RSCDS teaching guidance is:\n\n1. Walking rhythm: **\u201cAnd Step Close Step.\u201d**\n2. Add music and gradually increase the speed.\n3. Isolate and practise the hop.\n4. Add the straight front leg.\n5. Add the forward reach.\n6. Practise closing in third position.\n7. Dance the complete step.\n\n### 5. Common faults to watch for\nThe RSCDS guidance specifically identifies:\n\n- insufficient turnout from the hip;\n- an incorrect third position\u2014gap, first position, or passing feet;\n- lack of hop;\n- kicking the front leg upward;\n- insufficient extension of the knee and foot;\n- landing with a bent front knee;\n- pulling the leading foot back as it takes weight;\n- poor poise;\n- scraping the feet.\n\nKeep corrections focused: address one fault at a time, and return frequently to a slow, successful version of the step.",
+      "error": null,
+      "latency_s": 7.2,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10599,
+        "output": 594,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step",
+          "hop, step, close, step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    }
+  ],
+  "gpt-5.6-luna+reasoning": [
+    {
+      "id": "formation-allemande-2c#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "No. They are distinct formations:\n\n- **Allemande Turn (to R or L)** \u2014 token: `ALL_RL`  \n  This generally refers to the turning action/formation for dancers or couples turning right or left.\n\n- **Allemande for 2 couples** \u2014 token: **`ALLMND;2C;`**  \n  This is the exact formation to use for a **standard two-couple allemande**.\n\nDo not use `ALL_RL` as a substitute for the standard two-couple allemande.",
+      "error": null,
+      "latency_s": 5.1,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10068,
+        "output": 180,
+        "reasoning": 34,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2-couple allemande",
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The matching formation entry is:\n\n**Allemande Turn (to R or L)**  \n- Formation token: `ALL_RL`\n- Usage count: 51\n\nThis is distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 3.5,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10014,
+        "output": 105,
+        "reasoning": 14,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step explicitly named on bars **11\u201316** is the **skip change of step**:\n\n- Bars 11\u201312: \u201cusing skip change\u201d\n- Bars 15\u201316: \u201cusing skip change\u201d",
+      "error": null,
+      "latency_s": 3.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10066,
+        "output": 90,
+        "reasoning": 10,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step explicitly named on bars 17\u201318 is **pas de basque**.",
+      "error": null,
+      "latency_s": 3.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Discounted Suit, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10119,
+        "output": 63,
+        "reasoning": 9,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **[Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/)**, the pivot on bar 4 is named **travelling step L**\u2014that is, a **left travelling step**.",
+      "error": null,
+      "latency_s": 4.8,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10200,
+        "output": 102,
+        "reasoning": 11,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In [Circle Strathspey](https://my.strathspey.org/dd/dance/16390/), bars 1\u20138 name the **Glasgow Highlanders setting step**.",
+      "error": null,
+      "latency_s": 3.9,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 9946,
+        "output": 99,
+        "reasoning": 22,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **bars 9\u201324 of [Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)**, first couple pass **left shoulder** in each half-reel of four:\n\n- Bars 9\u201316: with first corners \u2014 pass left shoulder.\n- Bars 17\u201324: with second corners \u2014 pass left shoulder.\n\nThe right-shoulder version is known informally as \u201cMairi\u2019s Divorce,\u201d but the crib explicitly specifies **Lsh**.",
+      "error": null,
+      "latency_s": 5.3,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10572,
+        "output": 153,
+        "reasoning": 12,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In bars 1\u20138, the first couple **cast off two places**, with the second couple moving up. They then **lead up to first corners**.\n\n[The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/)",
+      "error": null,
+      "latency_s": 4.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10666,
+        "output": 106,
+        "reasoning": 9,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "**Cross left hand** is the next explicitly stated action.\n\nThe crib gives bars 1\u20138 as:\n\n> \u201c1c cross RH | cast off (2c up) ; **cross LH** | cast L (W up, M down)\u201d\n\nThe reel of three begins in bars **9\u201316**. [Montgomeries\u2019 Rant, The](https://my.strathspey.org/dd/dance/4641/)",
+      "error": null,
+      "latency_s": 4.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10530,
+        "output": 154,
+        "reasoning": 23,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **bars 17\u201324 of [The Diplomat](https://my.strathspey.org/dd/dance/17880/)**, first couple pass each other by the left shoulder using **two setting steps**\u2014i.e. **strathspey setting steps**.",
+      "error": null,
+      "latency_s": 5.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10015,
+        "output": 105,
+        "reasoning": 13,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "**RSCDS Manual, Section 5.4.1, \u201cSkip change of step,\u201d page 74:**\n\n> This step is used to travel. One skip change of step takes one bar of music.  \n>   \n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot.  \n> 3. Bring the left foot behind the right foot to third rear position.  \n> 4. Step forward again with the right foot into fourth in front of third position.  \n>   \n> **Rhythmic words:** Hop, step, close, step (or similar rhythmic variations).  \n> The rhythm of jig time is particularly suitable for the practice of this step.  \n> The character of the step is light and lively. It should give the feeling of flight and easy movement.  \n>   \n> **Points to observe**  \n> 1. The hop at the beginning must be very positive, although it should not be too high or the remainder of the step will become distorted.  \n> 2. The fully extended leg should be turned out from the hip to show a firm line from hip to toe, the knee straight but not stiff, the toe pointed down and approximately 5 cm (2 inches) clear of the floor. This leading leg then extends forward into fourth in front of third position as weight is transferred so that the leading foot is not just placed straight down.  \n> 3. Each time the feet close in third position, the instep of the rear foot makes contact with the heel of the front foot, but is not tucked under that heel. The heels should not be too high off the ground and good outward rotation should be maintained. This will also ensure that the feet are maintained at the correct angle.  \n> 4. At the end of the step, the back foot is brought through and the leg extended, ready to repeat the step on the other foot.  \n>   \n> **Fourth rear:**  \n> The working leg and foot are fully extended from third rear in a straight line behind the supporting foot.  \n> Different fourth positions are used in different situations.  \n>   \n> Skip change of step is also used to travel backwards, as in advance and retire. Again, there must be a distinct hop to begin the step. The movement is \u2018Hop, back, close, back\u2019 with the \u2018close\u2019 in this instance coming to third position in front. The foot travelling from the front through to the back is taken straight from fourth position in front and reaches backwards into fourth rear position. The leg, working from the hip, is turned out, with the toes pointed towards the floor.",
+      "error": null,
+      "latency_s": 7.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 10065,
+        "output": 618,
+        "reasoning": 15,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "I can\u2019t find an RSCDS manual section titled **\u201cHighland swing turn.\u201d** The closest relevant entry is **\u00a75.5.3, \u201cHighland Schottische step\u201d (p. 80)**. Its exact wording is:\n\n> **5.5.3 Highland Schottische step**  \n> One Highland Schottische step takes two bars of music. Each step has eight beats. In Scottish country dancing, \u2018to set\u2019 with Highland Schottische means one setting step to the right and one to the left in four bars of music.  \n>   \n> Counts 1, 2, 3, 4: all danced on the spot, with a hop on the supporting foot on each beat.  \n> Counts 5, 6, 7, 8: the same as strathspey setting step (Common Schottische step).  \n>   \n> **Bars**  \n> Hop on the left foot, while extending the right foot to second position, toe pointing down and touching the floor (count 1).  \n>   \n> Hop on the left foot, lifting the right foot to third rear aerial low (count 2).  \n>   \n> Hop on the left foot, extending the right foot to second position as in beat 1 (count 3).  \n>   \n> Hop on the left foot, lifting the right foot to third aerial low (count 4).  \n>   \n> Bending the left knee and transferring the weight to the right foot, step into second position (count 5).  \n>   \n> Close the left foot to the right foot in third rear position (count 6).  \n>   \n> Without bending the left knee, transfer the weight to the right foot again stepping to the right into second position, leaving the left leg fully extended (count 7)  \n>   \n> Hop on the right foot, drawing the left foot slowly up behind to place it in third rear aerial low (count 8).  \n>   \n> The step is repeated with the left foot leading.  \n>   \n> Rhythmic words: Side, behind, side, in front, step, close, step, hop (or similar rhythmic variations).  \n>   \n> As this step is from the Highland dance tradition, it is acceptable in this step, for the men only, to place the foot higher against the supporting leg, just below the knee, on counts 2, 4 and 8. Men may also use the appropriate Highland dance arm positions.\n\nThe manual\u2019s separate **\u00a76.39 \u201cTurn\u201d** describes turning with the right or left hand, but does not call it a \u201cHighland swing turn.\u201d",
+      "error": null,
+      "latency_s": 17.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "swing turn points to observe",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "swing",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland Schottische step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "highland setting"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "5.5.3",
+            "num_results": 1
+          }
+        }
+      ],
+      "usage": {
+        "input": 27387,
+        "output": 965,
+        "reasoning": 195,
+        "llm_calls": 5
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#1",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "## Teaching skip change of step to beginners\n\nUse the official RSCDS material in two layers: first establish the step\u2019s exact mechanics, then teach it in small parts.\n\n### 1. Explain the step\n\nAccording to the RSCDS Manual, section **5.4.1, page 74**:\n\n> \u201cThis step is used to travel. One skip change of step takes one bar of music.\u201d\n\nFor the right-foot version:\n\n> \u201cHop on the left foot and, at the same time, fully extend the right leg forward.\u201d  \n> \u201cWith the right leg fully extended in fourth in front of third position, step forward onto the right foot.\u201d  \n> \u201cBring the left foot behind the right foot to third rear position.\u201d  \n> \u201cStep forward again with the right foot into fourth in front of third position.\u201d\n\nUse the words:\n\n> **\u201cHop, step, close, step.\u201d**\n\nThen repeat starting with the left foot.\n\nThe manual describes the step as:\n\n> \u201clight and lively\u201d  \n> \u201cthe feeling of flight and easy movement.\u201d\n\n### 2. Suggested beginner progression\n\n#### A. Establish the rhythm\n\nBegin without trying to travel:\n\n- Say **\u201cHop, step, close, step\u201d** while marking the rhythm.\n- Then use the walking version: **\u201cAnd step, close, step.\u201d**\n- Gradually introduce music, preferably a jig, as the manual notes that jig time is particularly suitable for practising the step.\n\n#### B. Teach the hop separately\n\nHave the class practise a small hop on each foot.\n\nEmphasise that the hop is positive but not high. The teaching guidance identifies the hop as the first main teaching point.\n\n#### C. Add the extended leg\n\nPractise the hop while extending the other leg forward. Keep the front foot off the floor during the hop.\n\nThe manual specifies that the extended leg should have:\n\n- outward rotation from the hip;\n- a straight, but not stiff, knee;\n- a pointed toe directed downwards;\n- approximately 5 cm/2 inches clearance from the floor.\n\nDo not yet worry about travelling distance.\n\n#### D. Add the reach and close\n\nLink:\n\n> **Hop \u2014 reach forward \u2014 close.**\n\nPractise several repetitions on each side, keeping the movement small and controlled.\n\n#### E. Teach third position\n\nPractise separately:\n\n- step forward;\n- close the other foot behind into third position;\n- repeat on the other side.\n\nThe manual says:\n\n> \u201cEach time the feet close in third position, the instep of the rear foot makes contact with the heel of the front foot, but is not tucked under that heel.\u201d\n\nThis is a useful point to demonstrate carefully, since beginners often either leave a gap, close in first position, or pass the feet.\n\n#### F. Put the whole step together\n\nNow combine:\n\n> **Hop, step, close, step.**\n\nStart slowly, then gradually increase the speed. Introduce travelling only when the rhythm and foot positions are reasonably secure.\n\n### 3. Faults to watch for\n\nThe RSCDS teaching guidance lists these common faults:\n\n- lack of outward rotation from the hip;\n- incorrect third position;\n- lack of hop;\n- the front leg kicking up during the hop;\n- lack of extension in the knee and foot;\n- coming down on a bent front knee;\n- pulling in the leading foot as it takes weight;\n- poor poise;\n- scraping.\n\nCorrect one fault at a time. For a beginner class, the most important early priorities are:\n\n1. **Hear and perform the rhythm.**\n2. **Make the hop distinct but small.**\n3. **Keep the front leg extended.**\n4. **Close accurately in third position.**\n5. **Maintain an upright, relaxed poise.**\n\n### 4. A simple class sequence\n\nA short lesson could be:\n\n1. Demonstrate the complete step.\n2. Practise the words: **\u201cHop, step, close, step.\u201d**\n3. Isolate the hop.\n4. Add the extended front leg.\n5. Add the forward step and close.\n6. Practise third position separately.\n7. Combine the complete step slowly.\n8. Alternate right and left sides.\n9. Finish with a short piece of jig music.\n\nAvoid asking beginners to travel quickly or backwards until they can perform the forward step with a clear hop, accurate third position, and good balance.",
+      "error": null,
+      "latency_s": 15.7,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 5
+          }
+        }
+      ],
+      "usage": {
+        "input": 16237,
+        "output": 1148,
+        "reasoning": 148,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "formation-allemande-2c#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "No. They are distinct formations:\n\n- **Allemande Turn (to R or L)** \u2014 token: `ALL_RL`  \n  This denotes a turn in allemande hold, without specifying the standard two-couple formation.\n\n- **Allemande for 2 couples** \u2014 token: **`ALLMND;2C;`**  \n  This is the exact formation/token to use for a standard two-couple allemande.\n\nDo not use the \u201ccirculating\u201d token (`ALLMND;2C;CIRC;`) or the non-progressive variant unless that specific form is intended.",
+      "error": null,
+      "latency_s": 5.8,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10093,
+        "output": 219,
+        "reasoning": 59,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2-couple allemande",
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The matching formation entry is:\n\n**Allemande Turn (to R or L)**  \n- **Formation token:** `ALL_RL`\n- **Usage count:** 51\n\nThis is distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 4.6,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10015,
+        "output": 108,
+        "reasoning": 15,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step explicitly named on bars 11\u201316 is the **skip change of step**. It is used by the first couple for both sections:\n\n- Bars 11\u201312: \u201cusing skip change\u201d\n- Bars 15\u201316: \u201cusing skip change\u201d\n\n[Bill\u2019s Friend, Stephen](https://my.strathspey.org/dd/dance/23334/)",
+      "error": null,
+      "latency_s": 4.0,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10067,
+        "output": 123,
+        "reasoning": 11,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "On bars **17\u201318** of [Discounted Suit, The](https://my.strathspey.org/dd/dance/16763/), the explicitly named step is **pas de basque**.",
+      "error": null,
+      "latency_s": 4.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Discounted Suit, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10120,
+        "output": 89,
+        "reasoning": 10,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **[Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/)**, the pivot on bar 4 is named **travelling step L**\u2014a travelling step to the left.",
+      "error": null,
+      "latency_s": 3.7,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Dancing in Kirkcudbright"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10200,
+        "output": 99,
+        "reasoning": 11,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step named in bars 1\u20138 of [Circle Strathspey](https://my.strathspey.org/dd/dance/16390/) is the **Glasgow Highlanders setting step**, danced while setting facing the centre.",
+      "error": null,
+      "latency_s": 4.6,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Circle Strathspey"
+          }
+        }
+      ],
+      "usage": {
+        "input": 9946,
+        "output": 108,
+        "reasoning": 22,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **bars 9\u201324 of [Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)**, first couple pass **left shoulder**:\n\n- **Bars 9\u201316:** Half-reel of four with first corners, passing left shoulder.\n- **Bars 17\u201324:** Repeat with second corners, again passing left shoulder.\n\nThe crib notes that a right-shoulder pass is sometimes danced, humorously called \u201cMairi\u2019s Divorce,\u201d but the explicitly specified version is **left shoulder**.",
+      "error": null,
+      "latency_s": 6.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10573,
+        "output": 163,
+        "reasoning": 13,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [
+          "lsh"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **bars 1\u20138**, the first couple **cast off two places**, with the second couple moving up. They then **lead up to first-corner positions**.\n\n[The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/)",
+      "error": null,
+      "latency_s": 5.9,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10666,
+        "output": 109,
+        "reasoning": 9,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The next explicitly stated action is **cross left hand**, not starting the reel of three.\n\nThe crib gives bars 1\u20138 as:\n\n> \u201c1c cross RH | cast off (2c up) ; **cross LH** | cast L (W up, M down)\u201d\n\nThe reel of three begins at **bar 9**:\n\n> \u201c2c+1W & 1M+3c RSh Reels3 across\u201d\n\n[Montgomeries' Rant, The](https://my.strathspey.org/dd/dance/4641/)",
+      "error": null,
+      "latency_s": 4.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10528,
+        "output": 178,
+        "reasoning": 21,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **bars 17\u201324 of [The Diplomat](https://my.strathspey.org/dd/dance/17880/)**, first couple pass each other by the left shoulder using **two setting steps**. They finish back-to-back in the centre, facing their second corners.",
+      "error": null,
+      "latency_s": 4.6,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10016,
+        "output": 108,
+        "reasoning": 14,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "**RSCDS Manual, \u00a75.4.1 \u201cSkip change of step,\u201d p. 74 \u2014 exact wording:**\n\n> This step is used to travel. One skip change of step takes one bar of music.  \n>\n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot.  \n> 3. Bring the left foot behind the right foot to third rear position.  \n> 4. Step forward again with the right foot into fourth in front of third position.  \n>\n> **Rhythmic words:** Hop, step, close, step (or similar rhythmic variations).  \n>\n> The rhythm of jig time is particularly suitable for the practice of this step.  \n> The character of the step is light and lively. It should give the feeling of flight and easy movement.  \n>\n> **Points to observe**  \n>\n> 1. The hop at the beginning must be very positive, although it should not be too high or the remainder of the step will become distorted.  \n>\n> 2. The fully extended leg should be turned out from the hip to show a firm line from hip to toe, the knee straight but not stiff, the toe pointed down and approximately 5 cm (2 inches) clear of the floor. This leading leg then extends forward into fourth in front of third position as weight is transferred so that the leading foot is not just placed straight down.  \n>\n> 3. Each time the feet close in third position, the instep of the rear foot makes contact with the heel of the front foot, but is not tucked under that heel. The heels should not be too high off the ground and good outward rotation should be maintained. This will also ensure that the feet are maintained at the correct angle.  \n>\n> 4. At the end of the step, the back foot is brought through and the leg extended, ready to repeat the step on the other foot.  \n>\n> **Fourth rear:**  \n> The working leg and foot are fully extended from third rear in a straight line behind the supporting foot.  \n>\n> Different fourth positions are used in different situations.  \n>\n> Skip change of step is also used to travel backwards, as in advance and retire. Again, there must be a distinct hop to begin the step. The movement is \u2018Hop, back, close, back\u2019 with the \u2018close\u2019 in this instance coming to third position in front. The foot travelling from the front through to the back is taken straight from fourth position in front and reaches backwards into fourth rear position. The leg, working from the hip, is turned out, with the toes pointed towards the floor.",
+      "error": null,
+      "latency_s": 9.4,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "5.4.1",
+            "num_results": 1
+          }
+        }
+      ],
+      "usage": {
+        "input": 15115,
+        "output": 668,
+        "reasoning": 29,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The RSCDS Manual does not appear to use the term **\u201chighland swing turn\u201d**. The closest relevant entry is **6.39.1, \u201cTurn with the right or left hand\u201d** (p. 169):\n\n> \u201cApproach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines \u2026\u201d\n\nIt specifies:\n\n> \u201cSteps: 4 travelling steps\u201d  \n> \u201cNo. of bars: 4\u201d\n\nThe manual\u2019s Highland step entries are **\u201cHighland Schottische step\u201d** (\u00a75.5.3) and **\u201cThe Glasgow Highlanders step\u201d** (\u00a75.5.4); I found no section titled \u201cHighland swing turn.\u201d",
+      "error": null,
+      "latency_s": 17.6,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland swing",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "swing turn",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "5.5.3 Highland Schottische step",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 31384,
+        "output": 650,
+        "reasoning": 327,
+        "llm_calls": 6
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "insufficient_evidence",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#2",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "Here is a beginner-friendly progression, based on the RSCDS guidance.\n\n## 1. Explain the purpose and rhythm\n\nTell the class:\n\n- Skip change is a travelling step.\n- One skip change takes one bar of music.\n- Use the words: **\u201cHop, step, close, step.\u201d**\n- It has a light, lively character and should feel like \u201cflight and easy movement.\u201d\n\nThe RSCDS manual describes the step as:\n\n1. \u201cHop on the left foot and, at the same time, fully extend the right leg forward.\u201d\n2. \u201cWith the right leg fully extended in fourth in front of third position, step forward onto the right foot.\u201d\n3. \u201cBring the left foot behind the right foot to third rear position.\u201d\n4. \u201cStep forward again with the right foot into fourth in front of third position.\u201d\n\nThen repeat on the other foot.\n\n## 2. Teach it in small pieces\n\n### A. The hop\n\nHave everyone stand in place and practise a small hop on one foot, then the other.\n\n- Keep the hop positive but not high.\n- Avoid using a spring point: the front toe is off the floor during the hop.\n\nPractise several times, then try the complete step while concentrating only on making the hop clear.\n\n### B. The extended front leg\n\nDemonstrate the front leg:\n\n- Straight but not stiff\n- Turned out from the hip\n- Toe pointed down\n- Extended forward and held just clear of the floor\n\nPractise the hop with the extended leg, without travelling at first. Then add the step forward.\n\n### C. Add the reach\n\nLink the actions:\n\n**Hop \u2013 reach forward \u2013 close \u2013 step.**\n\nEmphasise that the leading foot should reach forward as weight transfers; it should not simply be placed straight down.\n\n### D. Add third position\n\nPractise separately:\n\n**Step forward \u2013 close in third position.**\n\nThe rear foot should close behind the front foot. The RSCDS manual specifies that the instep of the rear foot makes contact with the heel of the front foot, without tucking underneath it.\n\nPractise slowly on both sides, then repeat on the toes.\n\n## 3. Put the whole step together\n\nStart with spoken rhythm:\n\n> **Hop, step, close, step.**\n\nYou can also use:\n\n> **And, right, close, right**  \n> **And, left, close, left**\n\nBegin walking the rhythm slowly, then gradually increase the speed. Once the class understands the movement, use suitable jig music and encourage them to keep the step light rather than making the hop large.\n\n## 4. What to watch for\n\nThe RSCDS teaching guidance highlights these common faults:\n\n- Lack of outward rotation from the hip\n- Incorrect third position: a gap, first position, or passing feet\n- Lack of hop\n- Front leg kicking up during the hop\n- Insufficient extension of the knee and foot\n- Landing on a bent front knee\n- Pulling in the leading foot as it takes weight\n- Poor poise\n- Scraping\n\nFor beginners, correct only one or two faults at a time\u2014usually the **clear hop**, **straight extended leg**, and **proper third position**.\n\n## Suggested short lesson sequence\n\n1. Demonstrate the complete step.\n2. Practise the hop.\n3. Add the extended front leg.\n4. Add the reach and step.\n5. Practise closing in third position.\n6. Combine everything with spoken rhythm.\n7. Travel slowly with music.\n8. Finish by dancing the complete step on alternating feet.\n\nKeep the early practice slow and controlled. Speed should come only after the class can maintain the hop, reach, and third position accurately.",
+      "error": null,
+      "latency_s": 12.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 16219,
+        "output": 911,
+        "reasoning": 50,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "formation-allemande-2c#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "No. They are distinct formation labels:\n\n- **Allemande Turn (to R or L)** \u2014 token: `ALL_RL`  \n  A general allemande turn, specified as turning to the right or left.\n\n- **Allemande for 2 couples** \u2014 token: **`ALLMND;2C;`**  \n  This is the exact formation/token to use for a **standard 2-couple allemande**.\n\nDo not use `ALL_RL` when you need to identify the standard two-couple formation.",
+      "error": null,
+      "latency_s": 5.2,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10082,
+        "output": 194,
+        "reasoning": 48,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_2c",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The matching formation entry is:\n\n**Allemande Turn (to R or L)**  \n- **Token:** `ALL_RL`\n- **Formation ID:** 302\n- **Usage count:** 51\n\nThis is distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 3.9,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10014,
+        "output": 114,
+        "reasoning": 14,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step explicitly named on bars **11\u201316** is the **skip change of step**. It is used on both bars **11\u201312** and **15\u201316**.\n\n[Bill\u2019s Friend, Stephen](https://my.strathspey.org/dd/dance/23334/)",
+      "error": null,
+      "latency_s": 3.9,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Bill's Friend, Stephen"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10067,
+        "output": 107,
+        "reasoning": 11,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step explicitly named on bars 17\u201318 is **pas de basque**.",
+      "error": null,
+      "latency_s": 4.6,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Discounted Suit, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10120,
+        "output": 64,
+        "reasoning": 10,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In [Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/), the step named for the pivot on bar 4 is the **left travelling step**: the 1st man and 2nd man pivot left, travelling with the left travelling step.",
+      "error": null,
+      "latency_s": 6.7,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Dancing in Kirkcudbright",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16845,
+            "dance_name": null
+          }
+        }
+      ],
+      "usage": {
+        "input": 15272,
+        "output": 196,
+        "reasoning": 14,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In *Circle Strathspey*, bars 1\u20138 use the **Glasgow Highlanders setting step** while facing the centre.\n\n[Circle Strathspey](https://my.strathspey.org/dd/dance/16390/)",
+      "error": null,
+      "latency_s": 6.2,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Circle Strathspey",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 20
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16390,
+            "dance_name": null
+          }
+        }
+      ],
+      "usage": {
+        "input": 15139,
+        "output": 199,
+        "reasoning": 32,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **[Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)**, bars **9\u201324** are danced by the first couple passing **left shoulder** in each half-reel of four:\n\n- Bars 9\u201312: 1st couple with their first corners \u2014 pass left shoulder.\n- Bars 13\u201316: with their second corners \u2014 repeat.\n- Bars 17\u201320: with the next corner person \u2014 repeat.\n- Bars 21\u201324: with the final corner person \u2014 repeat.\n\nThe right-shoulder version is sometimes danced informally and nicknamed **\u201cMairi\u2019s Divorce,\u201d** but the specified version is **left shoulder**.",
+      "error": null,
+      "latency_s": 4.9,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Mairi's Wedding"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10571,
+        "output": 195,
+        "reasoning": 11,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [
+          "lsh"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In bars 1\u20138 of [The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/), the first couple **cast off two places**, with the second couple moving up. They then lead up to first-couple corners.",
+      "error": null,
+      "latency_s": 4.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "The Reel of the 51st Division"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10667,
+        "output": 108,
+        "reasoning": 10,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The next explicitly stated action is **cross left hand**.\n\nBars 1\u20138 read: **\u201ccross RH | cast off \u2026; cross LH | cast L \u2026\u201d** The reel of three begins at **bar 9**.\n\n[Montgomeries\u2019 Rant, The](https://my.strathspey.org/dd/dance/4641/)",
+      "error": null,
+      "latency_s": 4.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "Montgomeries' Rant, The"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10516,
+        "output": 123,
+        "reasoning": 9,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **The Diplomat**, bars **17\u201324**, first couple use **two setting steps** as they pass each other by the left shoulder. They finish back-to-back in the centre, facing their second corners.\n\n[The Diplomat](https://my.strathspey.org/dd/dance/17880/)",
+      "error": null,
+      "latency_s": 4.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": null,
+            "dance_name": "The Diplomat"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10015,
+        "output": 111,
+        "reasoning": 13,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The exact wording from the **RSCDS Manual**, section **5.4.1, \u201cSkip change of step\u201d** (p. 74), is:\n\n> **This step is used to travel. One skip change of step takes one bar of music.**  \n>\n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot.  \n> 3. Bring the left foot behind the right foot to third rear position.  \n> 4. Step forward again with the right foot into fourth in front of third position.  \n>\n> **Rhythmic words:** Hop, step, close, step (or similar rhythmic variations).  \n>\n> The rhythm of jig time is particularly suitable for the practice of this step. The character of the step is light and lively. It should give the feeling of flight and easy movement.\n\n**Points to observe**\n\n> 1. The hop at the beginning must be very positive, although it should not be too high or the remainder of the step will become distorted.  \n>\n> 2. The fully extended leg should be turned out from the hip to show a firm line from hip to toe, the knee straight but not stiff, the toe pointed down and approximately 5 cm (2 inches) clear of the floor. This leading leg then extends forward into fourth in front of third position as weight is transferred so that the leading foot is not just placed straight down.  \n>\n> 3. Each time the feet close in third position, the instep of the rear foot makes contact with the heel of the front foot, but is not tucked under that heel. The heels should not be too high off the ground and good outward rotation should be maintained. This will also ensure that the feet are maintained at the correct angle.  \n>\n> 4. At the end of the step, the back foot is brought through and the leg extended, ready to repeat the step on the other foot.\n\nFor travelling backwards, the manual continues:\n\n> Skip change of step is also used to travel backwards, as in advance and retire. Again, there must be a distinct hop to begin the step. The movement is \u2018Hop, back, close, back\u2019 with the \u2018close\u2019 in this instance coming to third position in front. The foot travelling from the front through to the back is taken straight from fourth position in front and reaches backwards into fourth rear position. The leg, working from the hip, is turned out, with the toes pointed towards the floor.",
+      "error": null,
+      "latency_s": 8.7,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "5.4.1",
+            "num_results": 1
+          }
+        }
+      ],
+      "usage": {
+        "input": 16288,
+        "output": 715,
+        "reasoning": 73,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The RSCDS Manual does **not** appear to use the exact term **\u201chighland swing turn.\u201d** The relevant wording for the four-bar turn is:\n\n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> **Steps:** 4 travelling steps  \n> **No. of bars:** 4  \n>\n> Approach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines and curve into place.  \n>\n> **Note:** in some dances a one-and-a-half times turn is danced in 4 bars.\n\n\u2014 *RSCDS Manual*, section **6.39.1**, p. 169.",
+      "error": null,
+      "latency_s": 20.5,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland swing turn points to observe",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "swing turn",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland Schottische step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "turn with the right or left hand",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.39.1",
+            "num_results": 2
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.39.2",
+            "num_results": 2
+          }
+        }
+      ],
+      "usage": {
+        "input": 51615,
+        "output": 687,
+        "reasoning": 282,
+        "llm_calls": 9
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance#3",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "## Teaching skip-change of step to beginners\n\n### 1. Start with the purpose and rhythm\n\nExplain that the skip change is a travelling step: **one skip change takes one bar of music**. Use the rhythm:\n\n> \u201cHop, step, close, step.\u201d\n\nThe RSCDS manual notes that **jig time is particularly suitable** for practising it and that the step should feel \u201clight and lively.\u201d\n\n### 2. Teach the forward step in small parts\n\nUse the RSCDS teaching guide\u2019s progression:\n\n1. **Teach the hop alone.**  \n   Demonstrate and have the class copy it two or three times on each foot. The hop should be clear but not high.\n\n2. **Add the straight front leg.**  \n   Practise the hop while extending the other leg forward. Keep the front foot off the floor at this stage.\n\n3. **Add the reach and close.**  \n   Link the movements: **hop, reach forward, close**.\n\n4. **Practise third position.**  \n   Have the dancers step forward and close in third position, first walking and then on the toes.\n\n5. **Put the whole step together.**\n\nBegin with walking words such as:\n\n> \u201cAnd, step, close, step\u201d  \n> \u201cAnd right, close, right\u201d\n\nThen gradually increase the speed and introduce the more accurate rhythm:\n\n> \u201cHop, step, close, step.\u201d\n\n### 3. The exact movement\n\nThe RSCDS manual describes the forward step as follows:\n\n> \u201cHop on the left foot and, at the same time, fully extend the right leg forward.\u201d\n\n> \u201cWith the right leg fully extended in fourth in front of third position, step forward onto the right foot.\u201d\n\n> \u201cBring the left foot behind the right foot to third rear position.\u201d\n\n> \u201cStep forward again with the right foot into fourth in front of third position.\u201d\n\nThe same pattern is then repeated with the other foot.\n\n### 4. Main points to watch\n\nAccording to the RSCDS manual and teaching guide, observe and correct:\n\n- The hop must be distinct and positive, but not too high.\n- The front leg should be straight, extended and turned out from the hip.\n- The toe should point down and remain approximately 5 cm/2 inches from the floor during the hop.\n- The feet should close neatly in third position: the instep of the rear foot contacts the heel of the front foot.\n- Avoid leaving a gap, closing in first position, or passing the feet.\n- Ensure the front knee does not bend as the dancer reaches forward.\n- Watch for kicking the front leg upward, scraping, pulling in the leading foot, poor poise, or insufficient extension.\n\n### 5. Useful beginner practice\n\nHave the class practise each element briefly, alternating feet:\n\n- Hop, hold the extended leg.\n- Hop and step.\n- Step and close in third.\n- Complete **hop, step, close, step**.\n- Travel slowly across the room.\n- Finish by dancing the step to a jig at a comfortable speed.\n\nDo not introduce the backward version until the forward step is secure. The RSCDS manual gives the backward rhythm as **\u201cHop, back, close, back,\u201d** with the close coming to third position in front.",
+      "error": null,
+      "latency_s": 19.0,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "5.4.1",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 16258,
+        "output": 949,
+        "reasoning": 176,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "lack of hop",
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    }
+  ]
+}

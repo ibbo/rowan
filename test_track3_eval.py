@@ -32,6 +32,34 @@ class Track3EvalTests(unittest.TestCase):
         self.assertEqual(result.predicted_label, "pas_de_basque")
         self.assertIn("pas de basque", result.forbidden_hits)
 
+    def test_negated_forbidden_phrase_is_not_a_hit(self):
+        case = next(case for case in self.dataset["cases"] if case["id"] == "formation-allemande-2c")
+        result = score_case(
+            case,
+            "No — they are not the same thing. Use Allemande for 2 couples (ALLMND;2C;).",
+            self.dataset["label_signals"],
+        )
+        self.assertTrue(result.passed)
+        self.assertEqual(result.forbidden_hits, [])
+
+        asserted = score_case(
+            case,
+            "Yes, they are the same thing: use ALLMND;2C; for both.",
+            self.dataset["label_signals"],
+        )
+        self.assertFalse(asserted.passed)
+        self.assertIn("same thing", asserted.forbidden_hits)
+
+    def test_curly_apostrophes_match_straight_signals(self):
+        case = next(case for case in self.dataset["cases"] if case["id"] == "manual-absent-term-abstain")
+        result = score_case(
+            case,
+            "I couldn’t find a manual entry for the exact phrase “highland swing turn.”",
+            self.dataset["label_signals"],
+        )
+        self.assertTrue(result.passed)
+        self.assertIn("couldn't find", result.expected_hits)
+
     def test_scoring_marks_correct_step_answer(self):
         case = next(case for case in self.dataset["cases"] if case["id"] == "bars-travelling-step-kirkcudbright")
         result = score_case(

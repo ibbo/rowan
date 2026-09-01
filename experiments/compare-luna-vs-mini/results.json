@@ -1,0 +1,3190 @@
+{
+  "gpt-5.4-mini": [
+    {
+      "id": "formation-allemande-2c",
+      "model": "gpt-5.4-mini",
+      "answer": "No \u2014 they are not the same.\n\n- **Allemande for 2 couples** is the standard 2-couple formation.\n- **Allemande turn** refers to the turning action/hold, not the full 2-couple formation.\n\nFor a standard 2-couple allemande, use:\n\n- **Formation name:** Allemande for 2 couples\n- **Token:** `ALLMND;2C;`\n\nIf you want, I can also tell you the difference between **allemande turn** and the full **allemande for 2 couples** in dance-crib terms.",
+      "error": null,
+      "latency_s": 4.4,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande for 2 couples",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 20
+          }
+        }
+      ],
+      "usage": {
+        "input": 10312,
+        "output": 194,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_2c",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn",
+      "model": "gpt-5.4-mini",
+      "answer": "The formation entry you want is **[Allemande Turn (to R or L)](https://my.strathspey.org/dd/dance/302/)**.\n\n- **Formation name:** Allemande Turn (to R or L)\n- **Token:** `ALL_RL`\n\nThis is the general turning allemande, distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 3.2,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10105,
+        "output": 117,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen",
+      "model": "gpt-5.4-mini",
+      "answer": "On bars 11\u201316, the crib explicitly names **skip change** \u2014 in both phrases:\n\n- **11\u201312:** \u201cusing **skio/skip change**\u201d\n- **15\u201316:** \u201cusing **skip change**\u201d\n\nSo the step named there is **skip change of step**.\n\nDance link: [Bill's Friend, Stephen](https://my.strathspey.org/dd/dance/23334/)",
+      "error": null,
+      "latency_s": 7.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Bill's Friend, Stephen",
+            "limit": 10,
+            "official_rscds_dances": null
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Bills Friend Stephen",
+            "limit": 10,
+            "official_rscds_dances": null
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Bill's Friend",
+            "random_variety": true,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 23334
+          }
+        }
+      ],
+      "usage": {
+        "input": 30391,
+        "output": 234,
+        "reasoning": 0,
+        "llm_calls": 6
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit",
+      "model": "gpt-5.4-mini",
+      "answer": "I couldn\u2019t retrieve **The Discounted Suit** from the dance database with the information available here, so I can\u2019t safely say what step is named on bars 17\u201318.\n\nIf you want, send me either:\n- the **exact dance ID**, or\n- the **publication/book** it\u2019s from,\n\nand I\u2019ll look it up.\n\nIf you meant a different dance title, please paste it exactly as printed.",
+      "error": null,
+      "latency_s": 3.3,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        }
+      ],
+      "usage": {
+        "input": 9659,
+        "output": 109,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "unknown",
+        "target_label": "pas_de_basque",
+        "missing_expected": [
+          "pas de basque"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright",
+      "model": "gpt-5.4-mini",
+      "answer": "I\u2019m sorry, but I can\u2019t identify that step from the RSCDS manual or database as asked.\n\nIf you mean a specific formation or step in **Dancing in Kirkcudbright**, please give me the exact term or the manual section number \u2014 for example **\u201cskip change of step\u201d** or **\u201c5.4.1\u201d** \u2014 and I can look it up precisely.",
+      "error": null,
+      "latency_s": 4.5,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Dancing in Kirkcudbright pivot on bar 4",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 14644,
+        "output": 139,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "skip_change",
+        "target_label": "travelling_step",
+        "missing_expected": [
+          "travelling step"
+        ],
+        "forbidden_hits": [
+          "skip change"
+        ]
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey",
+      "model": "gpt-5.4-mini",
+      "answer": "I couldn\u2019t find a matching entry in the RSCDS manual for that phrasing.\n\nIf you mean the step used in the opening bars of **Circle Strathspey**, please send the **exact formation or step name** you want checked, or the **manual section number** if you have one. For example: **\u201cstrathspey travelling step\u201d**, **\u201cstrathspey setting\u201d**, or a section like **\u201c5.4.1\u201d**.",
+      "error": null,
+      "latency_s": 3.1,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Circle Strathspey bars 1-8 step named",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 9726,
+        "output": 137,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "travelling_step",
+        "target_label": "setting_step",
+        "missing_expected": [
+          "setting step",
+          "glasgow highlanders setting step"
+        ],
+        "forbidden_hits": [
+          "travelling step"
+        ]
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh",
+      "model": "gpt-5.4-mini",
+      "answer": "In **Mairi\u2019s Wedding** bars **9\u201324**, the first couple **do not pass shoulders** in a reel-of-3 style movement. The crib for the dance in the database shows:\n\n- **9\u201316:** first and second dancers on the women's/men's side set and turn right hand, then repeat\n- **17\u201324:** first couple **cross RH, cast off**, then half figure of eight up round 2nd couple\n\nSo for the section you\u2019re asking about, the first couple **cross right hand**, rather than passing left or right shoulder.\n\nIf you want, I can also lay out the full bars of **Mairi\u2019s Wedding** step by step.",
+      "error": null,
+      "latency_s": 3.2,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 1786
+          }
+        }
+      ],
+      "usage": {
+        "input": 10550,
+        "output": 168,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "unknown",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [
+          "left shoulder",
+          "lsh"
+        ],
+        "forbidden_hits": [
+          "right shoulder"
+        ]
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places",
+      "model": "gpt-5.4-mini",
+      "answer": "In **The Reel of the 51st Division**, the **first couple cast off one place**, not two.\n\nThe RSCDS manual distinguishes:\n- **Cast off one place (2 steps / 2 bars)**: from first place into second place\n- **Cast off one place (4 steps / 4 bars)**: still only one place, but danced over 4 steps\n\nSo for bars 1\u20138, the action is a **cast off one place**. If you want, I can also check the exact crib for *The Reel of the 51st Division* to confirm the full first 8 bars.",
+      "error": null,
+      "latency_s": 4.6,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "The Reel of the 51st Division bars 1-8 cast off one place two places",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 1
+          }
+        }
+      ],
+      "usage": {
+        "input": 15318,
+        "output": 211,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "cast_one_place",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "two places",
+          "2 places"
+        ],
+        "forbidden_hits": [
+          "one place"
+        ]
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh",
+      "model": "gpt-5.4-mini",
+      "answer": "In the crib for **Montgomeries' Rant, The**, after **\u201c1c cross RH\u201d** in bars 17\u201324, the next explicitly stated action is:\n\n**\u201ccast off (2c up)\u201d**\n\nSo it is **not** \u201ccross left hand,\u201d and it is **not** \u201cstart the reel of three\u201d at that point.\n\nRelevant dance link: [The Duke of Atholl's Reel](https://my.strathspey.org/dd/dance/1786/)\n\nIf you want, I can also pull the exact crib for **Montgomeries' Rant** and quote the bars 1\u20138 section verbatim.",
+      "error": null,
+      "latency_s": 3.0,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 1786
+          }
+        }
+      ],
+      "usage": {
+        "input": 10588,
+        "output": 162,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [
+          "cross lh"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps",
+      "model": "gpt-5.4-mini",
+      "answer": "I couldn\u2019t locate **The Diplomat** in the database from the name alone, so I can\u2019t verify bars 17\u201324 from the crib yet.\n\nIf you can share one of these, I can answer precisely:\n- the **devisor**,\n- the **publication/book** it\u2019s from,\n- or a screenshot/text of the **crib**.\n\nIf you want, I can also help by searching for the dance in RSCDS publications or by looking up the exact bars once identified.",
+      "error": null,
+      "latency_s": 4.1,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Diplomat",
+            "random_variety": true,
+            "limit": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 14394,
+        "output": 155,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "unknown",
+        "target_label": "setting_step",
+        "missing_expected": [
+          "setting step",
+          "two setting steps"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote",
+      "model": "gpt-5.4-mini",
+      "answer": "Here is the exact RSCDS manual wording for **skip change of step**:\n\n> **5.4.1 Skip change of step**  \n> This step is used to travel. One skip change of step takes one bar of music.  \n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot.  \n> 3. Bring the left foot behind the right foot to third rear position.  \n> 4. Step forward again with the right foot into fourth in front of third position.  \n> Rhythmic words: Hop, step, close, step (or similar rhythmic variations).  \n> The rhythm of jig time is particularly suitable for the practice of this step.  \n> The character of the step is light and lively. It should give the feeling of flight and easy movement.\n\nIf you want, I can also quote the **\u201cPoints to observe\u201d** section verbatim.",
+      "error": null,
+      "latency_s": 3.9,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10768,
+        "output": 282,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain",
+      "model": "gpt-5.4-mini",
+      "answer": "I couldn\u2019t find a manual entry for **\u201chighland swing turn\u201d** as an exact term.\n\nThe closest RSCDS manual match is the general **Turn** section:\n\n> **6.39 Turn**  \n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> Steps: 4 travelling steps  \n> No. of bars: 4  \n> Bars  \n> Approach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines an...\n\nIf you want, I can also help find the exact RSCDS wording for **Highland Schottische step** or **Glasgow Highlanders step**, which may be what you meant.",
+      "error": null,
+      "latency_s": 5.8,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland",
+            "num_results": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 14876,
+        "output": 220,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance",
+      "model": "gpt-5.4-mini",
+      "answer": "Here\u2019s a beginner-friendly way to teach **skip change of step**.\n\n### 1) Start with the purpose\nUse the step to **travel lightly and lively**. It takes **one bar of music** and the rhythmic words are:\n\n**\u201cHop, step, close, step\u201d**\n\nThe RSCDS manual says the character should feel like **flight and easy movement**.\n\n### 2) Teach it in small parts\nUse the RSCDS teaching progression:\n\n- **The hop**\n- **The straight front leg and reach forward**\n- **Third position**\n\nA good way in class is:\n\n1. **Walk the rhythm first**\n   - \u201cAnd step close step\u201d or \u201cAnd right close right\u201d\n   - Then add music\n   - Then change to \u201cHop step close step\u201d\n\n2. **Teach the hop alone**\n   - Show a clear, positive hop\n   - Keep it small; don\u2019t let it become too high\n\n3. **Teach the reaching leg**\n   - Show the leading leg fully extended from the hip\n   - Explain that the foot is not just placed down; it **reaches forward onto the new foot**\n\n4. **Teach the close to third position**\n   - Stress that the feet close in **third position**\n   - Don\u2019t let dancers leave a gap, close in first, or pass the feet\n\n5. **Put it together**\n   - \u201cHop, step, close, step\u201d\n   - Practice with one foot, then the other\n   - Only then add music and travel\n\n### 3) Common faults to watch for\nFrom the RSCDS teaching guidance, the main faults are:\n\n- lack of outward rotation from the hip\n- incorrect third position\n- lack of hop\n- front leg kicking up on the hop\n- lack of extension in the knee and foot\n- coming down on a bent front knee\n- pulling the leading foot in as it takes weight\n- poor poise\n- scraping\n\n### 4) Teaching tips for beginners\n- Keep the first demonstration simple and clear\n- Don\u2019t rush to full speed\n- Use music slowly at first\n- Encourage lightness, posture, and turnout\n- Let dancers practise on both feet before using it in figures\n\n### RSCDS source\n**Skip change of step** \u2014 RSCDS Manual, section **5.4.1**, page **74**.  \nTeaching guidance from the RSCDS teaching guide on **Skip Change Of Step**.\n\nIf you want, I can also give you a **5-minute beginner class plan** for teaching it.",
+      "error": null,
+      "latency_s": 5.8,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10760,
+        "output": 595,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "search-rscds-strathspey-poussette",
+      "model": "gpt-5.4-mini",
+      "answer": "Here are three 32-bar **RSCDS Strathspeys** that include a **poussette**:\n\n1. [Neidpath Castle](https://my.strathspey.org/dd/dance/4890/) \u2014 Strathspey, 32 bars, Longwise 3C  \n   - Includes a **\u00bd poussette**  \n   - RSCDS Book 22\n\n2. [New Park](https://my.strathspey.org/dd/dance/4925/) \u2014 Strathspey, 32 bars, Longwise 4C  \n   - Includes a **standard poussette**  \n   - RSCDS Book 19\n\n3. [The Star](https://my.strathspey.org/dd/dance/6285/) \u2014 Strathspey, 32 bars, Longwise 3C  \n   - Includes **\u00bd diamond poussette** and **\u00bd poussette**  \n   - RSCDS Book 28\n\nIf you want, I can also give you:\n- three **easier** ones,\n- three from a specific **RSCDS book**, or\n- the **cribs** for any of these.",
+      "error": null,
+      "latency_s": 7.4,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "poussette",
+            "limit": 20,
+            "kind": "Strathspey",
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4890
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4925
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 6285
+          }
+        }
+      ],
+      "usage": {
+        "input": 31989,
+        "output": 350,
+        "reasoning": 0,
+        "llm_calls": 5
+      },
+      "checks": {
+        "rscds_only": {
+          "passed": true,
+          "detail": "3 dances linked; non-RSCDS: none"
+        },
+        "min_dance_links": {
+          "passed": true,
+          "detail": "3 linked (need 3)"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['poussette']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "dance_search"
+    },
+    {
+      "id": "teach-pas-de-basque",
+      "model": "gpt-5.4-mini",
+      "answer": "Here\u2019s a beginner-friendly way to teach **pas de basque**.\n\n## What the step is\nFrom the RSCDS manual, **pas de basque** is a step used for setting, turning on the spot, turning when two hands are given, and sometimes for travelling a short distance. It is danced on **three distinct beats**, with the **jet\u00e9** as the distinctive Scottish element.\n\n## Main teaching points\nFrom the RSCDS teaching guidance:\n- **The three distinct beats**, with a momentary change of weight on the 2nd beat\n- **Pick up the knee on beat 1**\n- **The third position**\n- **A strong jet\u00e9** with full extension of the foot, ankle, and leg\n\n## A simple teaching progression for beginners\n1. **Name and purpose**\n   - Tell them this is the step used for setting and turning.\n\n2. **Rhythm first**\n   - Use the words: **\u201cSpring, beat, beat and\u201d**\n   - Or **\u201cstep, beat, beat and\u201d** to begin\n   - Have them mark time and feel the three beats clearly\n\n3. **Third position**\n   - Show the feet in **third position**\n   - Have the class copy you\n   - Check that they can see and feel the correct foot placement\n\n4. **Add the jet\u00e9**\n   - Demonstrate the full step slowly to both sides\n   - Emphasize **\u201cextend\u201d** on the jet\u00e9\n   - Then have them dance the whole step with music\n\n5. **Keep it on the spot**\n   - For first teaching, stress that pas de basque is danced **on the spot, not side to side**\n   - Only later introduce travelling or turning uses\n\n## Common faults to watch for\nFrom the RSCDS teaching guide, watch for:\n- **Lack of outward rotation from the hip**\n- **A two-beat step** instead of three clear beats\n- **A tap of the foot on the second beat**\n- **Incorrect position of jet\u00e9**\n- **Lack of extension in the jet\u00e9**\n- **Incorrect movement into third position**\n- **An incorrect third position**\n- **Poor poise**\n\n## Helpful coaching reminders\n- Keep asking for **three clear beats**\n- Encourage dancers to stay **on their toes**\n- Make sure the **jet\u00e9 is strong and extended**\n- Don\u2019t let the step drift into a travelling movement too early\n\nIf you want, I can also give you a **5-minute class exercise plan** for teaching pas de basque to complete beginners.",
+      "error": null,
+      "latency_s": 5.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pas de basque",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "pas de basque"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10925,
+        "output": 599,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "checks": {
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['get_teaching_guidance', 'search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['pas de basque']"
+        },
+        "forbid_any": {
+          "passed": true,
+          "detail": "forbidden hits: none"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "teaching"
+    },
+    {
+      "id": "formation-reel3-vs-reel4",
+      "model": "gpt-5.4-mini",
+      "answer": "A **reel of three** and a **reel of four** are both figure-of-eight style reels, but they differ in the number of dancers involved and the path each dancer traces.\n\n## Reel of three\nFrom the RSCDS manual, a reel of three is \u201csimilar to a figure of 8 on the sidelines\u201d and \u201cforms a figure of 8 with well-rounded loops at both ends.\u201d  \nIn the standard reel of three on the sidelines:\n\n- It is danced by **3 dancers**\n- It usually starts with one dancer facing one way and the other two the opposite way\n- Each dancer follows a **single figure-eight path** around the other two dancers\n- All three finish back in their starting places\n\n### Track each dancer follows\nThinking of the three dancers as **top, middle, bottom** along the line:\n\n- The dancer who starts in the **middle** usually weaves out one side, round one end, and back through the center to the other end.\n- The two end dancers each make a similar figure-of-eight path, but offset so that all three interlace smoothly.\n- The result is that each dancer alternates passing one dancer on one side and another on the other side, completing a neat 8-bar pattern.\n\n## Reel of four\nA reel of four involves **4 dancers**, and there are two common kinds:\n\n### 1. Reel of four (double)\nThis is the familiar \u201ctwo couples dancing two interlocking reels.\u201d  \nThe manual says that in a square set the reels are at right angles to each other; in a longwise set, one reel runs from 1st man\u2019s place to 4th woman\u2019s place, the other from 1st woman\u2019s place to 4th man\u2019s place.\n\n### 2. Reel of four (interlocking)\nHere three or more couples face as if for grand chain, and all dance the path of a reel of four as if from an end position.\n\n### Track each dancer follows\nIn a reel of four, each dancer follows a **longer, more extended figure-eight path** than in a reel of three:\n\n- Each person passes the first dancer by the **right**\n- Then passes the next by the **left**\n- Then the next by the **right**\n- Then loops round to face the last dancer passed\n- In the common double reel, the paths are **interlocking**, so two reels happen at once and cross in the middle\n\n## Main difference in one sentence\n- **Reel of three:** 3 dancers weaving a figure eight around one another.\n- **Reel of four:** 4 dancers interweaving, usually with two crossing figure-eight paths.\n\nIf you want, I can also draw a simple step-by-step track diagram for each dancer in a reel of three and a reel of four.",
+      "error": null,
+      "latency_s": 7.2,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "reel of three",
+            "num_results": 2
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "reel of four",
+            "num_results": 2
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.25.1",
+            "num_results": 1
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.24.8",
+            "num_results": 1
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.24.9",
+            "num_results": 1
+          }
+        }
+      ],
+      "usage": {
+        "input": 16304,
+        "output": 739,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "checks": {
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['reel of three']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "formation_explanation"
+    },
+    {
+      "id": "crib-lookup-knot",
+      "model": "gpt-5.4-mini",
+      "answer": "I couldn\u2019t find a matching dance record for **\u201cThe Wee Cooper of Fife\u201d** in the database, so I can\u2019t quote the crib yet.\n\nIf you want, send me:\n- the exact dance title as it appears in the book, or\n- the devisor / publication name, or\n- a Strathspey Server link,\n\nand I\u2019ll look up bars 1\u20138 and quote the crib precisely.",
+      "error": null,
+      "latency_s": 3.6,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Wee Cooper of Fife",
+            "random_variety": true,
+            "limit": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 14577,
+        "output": 151,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "checks": {
+        "min_dance_links": {
+          "passed": false,
+          "detail": "0 linked (need 1)"
+        },
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['find_dances', 'get_dance_detail']"
+        }
+      },
+      "score": {
+        "passed": false
+      },
+      "kind": "freeform",
+      "category": "crib_lookup"
+    },
+    {
+      "id": "offtopic-reject",
+      "model": "gpt-5.4-mini",
+      "answer": "Thanks for reaching out! I'm dedicated to Scottish Country Dancing, including sharing information and helping plan classes or dance programmes. Could you rephrase your question to focus on Scottish Country Dancing?",
+      "error": null,
+      "latency_s": 0.7,
+      "tool_calls": [],
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "reasoning": 0,
+        "llm_calls": 1
+      },
+      "checks": {
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['Scottish Country Dancing']"
+        },
+        "forbid_any": {
+          "passed": true,
+          "detail": "forbidden hits: none"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "guardrail"
+    },
+    {
+      "id": "planner-rscds-tournee",
+      "model": "gpt-5.4-mini",
+      "answer": "Here\u2019s a 45-minute lesson plan for an advanced class working on the **tournee**, with **3 RSCDS dances** including **at least one strathspey**.\n\nI\u2019ve chosen dances that are all RSCDS-published and that give useful practice in:\n- turning corners / partner\n- reeling and directional awareness\n- strathspey phrasing and control\n- movement on the tournee, especially maintaining shape, flow, and timing in turns\n\n## Lesson focus\n**Tournee:** aim for smooth, well-tracked turning on the tournee, with clear posture, maintained frame, and control of the rotation through the whole turn.\n\n### Suggested dance order\n1. **[Bridge of Nairn](https://my.strathspey.org/dd/dance/794/)** \u2014 Strathspey, easier start, good for control and corners  \n2. **[Portnacraig](https://my.strathspey.org/dd/dance/5326/)** \u2014 Reel, builds clarity and flow through reels and diagonals  \n3. **[Lennox Love to Blantyre](https://my.strathspey.org/dd/dance/3775/)** \u2014 Strathspey, best as the final dance for consolidation and stamina  \n\n---\n\n## Timing and structure: 45 minutes\n\n### 1) Warm-up and technique: 8 minutes\n- 2 min general warm-up: ankles, knees, hips, posture, turnout\n- 3 min travelling step / strathspey step refresher\n- 3 min tournee-specific work:\n  - turn from the body, not the arms\n  - keep the line of the shoulders stable\n  - step around the turn with control\n  - finish each turn in balance, ready to move on\n\n### 2) Dance 1: Bridge of Nairn \u2014 11 minutes\n- 3 min walk-through\n- 7 min dance\n- 1 min recap of tournee-related points\n\n### 3) Dance 2: Portnacraig \u2014 11 minutes\n- 3 min walk-through\n- 7 min dance\n- 1 min recap\n\n### 4) Dance 3: Lennox Love to Blantyre \u2014 12 minutes\n- 4 min walk-through\n- 7 min dance\n- 1 min final review\n\n### 5) Cool-down / summary: 3 minutes\n- brief debrief\n- reinforce key technical points for tournee\n- mention what improved and what to watch next time\n\n---\n\n# Dance 1: [Bridge of Nairn](https://my.strathspey.org/dd/dance/794/)\n**Strathspey, 32 bars, Longwise 4, 3C**\n\n## Full crib\n**1\u2013**\n1c cast off 2 places, lead up to the top ; cross over and cast off one place (2c up), meet NHJ facing 2W\n\n**9\u2013**\n1c set to 2W, turn inwards, set to 3M ; veer left and set to 3W, turn inwards, set to 2M, finish facing 1cnrs (1M pulls back Rsh).\n\n**17\u2013**\n1c turn corner, P ; corner, P finishing (2,1x,3)\n\n**25\u2013**\nAll A&R ; 1c turn BH 1\u00bd times (2,1,3)\n\n## Teaching points\n### Formations in the dance\n- **Cast behind own lines and lead up the middle**\n- **Turn corners and partner**\n- **Advance and retire**\n\n### Tournee focus\n- In the **turn corners and partner** phrase, insist on:\n  - making the turn continuous, not two separate actions\n  - maintaining eye contact and frame through the turn\n  - finishing the turn square to the next movement\n- For strathspey phrasing, dancers should **travel smoothly** rather than \u201cstep and stop.\u201d\n\n### Helpful teaching notes\n- In the corner turns, remind dancers to keep the turn moving **on the line of dance** and to avoid over-turning before they are ready to travel on.\n- Encourage clear, calm preparation before the tournee-like turn with partner at the end.\n\n---\n\n# Dance 2: [Portnacraig](https://my.strathspey.org/dd/dance/5326/)\n**Reel, 32 bars, Longwise 4, 3C**\n\n## Full crib\n**1\u2013**\n1c set (no advance), turn BH \u00bd into the middle NHJ facing 2c diagonally (drop hands) ; 1c set to 2c and face out | turn 2c EH \u00bd (2,1x,3)\n\n**9\u2013**\nAll A&R ; \u00bdcircle6 L (3x,1,2x)\n\n**17\u2013**\n1c pass Lsh into \u00bd Rsh Reel4 with 1cnrs, pass Lsh into ; \u00bd Rsh Reel4 with 2cnrs (to 2,1x,3)\n\n**25\u2013**\n1c \u00bdFig8 round 3c ; All turn RH (2,1,3)\n\n## Teaching points\n### Formations in the dance\n- **Advance and retire**\n- **Half circle six hands left**\n- **Half reels of four**\n- **Half figure of eight**\n- **Turn right hands**\n\n### Tournee focus\n- The reel phrases are ideal for teaching **body-led turning**:\n  - keep shoulders level\n  - let the feet do the turning work\n  - maintain flow through the reel without \u201cstopping to think\u201d\n- Use the final **all turn RH** to remind dancers of:\n  - a clean, centred turn\n  - finishing ready for the next bar\n  - no collapsing of frame as the turn finishes\n\n### Helpful teaching notes\n- This is the best dance in the set for reinforcing **direction changes and rotation under pressure**.\n- Make sure dancers don\u2019t break the reel shape when tired: keep the path clear and the turn controlled.\n\n---\n\n# Dance 3: [Lennox Love to Blantyre](https://my.strathspey.org/dd/dance/3775/)\n**Strathspey, 32 bars, Longwise 4, 3C**\n\n## Full crib\n**1\u2013**\n1c cross RH, cast off (2c up) ; 1c+3c \u00bdRHA (2,3x,1)\n\n**9\u2013**\n1c set twice ; 3c+1c \u00bdR&L, to face 1cnr\n\n**17\u2013**\n1c set to and turn corners\n\n**25\u2013**\nReels3{6} on the sides | 1c cross to 2pl own side\n\n## Teaching points\n### Formations in the dance\n- **Half right hands across**\n- **Half rights and lefts**\n- **Set to and turn corners**\n- **Reels of three on the sides**\n\n### Tournee focus\n- The **set to and turn corners** is the key phrase for the lesson:\n  - encourage a confident set before turning\n  - turn with a steady centre and good posture\n  - don\u2019t rush out of the turn\n- In the strathspey context, the tournee should feel **measured, smooth, and complete**.\n\n### Helpful teaching notes\n- This dance offers a good contrast with Bridge of Nairn:\n  - more directional variety\n  - more obvious need to control the turn after corners\n- Remind dancers that the turn begins from a balanced stance, not from a leap.\n\n---\n\n## Teaching the tournee in this class\nFor an advanced class, I\u2019d keep the focus fairly refined:\n\n### Key coaching points\n- **Start from balance**\n  - dancers should arrive at the turn ready, not chasing it\n- **Use the body to turn**\n  - the frame stays stable; the feet and torso manage the turn\n- **Maintain speed through the turn**\n  - no hesitations mid-turn\n- **Finish in alignment**\n  - be ready to flow into the next figure immediately\n- **In strathspey turns**\n  - keep it long, calm, and continuous\n  - do not shorten the final part of the rotation\n\n### Common faults to watch for\n- overuse of the arms\n- turning too early or too late\n- loss of posture or frame\n- stopping at the end of the tournee instead of flowing onward\n- inconsistent rotation between bar 1 and bar 2 of the turn\n\n---\n\n## Suggested class management\n- **First walk-through**: brief and efficient; give the dance shape clearly\n- **Second walkthrough**: only stop for the tournee or turning issue\n- **During dancing**: prompt with concise cues, especially:\n  - \u201cturn from the body\u201d\n  - \u201ckeep the shape\u201d\n  - \u201cfinish the turn\u201d\n  - \u201ctravel on\u201d\n- Since this is an advanced class, avoid over-explaining; correct with precision\n\n---\n\n## Optional music planning\nIf you\u2019d like, I can also find suitable recordings for these three dances and add them to the lesson plan.\n\nI can also:\n- save this as a lesson plan\n- export it as Markdown\n- revise it to use a different selection of dances if you want more or less challenge",
+      "error": null,
+      "latency_s": 17.2,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "kind": "Strathspey",
+            "official_rscds_dances": true,
+            "random_variety": true,
+            "limit": 10,
+            "max_bars": 64,
+            "min_intensity": 40,
+            "max_intensity": 85
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "official_rscds_dances": true,
+            "random_variety": true,
+            "limit": 20,
+            "max_bars": 32,
+            "min_intensity": 35,
+            "max_intensity": 75
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "tournee",
+            "limit": 20,
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 794
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 3775
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 5326
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 794
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 3775
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 5326
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 794
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 3775
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 5326
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "tournee"
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "strathspey travelling step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 31958,
+        "output": 2365,
+        "reasoning": 0,
+        "llm_calls": 5
+      },
+      "checks": {
+        "rscds_only": {
+          "passed": true,
+          "detail": "3 dances linked; non-RSCDS: none"
+        },
+        "min_dance_links": {
+          "passed": true,
+          "detail": "3 linked (need 3)"
+        },
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['find_dances', 'get_dance_detail', 'get_full_crib', 'get_teaching_guidance', 'get_teaching_points_for_dance', 'search_cribs']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['tournee']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "lesson_plan"
+    }
+  ],
+  "gpt-5.6-luna": [
+    {
+      "id": "formation-allemande-2c",
+      "model": "gpt-5.6-luna",
+      "answer": "No. They are distinct database concepts:\n\n- **Allemande Turn (to R or L)** \u2014 token `ALL_RL`; this is a generic turn/figure and does not specify a two-couple allemande.\n- **Allemande for 2 couples** \u2014 token **`ALLMND;2C;`**; this is the exact formation to use for a standard two-couple allemande.\n\nThe RSCDS Manual identifies the general formation as **\u201c6.2 Allemande\u201d**, but for database searches or tagging a standard two-couple version, use **Allemande for 2 couples \u2014 `ALLMND;2C;`**.",
+      "error": null,
+      "latency_s": 4.2,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "allemande for 2 couples",
+            "num_results": 5
+          }
+        }
+      ],
+      "usage": {
+        "input": 10312,
+        "output": 209,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2-couple allemande",
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn",
+      "model": "gpt-5.6-luna",
+      "answer": "The matching formation entry is:\n\n**Allemande Turn (to R or L)** \u2014 token: `ALL_RL`\n\nThis is distinct from **Allemande for 2 couples** (`ALLMND;2C;`).",
+      "error": null,
+      "latency_s": 5.4,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 10105,
+        "output": 78,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen",
+      "model": "gpt-5.6-luna",
+      "answer": "On bars **11\u201316**, the explicitly named step is the **skip change of step**:\n\n- Bars 11\u201312: \u201cusing skio [skip] change\u201d\n- Bars 15\u201316: \u201cusing skip change\u201d\n\n[Bill\u2019s Friend, Stephen](https://my.strathspey.org/dd/dance/23334/) is a reel.",
+      "error": null,
+      "latency_s": 7.3,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Bill's Friend, Stephen",
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Bills Friend Stephen",
+            "limit": 10
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Bill's Friend",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 23334
+          }
+        }
+      ],
+      "usage": {
+        "input": 25260,
+        "output": 183,
+        "reasoning": 0,
+        "llm_calls": 5
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit",
+      "model": "gpt-5.6-luna",
+      "answer": "The step explicitly named on bars 17\u201318 is **pas de basque**.\n\n[The Discounted Suit](https://my.strathspey.org/dd/dance/16763/) is a reel.",
+      "error": null,
+      "latency_s": 6.0,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Discounted Suit",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Discounted Suit",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16763
+          }
+        }
+      ],
+      "usage": {
+        "input": 20138,
+        "output": 130,
+        "reasoning": 0,
+        "llm_calls": 4
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright",
+      "model": "gpt-5.6-luna",
+      "answer": "The step is **strathspey travelling step**\u2014specifically, the crib says **\u201cpivot L (travelling step L)\u201d** on bar 4.\n\n[Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/) is a 32-bar Strathspey.",
+      "error": null,
+      "latency_s": 11.6,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Dancing in Kirkcudbright",
+            "limit": 10
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Dancing in Kirkcudbright",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16845
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pivot travelling step",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "strathspey travelling step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 32427,
+        "output": 206,
+        "reasoning": 0,
+        "llm_calls": 6
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey",
+      "model": "gpt-5.6-luna",
+      "answer": "In **[Circle Strathspey](https://my.strathspey.org/dd/dance/16390/)**, bars 1\u20138 name the **Glasgow Highlanders setting step**:\n\n> \u201cAll set facing the centre using Glasgow Highlanders setting step.\u201d",
+      "error": null,
+      "latency_s": 7.3,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "\"Circle Strathspey\"",
+            "limit": 10
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Circle Strathspey",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16390
+          }
+        }
+      ],
+      "usage": {
+        "input": 20059,
+        "output": 144,
+        "reasoning": 0,
+        "llm_calls": 4
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh",
+      "model": "gpt-5.6-luna",
+      "answer": "In **[Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/)**, bars **9\u201324**: the first couple pass **left shoulder** during each half-reel of four.\n\nThe crib explicitly says: **\u201c\u00bd Reel 4 with 1st corners (pass P Lsh)\u201d**, then repeat with the second corners. A right-shoulder version is sometimes danced, but the published Cosh instruction specifies **left shoulder**.",
+      "error": null,
+      "latency_s": 8.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Mairi's Wedding",
+            "limit": 10
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Mairi",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Mairi's Wedding",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4102
+          }
+        }
+      ],
+      "usage": {
+        "input": 32383,
+        "output": 238,
+        "reasoning": 0,
+        "llm_calls": 6
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places",
+      "model": "gpt-5.6-luna",
+      "answer": "The first couple **cast off two places** in bars 1\u20134, with the second couple moving up. They then **lead up to first-couple corners** in bars 5\u20138.\n\n[The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/) is a 32-bar reel.",
+      "error": null,
+      "latency_s": 5.4,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Reel of the 51st Division",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 5525
+          }
+        }
+      ],
+      "usage": {
+        "input": 20740,
+        "output": 154,
+        "reasoning": 0,
+        "llm_calls": 4
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh",
+      "model": "gpt-5.6-luna",
+      "answer": "After the first couple\u2019s **cross right hand** in bars 1\u20132, the next explicitly stated action is **cast off**, followed by **cross left hand**\u2014not the reel of three.\n\nThe reel of three starts at **bar 9**:\n\n> \u201c1c cross RH | cast off (2c up) ; cross LH | cast L \u2026\u201d  \n> \u201c9\u2013: \u2026 Reels3 across\u201d\n\n[Montgomeries\u2019 Rant, The](https://my.strathspey.org/dd/dance/4641/)",
+      "error": null,
+      "latency_s": 5.6,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 1820
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Montgomeries' Rant",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4641
+          }
+        }
+      ],
+      "usage": {
+        "input": 20916,
+        "output": 194,
+        "reasoning": 0,
+        "llm_calls": 4
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps",
+      "model": "gpt-5.6-luna",
+      "answer": "In **The Diplomat**, bars 17\u201324, the first couple pass each other by the left shoulder using **skip-change-of-step**.",
+      "error": null,
+      "latency_s": 4.0,
+      "tool_calls": [
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 0
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "The Diplomat",
+            "limit": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 14390,
+        "output": 80,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": false,
+        "predicted_label": "unknown",
+        "target_label": "setting_step",
+        "missing_expected": [
+          "setting step",
+          "two setting steps"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote",
+      "model": "gpt-5.6-luna",
+      "answer": "The RSCDS manual\u2019s exact wording for **Skip change of step** is:\n\n> **5.4.1 Skip change of step**  \n> This step is used to travel. One skip change of step takes one bar of music.  \n>   \n> 1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot \u2026\n\nThe manual search result truncates the remaining text. The accompanying RSCDS teaching guidance gives this teaching progression:\n\n> **Main teaching points**  \n> a) The hop.  \n> b) The straight front leg and the reach forward.  \n> c) The third position.  \n>   \n> **Sample lesson plan**  \n> 1. Give name and purpose and cover numbers 2, 3 and 4 from the guidelines in section 4.  \n>   \n> 2. Rhythmic words \u2013 Hop Step Close Step  \n> a) Walking words \u2013 \u201cAnd Step Close Step\u201d or \u201cAnd Right Close Right\u201d  \n> b) While walking, bring in music, gradually increasing speed.  \n> c) While music is playing introduce \u201cOn your toes\u201d.  \n> d) As speed increases introduce \u201cHop Step Close Step\u201d.  \n>   \n> 3. Hop  \n> a) Isolate the movement. Demonstrate the hop and have class copy 2 or 3 times with each foot. (Avoid using spring points as the toe of the front leg is not on the floor during the \u201cHop\u201d).  \n> b) Dance step concentrating on \u201cHop\u201d.  \n>   \n> 4. Straight Front Leg  \n> a) Show position and have class show also.  \n> b) Show and practise the hop with fully extended front leg 3 or 4 times with each foot (keep front foot off floor).  \n> c) Dance step concentrating on full extension on hop.  \n>   \n> 5. Reach  \n> a) Link the three movements \u2013 Hop, Reach Forward, Close.  \n> b) Have class practise with R and L foot 3 or 4 times.  \n> c) Dance step concentrating on the \u201creach\u201d.  \n>   \n> 6. Third Position  \n> a) Practise \u2013 Step forward, close in 3rd \u2013 3 or 4 times with the same foot and then with the other.  \n> b) Repeat on toes.  \n>   \n> 7. Finally dance the complete PERFECT STEP! If necessary go on to teach skip change of step travelling backwards.\n\nThe manual reference is **section 5.4.1, page 74**.",
+      "error": null,
+      "latency_s": 5.9,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10213,
+        "output": 623,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop, step, close, step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain",
+      "model": "gpt-5.6-luna",
+      "answer": "I can\u2019t find an RSCDS manual section specifically titled **\u201cHighland swing turn.\u201d** The closest relevant entry is **Manual \u00a76.39, \u201cTurn\u201d (p. 169)**:\n\n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> **Steps:** 4 travelling steps  \n> **No. of bars:** 4  \n> \u201cApproach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines \u2026\u201d\n\nThe available manual result is truncated, and the RSCDS teaching guide has no separate entry for \u201cHighland swing turn.\u201d",
+      "error": null,
+      "latency_s": 5.3,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "highland swing turn"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland set Highland setting Highland step swing turn",
+            "num_results": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 14986,
+        "output": 247,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "cannot find",
+          "does not appear",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance",
+      "model": "gpt-5.6-luna",
+      "answer": "## Teaching skip-change of step to beginners\n\n### 1. Explain the purpose and rhythm\n\nThe RSCDS Manual describes skip-change as a travelling step, with **one step taking one bar of music**.\n\nUse the rhythm:\n\n> **Hop \u2013 Step \u2013 Close \u2013 Step**\n\nInitially, have the class walk the rhythm while saying:\n\n> **\u201cAnd step, close, step\u201d**  \n> or  \n> **\u201cAnd right, close, right.\u201d**\n\nGradually introduce music and increase the speed. Encourage dancers to stay on their toes as they become more comfortable.\n\n### 2. Teach the hop separately\n\nHave the class practise the hop on each foot two or three times.\n\nEmphasise that:\n\n- The hop is light and controlled.\n- The front foot is **off the floor** during the hop.\n- The front leg is extended rather than kicked upward.\n\n### 3. Add the extended front leg\n\nOn the hop, the opposite leg reaches forward with the knee and foot extended. Practise this slowly, without worrying about travelling at first.\n\nThe main points are:\n\n- A straight front leg.\n- A clear reach forward.\n- The leg remains low and controlled.\n\n### 4. Link hop, reach and close\n\nCombine the movements:\n\n> **Hop \u2013 reach forward \u2013 close**\n\nPractise with both the right and left foot leading. Keep the movement small enough that dancers can maintain balance and poise.\n\n### 5. Introduce third position\n\nPractise separately:\n\n1. Step forward.\n2. Close the other foot neatly into third position.\n3. Repeat with the other foot.\n\nThen repeat the exercise on the toes. Avoid allowing dancers to:\n\n- Leave a gap between the feet.\n- Close in first position.\n- Pass the feet.\n\n### 6. Put the complete step together\n\nOnce the components are secure, dance the full step to music:\n\n> **Hop \u2013 Step \u2013 Close \u2013 Step**\n\nStart slowly, perhaps travelling only a short distance. Increase the tempo only when the class can retain the hop, extension and neat third position.\n\n## Faults to watch for\n\nThe RSCDS teaching guidance identifies these common faults:\n\n- Lack of outward rotation from the hip.\n- Incorrect third position.\n- Lack of hop.\n- Front leg kicking up on the hop.\n- Insufficient extension of the knee and foot.\n- Coming down on a bent front knee.\n- Pulling in the leading foot as it takes weight.\n- Poor poise.\n- Scraping the feet.\n\nA useful teaching sequence is to focus on **one point at a time**\u2014first the hop, then the straight front leg, then the reach, and finally third position\u2014before asking beginners to perform the complete step.",
+      "error": null,
+      "latency_s": 7.6,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10205,
+        "output": 619,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step",
+          "hop, step, close, step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "search-rscds-strathspey-poussette",
+      "model": "gpt-5.6-luna",
+      "answer": "Here are three **32-bar RSCDS strathspeys containing a poussette**:\n\n1. [New Park](https://my.strathspey.org/dd/dance/4925/) \u2014 32 bars, 3-couple longwise set  \n   - Includes a **standard poussette** in bars 1\u20138  \n   - RSCDS Book 19, No. 11\n\n2. [Neidpath Castle](https://my.strathspey.org/dd/dance/4890/) \u2014 32 bars, 3-couple longwise set  \n   - Includes two **half-poussettes** in bars 25\u201332  \n   - RSCDS Book 22, No. 9\n\n3. [The F\u00eate](https://my.strathspey.org/dd/dance/2136/) \u2014 32 bars, 3-couple longwise set  \n   - Includes a **standard poussette** in bars 25\u201332  \n   - RSCDS Book 25, No. 1",
+      "error": null,
+      "latency_s": 7.0,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "poussette",
+            "kind": "Strathspey",
+            "official_rscds_dances": true,
+            "limit": 50
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "kind": "Strathspey",
+            "max_bars": 32,
+            "official_rscds_dances": true,
+            "random_variety": true,
+            "limit": 50
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4925
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4890
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 2136
+          }
+        }
+      ],
+      "usage": {
+        "input": 24601,
+        "output": 392,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "checks": {
+        "rscds_only": {
+          "passed": true,
+          "detail": "3 dances linked; non-RSCDS: none"
+        },
+        "min_dance_links": {
+          "passed": true,
+          "detail": "3 linked (need 3)"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['poussette']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "dance_search"
+    },
+    {
+      "id": "teach-pas-de-basque",
+      "model": "gpt-5.6-luna",
+      "answer": "## Teaching pas de basque to beginners\n\n### 1. Explain the purpose and rhythm\n\nTell the class that pas de basque is used for setting, turning on the spot, and sometimes travelling a short distance. One pas de basque takes **one bar of music**.\n\nUse the rhythm:\n\n> **Spring \u2013 beat \u2013 beat**  \n> or initially: **1 \u2013 2 \u2013 3**\n\nEmphasise that it has **three distinct beats**, not two.\n\n### 2. Establish the rhythm\n\nBegin without travelling:\n\n1. Have the dancers mark time on the spot.\n2. Say or clap **\u201c1, 2, 3\u201d**.\n3. Ask them to lift the knees and feet slightly so that all three beats are clear.\n4. Add music gradually, increasing the speed as they become comfortable.\n5. Encourage them to stay lifted and dance \u201con their toes\u201d.\n\n### 3. Introduce third position\n\nDemonstrate third position clearly:\n\n- One foot is in front of the other.\n- The heel of the front foot is tucked into the instep of the other foot.\n- Practise placing the left foot in front, then the right, several times.\n- Have the class look down briefly to check their foot placement.\n\nThen practise:\n\n> **Step in front \u2013 behind \u2013 and**\n\nKeep the feet light and continue to insist on three clear beats.\n\n### 4. Add the jet\u00e9\n\nDemonstrate the complete movement slowly to both sides:\n\n- Begin with the spring.\n- Move through the front and behind positions.\n- Finish with a strong **jet\u00e9**, extending the foot, ankle and leg fully.\n- The step should be danced **on the spot**, rather than travelling significantly.\n\nPractise the jet\u00e9 separately from third position, only a few times on each foot, before combining it with the complete step.\n\n### 5. Put it into setting\n\nOnce the individual pas de basque is secure, practise:\n\n- Right foot, then left foot\n- Setting in place\n- Setting while facing a partner\n- Eventually, setting with the arms and upper-body poise required in a dance\n\nKeep the focus on rhythm and placement rather than adding too many details at once.\n\n## Common faults to watch for\n\nAccording to the RSCDS teaching guidance, observe and correct:\n\n- **Lack of outward rotation from the hip**\n- **A two-beat step** instead of three distinct beats\n- **Tapping the foot** on the second beat\n- **Incorrect jet\u00e9 position**\n- **Insufficient extension** of the jet\u00e9\n- **Incorrect movement into third position**\n- **Incorrect third position**\n- **Poor poise**\n\nA useful correction sequence is:\n\n1. Re-establish **\u201cspring, beat, beat\u201d**.\n2. Check the third-position foot placement.\n3. Practise the jet\u00e9 separately.\n4. Recombine the parts slowly.\n5. Return to music only when the three beats are clear.\n\n### Sources\n\n- **RSCDS Manual**, section **5.4.2, \u201cPas de basque,\u201d p. 75**\n- **RSCDS Teaching Scottish Country Dancing \u2013 Guidelines for Tutors, Teachers and Candidates**, \u201cTeaching Pas De Basque\u201d",
+      "error": null,
+      "latency_s": 8.5,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pas de basque points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "pas de basque"
+          }
+        }
+      ],
+      "usage": {
+        "input": 10280,
+        "output": 730,
+        "reasoning": 0,
+        "llm_calls": 2
+      },
+      "checks": {
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['get_teaching_guidance', 'search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['pas de basque']"
+        },
+        "forbid_any": {
+          "passed": true,
+          "detail": "forbidden hits: none"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "teaching"
+    },
+    {
+      "id": "formation-reel3-vs-reel4",
+      "model": "gpt-5.6-luna",
+      "answer": "A **reel of three** uses **three dancers**; a **reel of four** uses **four dancers**. In both cases, each dancer follows a continuous, rounded **figure-of-eight track**, passing the other dancers alternately by the right and left.\n\n### Reel of three\n\nImagine three dancers arranged in a line:\n\n```text\nA \u2014 B \u2014 C\n```\n\nThe **middle dancer** begins by passing one end dancer, while the two end dancers travel around the outside of the figure. The tracks form a single figure eight:\n\n- Each dancer passes another dancer by the **right**.\n- They then pass the next dancer by the **left**.\n- The dancers loop around the ends and return through the centre.\n- Each dancer finishes in the position from which they started, unless the dance specifies a different ending.\n\nThe important visual point is that the three tracks are interwoven into **one figure eight**, with the dancers making rounded loops at each end. The RSCDS Manual describes the reel of three as forming \u201ca figure of 8 with well-rounded loops at both ends\u201d (Manual \u00a76.25.1).\n\n### Reel of four\n\nA standard reel of four uses four dancers, commonly arranged in a square or in two facing pairs:\n\n```text\nA     B\n\nC     D\n```\n\nThe dancers follow **two interweaving figure-eight tracks**:\n\n- Each dancer passes the facing dancer by the **right**.\n- Each then passes the next dancer by the **left**.\n- The four dancers continue around the outside and through the centre.\n- The tracks are wider and more open than in a reel of three because there are four dancers and four passing points.\n\nIn a **double reel of four**, two reels of four are danced simultaneously. The two figure-eight patterns intersect in the middle, where dancers commonly give left hands across halfway (RSCDS Manual \u00a76.24.8).\n\nThere is also an **interlocking reel of four**, in which three or more couples face as for a grand chain. Each couple follows the path of a reel of four, passing successive dancers alternately right and left (RSCDS Manual \u00a76.24.9).\n\n### In short\n\n- **Reel of three:** three dancers, one figure eight, with one dancer initially in the middle.\n- **Reel of four:** four dancers, two interwoven figure-eight paths, usually beginning from a square or two facing pairs.\n- In both: **right-hand pass, left-hand pass**, with rounded loops rather than sharp corners.",
+      "error": null,
+      "latency_s": 10.2,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "reel of three",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "reel of four",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.24.8 Reel of four (double)",
+            "num_results": 1
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.24.9 Reel of four (interlocking)",
+            "num_results": 1
+          }
+        }
+      ],
+      "usage": {
+        "input": 21145,
+        "output": 657,
+        "reasoning": 0,
+        "llm_calls": 4
+      },
+      "checks": {
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['reel of three']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "formation_explanation"
+    },
+    {
+      "id": "crib-lookup-knot",
+      "model": "gpt-5.6-luna",
+      "answer": "I couldn\u2019t locate **\u201cThe Wee Cooper of Fife\u201d** in the dance database, so I can\u2019t quote its crib reliably. Could you check the title or provide the source/book (and, if possible, the dance\u2019s Strathspey Server link)?",
+      "error": null,
+      "latency_s": 8.0,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Wee Cooper of Fife",
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Wee Cooper of Fife",
+            "limit": 10
+          }
+        }
+      ],
+      "usage": {
+        "input": 14561,
+        "output": 120,
+        "reasoning": 0,
+        "llm_calls": 3
+      },
+      "checks": {
+        "min_dance_links": {
+          "passed": false,
+          "detail": "0 linked (need 1)"
+        },
+        "required_tools": {
+          "passed": false,
+          "detail": "missing: ['get_dance_detail']; used: ['find_dances', 'search_cribs']"
+        }
+      },
+      "score": {
+        "passed": false
+      },
+      "kind": "freeform",
+      "category": "crib_lookup"
+    },
+    {
+      "id": "offtopic-reject",
+      "model": "gpt-5.6-luna",
+      "answer": "Thanks for reaching out! I'm dedicated to Scottish Country Dancing, including sharing information and helping plan classes or dance programmes. Could you rephrase your question to focus on Scottish Country Dancing?",
+      "error": null,
+      "latency_s": 0.7,
+      "tool_calls": [],
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "reasoning": 0,
+        "llm_calls": 1
+      },
+      "checks": {
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['Scottish Country Dancing']"
+        },
+        "forbid_any": {
+          "passed": true,
+          "detail": "forbidden hits: none"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "guardrail"
+    },
+    {
+      "id": "planner-rscds-tournee",
+      "model": "gpt-5.6-luna",
+      "answer": "# 45-minute advanced lesson: Tournee\n\n**Class focus:** the tournee, with attention to preparation, handhold, weight transfer, rotation, and clean exits.  \n**Dances:** three RSCDS dances, including two strathspeys.  \n**Suggested order:** teach the tournee in a controlled strathspey context first, reinforce it in a second strathspey, then apply the same principles at reel tempo.\n\n> **Important:** The database\u2019s RSCDS manual lookup did not return a dedicated \u201ctournee\u201d entry. The tournee-specific coaching below is therefore practical teaching guidance, while the cited RSCDS points for pas de basque, poussette, and strathspey travelling step should be used where relevant.\n\n---\n\n## Timing at a glance\n\n| Time | Activity |\n|---:|---|\n| 0:00\u20130:04 | Warm-up and tournee preparation |\n| 0:04\u20130:12 | Teach and practise the tournee |\n| 0:12\u20130:21 | Dance 1: [Argyll Strathspey](https://my.strathspey.org/dd/dance/221/) |\n| 0:21\u20130:29 | Dance 2: [Out of Thin Air](https://my.strathspey.org/dd/dance/15406/) |\n| 0:29\u20130:41 | Dance 3: [The Nut](https://my.strathspey.org/dd/dance/5007/) |\n| 0:41\u20130:45 | Consolidation: tournee review and final dance |\n\nUse short explanations and frequent dancing. This is an advanced class, so avoid teaching every formation from first principles; isolate only the tournee and any transition that affects it.\n\n---\n\n# 1. Warm-up and preparation \u2014 4 minutes\n\n### Aims\n- Establish upright posture, turnout, and controlled weight transfer.\n- Prepare the pas de basque action used in the tournee.\n- Remind dancers that the tournee is a turning formation, not a hurried spin.\n\n### Exercise\n1. In pairs, face a partner with both hands joined.\n2. Practise slow pas de basque on the spot, first without turning.\n3. Add a quarter-turn over two bars, then a half-turn over four bars.\n4. Repeat with dancers concentrating on:\n   - staying lifted through the torso;\n   - keeping the feet underneath the body;\n   - transferring weight fully before the next step;\n   - maintaining a comfortable, supportive handhold.\n\n### RSCDS pas de basque points\nThe RSCDS teaching guidance identifies:\n- three distinct beats;\n- knee lifted on beat 1;\n- accurate third position;\n- a strong jet\u00e9 with full extension;\n- the step remaining on the spot unless it is deliberately travelling or turning.\n\nCorrect immediately:\n- a two-beat pas de basque;\n- tapping rather than transferring weight;\n- collapsing posture;\n- excessive sideways travel;\n- a weak or absent jet\u00e9.\n\n---\n\n# 2. Teaching the tournee \u2014 8 minutes\n\n## Formation concept\n\nThe tournee is normally danced by two couples. Partners dance together in a turning, travelling movement, using pas de basque. The formation depends on accurate preparation and a shared centre: dancers should turn as a unit rather than pull one another around.\n\n### Teaching sequence\n\n#### A. Walk the shape \u2014 2 minutes\nArrange the class in pairs or small groups of two couples.\n\nWalk the formation without steps:\n\n1. Begin in the correct starting position, with the couples facing as required by the dance.\n2. Establish the handhold before moving.\n3. Move around the centre of the formation in the prescribed direction.\n4. Show the intended finishing position clearly.\n5. Repeat from the opposite side so dancers understand the spatial pattern.\n\nAt this stage, emphasise the **entry and exit**, not speed.\n\n#### B. Add pas de basque \u2014 2 minutes\n- Men begin with the left foot and women with the right where the formation requires the standard reel/jig-time pas de basque convention.\n- Keep the first movement decisive but not large.\n- The body turns progressively through the phrase; do not twist the upper body independently of the feet.\n- Maintain the handhold without gripping.\n\n#### C. Practise in slow time \u2014 2 minutes\nDance the tournee with the music slowed or with the teacher counting.\n\nCoach:\n- \u201cPrepare.\u201d\n- \u201cStep underneath.\u201d\n- \u201cTurn together.\u201d\n- \u201cKeep the centre.\u201d\n- \u201cFinish the phrase.\u201d\n\n#### D. Dance to tempo \u2014 2 minutes\nDance once at a moderate tempo, stop, correct one or two faults only, then repeat at normal strathspey tempo.\n\n### Tournee teaching points\n\n- **Preparation:** arrive in the correct formation before beginning the first turning step.\n- **Handhold:** hands should support the movement, not drag the partner.\n- **Shared centre:** both dancers rotate around a common centre.\n- **Weight transfer:** complete each pas de basque before beginning the next.\n- **Foot placement:** retain turnout and close accurately in third position where appropriate.\n- **Travel:** cover the required distance without taking oversized steps.\n- **Phrasing:** do not rush the final step to reach the finishing place.\n- **Exit:** release or change hands smoothly and face the next formation promptly.\n- **Partner awareness:** look in the direction of travel when needed, but avoid turning the head so far that posture collapses.\n\nFor an advanced class, ask dancers to identify whether their difficulty is caused by:\n1. incorrect entry;\n2. poor handhold;\n3. insufficient weight transfer;\n4. turning too early;\n5. over-travelling; or\n6. an untidy exit.\n\n---\n\n# 3. Dance 1 \u2014 Argyll Strathspey \u2014 9 minutes\n\n**RSCDS publication:** *Book 35 Scottish Country Dances*, No. 3.  \n**Formation:** longwise, three couples active.  \n**Music:** strathspey.  \n**Primary focus:** tournee after a demanding sequence of circle and rights-and-lefts work.\n\n## Full crib\n\n**1\u20138:**  \n1st, 2nd and 3rd couples: half right-hand turn and remain in the middle; swivel right and dance out to opposite sides; repeat, finishing in own places.\n\n**9\u201316:**  \n1st, 2nd and 3rd couples: circle six hands round and back. 1st and 3rd couples finish facing down and up the middle respectively.\n\n**17\u201324:**  \n1st and 3rd couples: rights and lefts up and down the middle, finishing in own places.\n\n**25\u201332:**  \n1st and 2nd couples: tournee.\n\n## Teaching and coaching points\n\n### Bars 1\u20138: half-turn and cast away\n- The half-turn must finish with dancers remaining in the middle.\n- The swivel is a controlled change of direction, not a separate flourish.\n- Dancers should leave the middle on the correct diagonal and arrive on the opposite side without drifting.\n- Watch that the second repetition does not become hurried.\n\n### Bars 9\u201316: circle six and back\n- Keep the circle round and evenly spaced.\n- The circle should finish with 1st and 3rd couples correctly oriented for the next phrase.\n- Do not allow the circle to collapse as dancers prepare to face up or down.\n\n### Bars 17\u201324: rights and lefts\nRSCDS guidance:\n- the formation follows a square pattern;\n- it may be danced across or up and down the set;\n- hands are released at shoulder height as dancers pass one another.\n\nFor this dance:\n- keep the movement compact enough to preserve the square;\n- release hands cleanly rather than dropping them;\n- arrive in own places with enough time to prepare for the tournee.\n\n### Bars 25\u201332: tournee\n- The preceding rights and lefts should finish with the couples ready, not still adjusting.\n- Establish the handhold immediately.\n- Keep the turning action smooth and centred.\n- The final two bars should be used to complete the phrase and settle into the next position.\n\n## Class procedure\n\n1. Walk bars 25\u201332 once with two couples.\n2. Dance the tournee twice slowly.\n3. Dance the complete dance once without music, calling only the tournee.\n4. Dance once to music.\n5. If time permits, repeat the final eight bars from different starting positions.\n\n---\n\n# 4. Dance 2 \u2014 Out of Thin Air \u2014 8 minutes\n\n**RSCDS publication:** *A Third Book of Graded Scottish Country Dances*, No. 13.  \n**Formation:** longwise, three couples.  \n**Music:** strathspey.  \n**Primary focus:** a tournee entered from a middle-of-the-set position, with attention to orientation and the transition from the preceding phrase.\n\n## Full crib\n\n**1\u20138:**  \n1st couple set; cross by the right hand; cast off one place, 2nd couple moving up; turn by the left hand to face first corners.\n\n**9\u201316:**  \n1st couple turn corners and partner, finishing in 2nd place in the middle, facing up, nearer hands joined.\n\n**17\u201324:**  \n1st couple dance up between 2nd couple and cast off to 2nd place; dance down between 3rd couple and cast up to 2nd place, finishing in progressed places.\n\n**25\u201332:**  \n1st and 3rd couples: tournee.\n\n## Teaching and coaching points\n\n### Bars 1\u20138: set, cross, cast, and turn\n- The first couple should preserve clear phrasing through the set, cross, and cast.\n- After the left-hand turn, the couple must know exactly where they are facing before beginning the corner sequence.\n- The cast should be a smooth strathspey movement, not a sudden change of direction.\n\n### Bars 9\u201316: turn corners and partner\n- The corner sequence must finish with the first couple in the middle, facing up, with nearer hands joined.\n- This is the critical preparation for the next phrase.\n- Encourage dancers to finish the final turn with their bodies already aligned for the upward movement.\n\n### Bars 17\u201324: dance up and cast; dance down and cast\n- The first couple should use the full eight bars for each up-and-down section.\n- Avoid cutting the cast short.\n- The final cast should place the couple accurately for the tournee with 3rd couple.\n- The couple should arrive together; one dancer should not be ahead of the other.\n\n### Bars 25\u201332: tournee\n- The entry is from the middle of the set, so dancers must recognise the orientation rather than rely only on a familiar visual pattern.\n- Keep the movement compact and smooth.\n- The couple finishing the tournee should be ready for the next repeat without an extra adjustment step.\n\n## Class procedure\n\n1. Walk the transition from bars 17\u201324 into bars 25\u201332.\n2. Practise the tournee with the couple entering from the middle.\n3. Dance bars 17\u201332 twice.\n4. Dance the complete dance once, with the teacher calling only the entry to the tournee.\n5. Repeat if the class needs work on orientation.\n\n---\n\n# 5. Dance 3 \u2014 The Nut \u2014 12 minutes\n\n**RSCDS publication:** *Book 1 Scottish Country Dances*, No. 4.  \n**Formation:** longwise, two couples.  \n**Music:** jig.  \n**Primary focus:** transferring the tournee principles to quicker pas de basque and a more energetic tempo.\n\n## Full crib\n\n**1\u20138:**  \n1st man and 2nd woman: right-hand turn, finishing with 1st man facing up between 2nd couple and 2nd couple facing down. 1st man and 2nd couple balance in line while 1st woman dances under their arms once round 1st man, down on the women\u2019s side and up on the men\u2019s side.\n\n**9\u201316:**  \n1st couple lead down the middle and up.\n\n**17\u201324:**  \n1st and 2nd couples: poussette.\n\n## Teaching and coaching points\n\nAlthough this dance contains a **poussette**, not a tournee, it is useful as a final application dance because it reinforces the same requirements of shared timing, pas de basque, hand connection, and controlled turning.\n\n### Bars 1\u20138: right-hand turn and balance in line\n- The right-hand turn must finish in the correct facing positions.\n- The balance in line should be clear and stable.\n- The dancer travelling under the arms must have a definite pathway: down the women\u2019s side and up the men\u2019s side.\n- Avoid lifting the arms excessively or allowing the arch to collapse.\n\n### Bars 9\u201316: lead down and up\n- Maintain a comfortable promenade hold.\n- Use the full phrase and arrive ready for the poussette.\n- The couple should not rush the final upward steps.\n\n### Bars 17\u201324: poussette\nRSCDS manual guidance:\n- the poussette is usually a method of progression;\n- it is danced using pas de basque;\n- each man begins with the left foot and each woman with the right;\n- if a change of foot is necessary, it normally occurs at the end of the previous eight-bar phrase and again at the end of the poussette.\n\nFor this dance:\n- establish the correct starting foot before beginning;\n- keep the pas de basque on the line of the formation;\n- move as a pair rather than pushing or pulling;\n- maintain turnout and accurate third position;\n- complete the progression by the end of bar 24.\n\n## Class procedure\n\n1. Walk the poussette once, identifying the direction of travel.\n2. Practise four bars of pas de basque with the correct handhold.\n3. Dance the poussette slowly, then at jig tempo.\n4. Dance bars 9\u201324.\n5. Dance the complete dance twice, changing roles where possible.\n\n### Advanced correction\nAsk dancers to distinguish between:\n- a genuine pas de basque with three beats and a clear jet\u00e9; and\n- a hurried side-step caused by trying to travel too far.\n\nThe RSCDS teaching guidance stresses:\n- three distinct beats;\n- the knee lifting on beat 1;\n- accurate third position;\n- a strong, extended jet\u00e9;\n- correct outward rotation;\n- good poise.\n\n---\n\n# 6. Final consolidation \u2014 4 minutes\n\nReturn to **Argyll Strathspey** or **Out of Thin Air** and dance the final eight bars twice.\n\n### First time\nTeacher calls:\n- \u201cPrepare.\u201d\n- \u201cShared centre.\u201d\n- \u201cTransfer.\u201d\n- \u201cTurn together.\u201d\n- \u201cFinish.\u201d\n\n### Second time\nDance without calling.\n\nFinish with a brief review:\n\n- Did the dancers enter the tournee in the correct orientation?\n- Was the handhold supportive but relaxed?\n- Did both partners transfer weight together?\n- Was the movement centred rather than pulled around?\n- Did the dancers complete the phrase and exit cleanly?\n\n## Teacher\u2019s observation priorities\n\nBecause only 45 minutes are available, correct in this order:\n\n1. **Formation and orientation**\n2. **Timing and phrasing**\n3. **Weight transfer**\n4. **Handhold and shared centre**\n5. **Foot position and turnout**\n6. **Styling and refinement**\n\nAvoid giving several corrections at once. Demonstrate the desired action, have the class repeat it, then immediately put it back into the dance.",
+      "error": null,
+      "latency_s": 47.0,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "tournee",
+            "limit": 20,
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "kind": "Strathspey",
+            "max_bars": 32,
+            "official_rscds_dances": true,
+            "min_intensity": 40,
+            "max_intensity": 80,
+            "random_variety": true,
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "tournee",
+            "kind": "Reel",
+            "limit": 20,
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "tournee",
+            "kind": "Jig",
+            "limit": 20,
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "kind": "Reel",
+            "max_bars": 32,
+            "official_rscds_dances": true,
+            "min_intensity": 45,
+            "max_intensity": 80,
+            "random_variety": true,
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "tournee OR tourn\u00e9e OR turnee",
+            "limit": 50,
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 221
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 221
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 221
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 19667
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 19667
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 19667
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 2153
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 2153
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 2153
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "tournee",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "how to teach"
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "strathspey travelling step"
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "kind": "Jig",
+            "max_bars": 32,
+            "official_rscds_dances": true,
+            "min_intensity": 45,
+            "max_intensity": 80,
+            "random_variety": true,
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Tourn\u00e9e",
+            "kind": "Strathspey",
+            "limit": 20,
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "poussette (in reel and jig time)",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "rights and lefts",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pas de basque",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 15406
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 15406
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 15406
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 5007
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 5007
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 5007
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "pas de basque"
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "formation"
+          }
+        },
+        {
+          "name": "find_videos",
+          "args": {
+            "dance_id": 221,
+            "editors_pick": true,
+            "limit": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 76407,
+        "output": 4135,
+        "reasoning": 0,
+        "llm_calls": 10
+      },
+      "checks": {
+        "rscds_only": {
+          "passed": true,
+          "detail": "3 dances linked; non-RSCDS: none"
+        },
+        "min_dance_links": {
+          "passed": true,
+          "detail": "3 linked (need 3)"
+        },
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['find_dances', 'find_videos', 'get_dance_detail', 'get_full_crib', 'get_teaching_guidance', 'get_teaching_points_for_dance', 'search_cribs', 'search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['tournee']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "lesson_plan"
+    }
+  ],
+  "gpt-5.6-luna+reasoning": [
+    {
+      "id": "formation-allemande-2c",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "No. They are distinct database formations:\n\n- **Allemande Turn (to R or L)** \u2014 token: `ALL_RL`  \n  A turn in allemande hold, generally involving a single couple or specified dancers.\n\n- **Allemande for 2 couples** \u2014 token: **`ALLMND;2C;`**  \n  This is the exact formation/token to use for a **standard two-couple allemande**.\n\nDo not use `ALL_RL` when searching for the standard 2-couple figure.",
+      "error": null,
+      "latency_s": 5.0,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 9691,
+        "output": 174,
+        "reasoning": 29,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_2c",
+        "missing_expected": [
+          "2-couple allemande",
+          "2 couple allemande"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "formation-allemande-turn",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The matching formation entry is:\n\n**Allemande Turn (to R or L)** \u2014 token: `ALL_RL`\n\nThis is distinct from **Allemande for 2 couples** \u2014 token: `ALLMND;2C;`.",
+      "error": null,
+      "latency_s": 4.0,
+      "tool_calls": [
+        {
+          "name": "list_formations",
+          "args": {
+            "name_contains": "allemande",
+            "sort_by": "alphabetical",
+            "limit": 50
+          }
+        }
+      ],
+      "usage": {
+        "input": 9642,
+        "output": 99,
+        "reasoning": 14,
+        "llm_calls": 2
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "allemande_turn",
+        "target_label": "allemande_turn",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "formation_variant"
+    },
+    {
+      "id": "bars-skip-change-stephen",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step explicitly named on bars **11\u201316** is the **skip change of step**. It appears on both bars 11\u201312 and 15\u201316.",
+      "error": null,
+      "latency_s": 5.4,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Bill's Friend, Stephen",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 23334
+          }
+        }
+      ],
+      "usage": {
+        "input": 14591,
+        "output": 174,
+        "reasoning": 28,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-pas-de-basque-discounted-suit",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The step explicitly named on bars 17\u201318 is **pas de basque**.  \n\n[The Discounted Suit](https://my.strathspey.org/dd/dance/16763/) is a reel.",
+      "error": null,
+      "latency_s": 8.5,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Discounted Suit",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Discounted",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16763
+          }
+        }
+      ],
+      "usage": {
+        "input": 19528,
+        "output": 271,
+        "reasoning": 35,
+        "llm_calls": 4
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "pas_de_basque",
+        "target_label": "pas_de_basque",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-travelling-step-kirkcudbright",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In *Dancing in Kirkcudbright*, the step named for the pivot on bar 4 is the **left travelling step**: the first man and second man \u201cpivot L (travelling step L)\u201d to finish behind their partners.\n\n[ Dancing in Kirkcudbright](https://my.strathspey.org/dd/dance/16845/) is a 32-bar Strathspey.",
+      "error": null,
+      "latency_s": 6.4,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Dancing in Kirkcudbright",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16845
+          }
+        }
+      ],
+      "usage": {
+        "input": 14709,
+        "output": 209,
+        "reasoning": 14,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "travelling_step",
+        "target_label": "travelling_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-setting-step-circle-strathspey",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **[Circle Strathspey](https://my.strathspey.org/dd/dance/16390/)**, bars 1\u20138 name the **Glasgow Highlanders setting step**, danced by all facing the centre.",
+      "error": null,
+      "latency_s": 9.9,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Circle Strathspey",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 20
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 16390
+          }
+        }
+      ],
+      "usage": {
+        "input": 14576,
+        "output": 192,
+        "reasoning": 32,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "bars-mairis-wedding-pass-lsh",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In [Mairi\u2019s Wedding](https://my.strathspey.org/dd/dance/4102/), bars **9\u201324**, first couple pass **left shoulder**:\n\n- Bars 9\u201316: half-reel of four with first corners, passing left shoulder.\n- Bars 17\u201324: repeat with second corners.\n\nThe crib notes that a right-shoulder pass is also danced by some groups, sometimes called \u201cMairi\u2019s Divorce,\u201d but the explicitly specified version is **left shoulder**.",
+      "error": null,
+      "latency_s": 6.5,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Mairi's Wedding",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4102
+          }
+        }
+      ],
+      "usage": {
+        "input": 15238,
+        "output": 237,
+        "reasoning": 19,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "left_shoulder_pass",
+        "target_label": "left_shoulder_pass",
+        "missing_expected": [
+          "lsh"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-reel51-cast-two-places",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In bars 1\u20138, the first couple **cast off two places**, with the second couple stepping up. They then lead up to the first corners.\n\n[The Reel of the 51st Division](https://my.strathspey.org/dd/dance/5525/) \u2014 RSCDS Book 13, dance 10.",
+      "error": null,
+      "latency_s": 12.1,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Reel of the 51st Division",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "51st Division",
+            "limit": 10,
+            "kind": null,
+            "official_rscds_dances": null
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "51",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 20
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 5525
+          }
+        }
+      ],
+      "usage": {
+        "input": 25642,
+        "output": 513,
+        "reasoning": 207,
+        "llm_calls": 5
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cast_two_places",
+        "target_label": "cast_two_places",
+        "missing_expected": [
+          "2 places"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-montgomeries-cross-lh",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The next explicitly stated action is **cross left hand**, not start the reel of three.\n\nFor bars 1\u20138, the crib says:\n\n> \u201c1c cross RH | cast off (2c up) ; **cross LH** | cast L (W up, M down)\u201d\n\nThe reel of three starts at **bar 9**. [Montgomeries' Rant, The](https://my.strathspey.org/dd/dance/4641/)",
+      "error": null,
+      "latency_s": 6.1,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Montgomeries' Rant",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4641
+          }
+        }
+      ],
+      "usage": {
+        "input": 14984,
+        "output": 226,
+        "reasoning": 16,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "cross_left_hand",
+        "target_label": "cross_left_hand",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "bar_state"
+    },
+    {
+      "id": "bars-diplomat-setting-steps",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In bars 17\u201324 of [The Diplomat](https://my.strathspey.org/dd/dance/17880/), first couple pass each other by the left shoulder using **two setting steps**.",
+      "error": null,
+      "latency_s": 12.5,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Diplomat",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "\"The Diplomat\"",
+            "limit": 20,
+            "kind": null,
+            "official_rscds_dances": null
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": null,
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": "Pass;Face;Cast",
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": true,
+            "limit": 50
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "pass each other by the left shoulder",
+            "limit": 20,
+            "kind": null,
+            "official_rscds_dances": null
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 17880
+          }
+        }
+      ],
+      "usage": {
+        "input": 30346,
+        "output": 465,
+        "reasoning": 135,
+        "llm_calls": 6
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "setting_step",
+        "target_label": "setting_step",
+        "missing_expected": [],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "step_confusion"
+    },
+    {
+      "id": "manual-skip-change-quote",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The RSCDS Manual, \u00a75.4.1, **\u201cSkip change of step\u201d** (p. 74), states:\n\n> \u201cThis step is used to travel. One skip change of step takes one bar of music.\u201d\n\nIt begins:\n\n> \u201c1. Hop on the left foot and, at the same time, fully extend the right leg forward.  \n> 2. With the right leg fully extended in fourth in front of third position, step forward onto the right foot\u2026\u201d\n\nThe database excerpt available to me truncates the remaining wording, so I can\u2019t responsibly present the rest as an exact quotation. The accompanying RSCDS teaching guidance identifies the main teaching points as **the hop, the straight front leg and reach forward, and third position**.",
+      "error": null,
+      "latency_s": 9.2,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "5.4.1 Skip change of step",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step hop step close step third position",
+            "num_results": 5
+          }
+        }
+      ],
+      "usage": {
+        "input": 15401,
+        "output": 410,
+        "reasoning": 103,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop, step, close, step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "manual-absent-term-abstain",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "The RSCDS Manual does not appear to use the exact term **\u201cHighland swing turn.\u201d** The relevant wording is:\n\n> **6.39.1 Turn with the right or left hand (4 bars)**  \n> **Steps:** 4 travelling steps  \n> **No. of bars:** 4  \n>\n> Approach partner and, joining hands, start to turn.  \n> Continue to turn.  \n> Complete the turn, start to release hands and dance forward towards own side.  \n> Dance forward out into sidelines and curve into place.  \n>\n> **Example:** *Sally\u2019s Fancy*, Book 27.6  \n>\n> **Note:** in some dances a one-and-a-half times turn is danced in 4 bars.\n\n**RSCDS Manual, section 6.39.1, page 169.**",
+      "error": null,
+      "latency_s": 15.2,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing turn",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland swing",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "highland",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "swing turn",
+            "num_results": 10
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "Highland Schottische step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.39.1",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 36716,
+        "output": 526,
+        "reasoning": 178,
+        "llm_calls": 7
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "unknown",
+        "target_label": "insufficient_evidence",
+        "missing_expected": [
+          "not in the manual",
+          "no section",
+          "cannot verify",
+          "can't quote",
+          "cannot quote",
+          "couldn't find",
+          "could not find",
+          "can't find",
+          "cannot find",
+          "doesn't appear",
+          "no manual entry",
+          "no entry",
+          "couldn't locate",
+          "could not locate",
+          "can't locate",
+          "cannot locate",
+          "did not return",
+          "didn't return",
+          "unable to find",
+          "not a term",
+          "not an rscds term"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "teaching-skip-change-guidance",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "## Teaching skip change of step to beginners\n\n### 1. Explain the step\n\nAccording to the **RSCDS Manual, section 5.4.1, p. 74**:\n\n> \u201cThis step is used to travel. One skip change of step takes one bar of music.\u201d\n\n> \u201cHop on the left foot and, at the same time, fully extend the right leg forward.\u201d  \n> \u201cWith the right leg fully extended in fourth in front of third position, step forward onto the right foot.\u201d  \n> \u201cBring the left foot behind the right foot to third rear position.\u201d  \n> \u201cStep forward again with the right foot into fourth in front of third position.\u201d\n\nUse the rhythm:\n\n> \u201cHop, step, close, step\u201d\n\nThe manual describes the character as:\n\n> \u201clight and lively\u201d  \n> \u201cthe feeling of flight and easy movement.\u201d\n\n### 2. Teach it in stages\n\nThe RSCDS teaching guidance recommends focusing on one element at a time:\n\n1. **Introduce the rhythm**\n   - Begin with walking: \u201cAnd step, close, step\u201d or \u201cAnd right, close, right.\u201d\n   - Gradually increase the speed.\n   - Add the spoken rhythm: **\u201cHop, step, close, step.\u201d**\n\n2. **Isolate the hop**\n   - Demonstrate the hop.\n   - Let the class copy it several times with each foot.\n   - Practise the complete step while concentrating only on making the hop clear.\n\n3. **Add the straight front leg**\n   - Show the extended front-leg position.\n   - Practise the hop with the front leg fully extended and the front foot off the floor.\n   - Repeat the step while concentrating on the extension.\n\n4. **Add the reach**\n   - Link the hop, reach forward and close.\n   - Practise leading with both the right and left foot.\n\n5. **Add third position**\n   - Practise: step forward, close in third position.\n   - Repeat leading with each foot.\n   - Repeat on the toes if appropriate.\n\n6. **Put the complete step together**\n   - Finish by dancing the complete step, first slowly and then with suitable jig music. The teaching guidance specifically notes that jig time is particularly suitable for practice.\n\n### 3. Points to observe\n\nThe manual says:\n\n> \u201cThe hop at the beginning must be very positive, although it should not be too high or the remainder of the step will become distorted.\u201d\n\nIt also specifies that:\n\n> \u201cThe fully extended leg should be turned out from the hip to show a firm line from hip to toe, the knee straight but not stiff, the toe pointed down and approximately 5 cm (2 inches) clear of the floor.\u201d\n\nFor the close:\n\n> \u201cEach time the feet close in third position, the instep of the rear foot makes contact with the heel of the front foot, but is not tucked under that heel.\u201d\n\n### 4. Common beginner faults\n\nThe RSCDS teaching guidance lists these faults to watch for:\n\n- Lack of outward rotation from the hip\n- An incorrect third position\u2014leaving a gap, closing in first position, or passing the feet\n- Lack of hop\n- Kicking the front leg up during the hop\n- Insufficient extension in the knee and foot\n- Bending the front knee when taking weight\n- Pulling in the leading foot instead of reaching forward\n- Poor poise\n- Scraping the feet\n\nFor a beginner class, correct only one or two faults at a time\u2014usually the **clear hop**, **forward reach**, and **third-position close**. Once those are secure, refine turnout, poise and foot detail.",
+      "error": null,
+      "latency_s": 13.6,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "skip change of step"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "skip change of step",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 15669,
+        "output": 1003,
+        "reasoning": 151,
+        "llm_calls": 3
+      },
+      "score": {
+        "passed": true,
+        "predicted_label": "skip_change",
+        "target_label": "skip_change",
+        "missing_expected": [
+          "hop step close step"
+        ],
+        "forbidden_hits": []
+      },
+      "kind": "track3",
+      "category": "evidence_boundary"
+    },
+    {
+      "id": "search-rscds-strathspey-poussette",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "Here are three **32-bar RSCDS strathspeys** that include a **poussette**:\n\n1. [Neidpath Castle](https://my.strathspey.org/dd/dance/4890/) \u2014 32-bar Strathspey, 3-couple longwise  \n2. [New Park](https://my.strathspey.org/dd/dance/4925/) \u2014 32-bar Strathspey, 3-couple longwise  \n3. [The Star](https://my.strathspey.org/dd/dance/6285/) \u2014 32-bar Strathspey, 3-couple longwise",
+      "error": null,
+      "latency_s": 6.4,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "poussette",
+            "limit": 50,
+            "kind": "Strathspey",
+            "official_rscds_dances": true
+          }
+        }
+      ],
+      "usage": {
+        "input": 10405,
+        "output": 329,
+        "reasoning": 143,
+        "llm_calls": 2
+      },
+      "checks": {
+        "rscds_only": {
+          "passed": true,
+          "detail": "3 dances linked; non-RSCDS: none"
+        },
+        "min_dance_links": {
+          "passed": true,
+          "detail": "3 linked (need 3)"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['poussette']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "dance_search"
+    },
+    {
+      "id": "teach-pas-de-basque",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "## Pas de basque: beginner lesson\n\n### 1. Explain the purpose and rhythm\n\nTell the class that pas de basque is used for setting and turning, and that one step takes one bar of music. Begin with the right foot, then repeat to the left.\n\nUse the rhythm:\n\n> **\u201cSpring, beat, beat, and\u2026\u201d**\n\nFor beginners, practise initially to reel music, which provides four even beats.\n\n### 2. Teach the step slowly\n\nThe RSCDS Manual describes the right-foot step as follows:\n\n> 1. Spring onto the right foot.  \n> 2. Bring the left foot in front of the right foot to third position, and with a transfer of weight onto the left foot, bring the right foot off the floor.  \n> 3. Change the weight onto the right foot again and bring the left foot to fourth intermediate aerial position.  \n> 4. Hold the position.\n\nThen repeat beginning with the left foot.\n\nThe step should be danced **on the spot**, not from side to side. At first, avoid asking the class to travel or turn.\n\n### 3. Suggested teaching progression\n\nFrom the RSCDS teaching guidance:\n\n1. **Give the name and purpose.**\n2. Practise the rhythm without the full step:\n   - \u201c1, 2, 3\u201d\n   - \u201cSpring, beat, beat\u201d\n3. Add the knee and foot pick-up so that the three beats are clearly visible.\n4. Introduce third position on the flat of the foot:\n   - heel of the front foot tucked into the instep of the back foot.\n5. Mark time in third position, alternating which foot is in front.\n6. Add the action:\n   - spring,\n   - close in front,\n   - jet\u00e9.\n7. Bring in music slowly, then gradually increase the speed.\n8. Encourage the dancers to remain lifted \u201con their toes.\u201d\n9. Practise only a few repetitions on each foot before resting or changing activity.\n10. Finish by dancing the complete step, first slowly and then to suitable music.\n\nUse visual and rhythmic reminders such as:\n\n> **\u201cSpring, in front, behind\u201d**  \n> **\u201cSpring, beat, beat\u201d**  \n> **\u201cExtend\u201d**\n\nFor a beginner class, prioritise **three clear beats, a good third position, and dancing on the spot**. Travelling pas de basque can be introduced later.\n\n## Common faults to watch for\n\nThe RSCDS teaching guidance identifies these faults:\n\n- Lack of outward rotation from the hip\n- Making it a two-beat step\n- Tapping the foot on the second beat\n- Incorrect position of the jet\u00e9\n- Lack of extension in the jet\u00e9\n- Incorrect movement into third position\n- Incorrect third position\n- Poor poise\n\n### Specific corrections\n\n- **Two beats instead of three:** return to \u201cspring, beat, beat\u201d without music, making the weight changes distinct.\n- **Tap on beat two:** clarify that the dancer changes weight rather than merely touching the floor.\n- **Poor third position:** practise the position separately, with the heel of the front foot near the instep of the back foot.\n- **Weak jet\u00e9:** ask for a positive, extended movement of the foot and leg, while maintaining balance.\n- **Travelling sideways:** remind dancers that the beginner version is danced on the spot.\n- **Poor poise or raised shoulders:** reduce the size of the step, keep the body lifted, and allow the arms to remain relaxed.\n\nThe manual particularly stresses that the jet\u00e9 is the distinctive element of the Scottish pas de basque, but beginners should first learn it with control rather than trying to make it large or high.",
+      "error": null,
+      "latency_s": 13.9,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pas de basque points to observe",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "pas de basque"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "pas de basque",
+            "num_results": 5
+          }
+        }
+      ],
+      "usage": {
+        "input": 15900,
+        "output": 1039,
+        "reasoning": 173,
+        "llm_calls": 3
+      },
+      "checks": {
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['get_teaching_guidance', 'search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['pas de basque']"
+        },
+        "forbid_any": {
+          "passed": true,
+          "detail": "forbidden hits: none"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "teaching"
+    },
+    {
+      "id": "formation-reel3-vs-reel4",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "## Reel of three\n\nA **reel of three** is danced by three people. The dancers collectively trace a **figure of eight**, with a rounded loop at each end.\n\nImagine three starting places in a line:\n\n```text\nA\nB\nC\n```\n\nThe track works as follows:\n\n- The dancers repeatedly pass one another, alternating **right shoulder and left shoulder**.\n- The dancer who is not passing at that moment travels around one of the end loops.\n- The end loops alternate: one dancer curves around the top, then another around the bottom, and so on.\n- Each dancer therefore travels through the central crossing and around both ends of the figure-eight track during the eight bars.\n- At the end, everyone returns to their original place, usually facing the opposite direction from the way they began or as specified by the dance.\n\nSo the essential picture is:\n\n```text\n     \\     /\n      \\   /\n       \\ /\n       / \\\n      /   \\\n     /     \\\n```\n\nThe three dancers share one continuous **figure-eight track**. The crossings are made by passing the appropriate dancer by the right or left shoulder.\n\n## Reel of four\n\nA **reel of four** is danced by four people. It is not simply a reel of three with one extra dancer added. The dancers pass alternately by the right and left, but the track consists of **two interlocking loops or reels**.\n\nIn a standard or **double reel of four**:\n\n- Two pairs of dancers dance one reel.\n- The other two pairs dance a second reel crossing the first in the middle.\n- In a square set, the two reels are generally at right angles.\n- The dancers pass their partner by the right, then pass the next facing dancer by the right, while the dancers not passing travel round the outside of their loop.\n- Usually the dancers give **left hands across in the middle** halfway through the figure.\n- Each dancer follows a curved route around one of the interlocking loops and returns to the starting place after the second half.\n\nA simplified view is:\n\n```text\n       \\   /\n        \\ /\n         X\n        / \\\n       /   \\\n```\n\nThe central crossing is the important difference: the four tracks form **two crossing/interlocking reels**, rather than the single figure-eight track of a reel of three.\n\n## Interlocking reel of four\n\nThere is also a specific formation called an **interlocking reel of four**, often seen with three or more couples in a grand-chain arrangement:\n\n- Everyone passes the facing dancer by the right.\n- Then the next dancer by the left.\n- Then the next by the right.\n- Each dancer then travels to the right around a loop to face the last dancer passed.\n- The sequence repeats.\n\nHere, each dancer\u2019s route is essentially a **reel-of-four path through the line or circle of dancers**, with alternating right- and left-shoulder passes followed by a large looping turn.\n\n### In short\n\n| Formation | Number of dancers | Track |\n|---|---:|---|\n| Reel of three | 3 | One shared figure-eight track with rounded loops at both ends |\n| Reel of four | 4 | Two interlocking or crossing reel tracks, usually with a central crossing |\n| Interlocking reel of four | 4 or more in the larger arrangement | Each dancer follows a reel-of-four loop through successive facing dancers |\n\nThe safest visual distinction is: **three dancers make one figure eight; four dancers make two reels that interlock through the centre.**",
+      "error": null,
+      "latency_s": 21.9,
+      "tool_calls": [
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "reel of three",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "reel of four",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.25.1",
+            "num_results": 1
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.24.8",
+            "num_results": 1
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "6.24.9",
+            "num_results": 1
+          }
+        }
+      ],
+      "usage": {
+        "input": 15759,
+        "output": 1465,
+        "reasoning": 578,
+        "llm_calls": 3
+      },
+      "checks": {
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['reel of three']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "formation_explanation"
+    },
+    {
+      "id": "crib-lookup-knot",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "In **[The Wee Cooper O\u2019 Fife](https://my.strathspey.org/dd/dance/6995/)**, bars 1\u20138 are part of the 1st couple\u2019s first figure. The crib says:\n\n> **1-10:** 1s set & cross RH, set & cross down LH & cast up round 2s to original place - 1 2\n\nThus, in bars 1\u20138, the 1st couple set and cross by the right hand, then set and cross down by the left hand before continuing the cast around the 2nd couple.",
+      "error": null,
+      "latency_s": 10.7,
+      "tool_calls": [
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "The Wee Cooper of Fife",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Wee Cooper of Fife",
+            "limit": 10,
+            "kind": null,
+            "official_rscds_dances": null
+          }
+        },
+        {
+          "name": "find_dances",
+          "args": {
+            "name_contains": "Cooper",
+            "kind": null,
+            "metaform_contains": null,
+            "max_bars": null,
+            "formation_token": null,
+            "official_rscds_dances": null,
+            "min_intensity": null,
+            "max_intensity": null,
+            "sort_by_intensity": null,
+            "random_variety": false,
+            "limit": 20
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 6995
+          }
+        }
+      ],
+      "usage": {
+        "input": 26015,
+        "output": 428,
+        "reasoning": 63,
+        "llm_calls": 5
+      },
+      "checks": {
+        "min_dance_links": {
+          "passed": true,
+          "detail": "1 linked (need 1)"
+        },
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['find_dances', 'get_dance_detail', 'search_cribs']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "crib_lookup"
+    },
+    {
+      "id": "offtopic-reject",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "Thanks for reaching out! I'm dedicated to Scottish Country Dancing, including sharing information and helping plan classes or dance programmes. Could you rephrase your question to focus on Scottish Country Dancing?",
+      "error": null,
+      "latency_s": 0.7,
+      "tool_calls": [],
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "reasoning": 0,
+        "llm_calls": 1
+      },
+      "checks": {
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['Scottish Country Dancing']"
+        },
+        "forbid_any": {
+          "passed": true,
+          "detail": "forbidden hits: none"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "guardrail"
+    },
+    {
+      "id": "planner-rscds-tournee",
+      "model": "gpt-5.6-luna+reasoning",
+      "answer": "# 45-Minute Advanced Lesson: Developing the Tourn\u00e9e\n\n**Theme:** Smooth, accurate, flowing tourn\u00e9e in strathspey time  \n**Class level:** Advanced  \n**Dances:** Three RSCDS-published dances, all strathspeys so that the technique can be reinforced consistently  \n**Suggested progression:** Begin with the tourn\u00e9e at the end of a 2-couple dance, then practise it in a 3-couple setting, and finish with the more demanding Gaelic Mod, where it occurs in the opening phrase.\n\nThe three dances have been checked as RSCDS-published:\n\n- [Alltshellach](https://my.strathspey.org/dd/dance/109/) \u2014 RSCDS Book 23\n- [Argyll Strathspey](https://my.strathspey.org/dd/dance/221/) \u2014 RSCDS Book 35\n- [Gaelic Mod](https://my.strathspey.org/dd/dance/2371/) \u2014 Imperial Book, Volume 4/5 and More\n\n---\n\n## Learning objectives\n\nBy the end of the lesson, dancers should be able to:\n\n1. Enter the tourn\u00e9e from the sidelines without hesitation.\n2. Maintain a comfortable promenade hold while travelling anticlockwise.\n3. Coordinate the men\u2019s shoulder-to-shoulder start and the partners\u2019 passage across.\n4. Release the promenade hold at the correct point, without stopping the flow.\n5. Complete the final one-and-a-half turns with accurate hand use and finish on own sides.\n6. Preserve strathspey posture, length of step and phrasing while dancing the formation at tempo.\n7. Apply the technique consistently in different formations and positions.\n\n---\n\n# Timing overview\n\n| Time | Content |\n|---:|---|\n| 0:00\u20130:04 | Warm-up: posture, strathspey travelling step and musical phrasing |\n| 0:04\u20130:12 | Isolated tourn\u00e9e technique and class exercise |\n| 0:12\u20130:21 | Dance 1: Alltshellach |\n| 0:21\u20130:31 | Dance 2: Argyll Strathspey |\n| 0:31\u20130:41 | Dance 3: Gaelic Mod |\n| 0:41\u20130:45 | Final tourn\u00e9e consolidation and recap |\n\nKeep explanations short and use walking stages rather than lengthy verbal descriptions. With an advanced class, correct one point at a time and return quickly to dancing.\n\n---\n\n# 0:00\u20130:04 \u2014 Warm-up and preparation\n\n### 1. Establish the strathspey carriage\n\nRemind dancers:\n\n- Upright, dignified posture without stiffness.\n- Weight controlled over the supporting foot.\n- Steps should be long and flowing rather than hurried.\n- Avoid rising and falling excessively through the body.\n- Partners should remain connected without pulling or leaning.\n\n### 2. Strathspey travelling step\n\nUse the rhythmic description:\n\n> **Step, close, step, through.**\n\nThe RSCDS manual describes the step as:\n\n- Bend the supporting knee and take the first step forward.\n- Close the other foot into third position.\n- Take the second step forward with the supporting leg extended.\n- Gently draw the rear foot through, with a small, controlled hop as it passes.\n\nFor this lesson, particularly observe:\n\n- The first step has length and depth.\n- The close is controlled and upright.\n- The second step does not collapse at the knee.\n- The foot is drawn through smoothly rather than kicked.\n- The step remains continuous and elegant.\n\nHave the class travel for four bars, then retire for four bars using:\n\n> **Back, close, back, through.**\n\n---\n\n# 0:04\u20130:12 \u2014 Isolated tourn\u00e9e practice\n\nArrange the class in 2-couple sets, beginning with the couples on their own sidelines.\n\nThe RSCDS manual defines the tourn\u00e9e as an **eight-bar progression in strathspey time**, danced by two couples from the sidelines.\n\n## Tourn\u00e9e: technical breakdown\n\n### Bars 1\u20132: Entry and promenade hold\n\n- First couple dance towards each other.\n- First man pulls back by the left.\n- They finish facing their own side, with his partner on his right, in promenade hold.\n- Second couple dance towards each other.\n- Second woman pulls back by the right.\n- They finish facing their own side, with her partner on her left, in promenade hold.\n\nAt this point:\n\n- The two couples are in a line up and down the middle.\n- The men are left shoulder to left shoulder.\n- The promenade hold should be comfortable and clearly established before travelling begins.\n\n**Teaching point:** The entry is not a sharp turn or a sudden change of direction. It should feel like a continuous gathering-in from the sidelines.\n\n### Bars 2\u20134: Anticlockwise travel\n\n- Both couples dance halfway round anticlockwise.\n- The two men bring their partners across in front of them.\n- First couple release the right hand.\n- Second couple release the left hand.\n- Release towards the end of bar 4.\n\nAt the end of this section:\n\n- All four dancers are again in a line up and down the middle.\n- The women face towards the men\u2019s side.\n- The men face towards the women\u2019s side.\n\n**Teaching points:**\n\n- The men guide rather than drag their partners.\n- The women travel across the front with confidence and an even step.\n- Keep the movement circular; do not cut across the centre too abruptly.\n- Do not release the hold early.\n- Avoid allowing the promenade hold to become an arm-only connection.\n\n### Bars 5\u20138: Final turns and exit\n\n- Second couple, with the right hand, and first couple, with the left hand, turn one-and-a-half times.\n- Dance out to finish on own sides, having changed places.\n\n**Teaching points:**\n\n- Make the final turn a travelling turn, not a stationary spin.\n- Keep the turning hand at a useful height and avoid lifting the arm.\n- The final half-turn should place the dancers on their own sidelines cleanly.\n- The tourn\u00e9e finishes on the last bar; do not arrive early and wait.\n- Partners should emerge with space between them and a clear sense of the next phrase.\n\n## Practice exercise\n\n1. Walk the full eight bars without music.\n2. Walk again while the teacher counts:\n   - \u201cGather in\u201d\n   - \u201cRound\u201d\n   - \u201cRelease\u201d\n   - \u201cTurn and out\u201d\n3. Dance the formation to slow strathspey music.\n4. Repeat with the class changing roles and positions.\n5. Add the previous and following four bars from Alltshellach to practise the transition into and out of the tourn\u00e9e.\n\n---\n\n# 0:12\u20130:21 \u2014 Dance 1: Alltshellach\n\n**Formation:** Longwise 4 couple, 2-couple dance  \n**Purpose:** Establish the tourn\u00e9e after a 16-bar sequence and practise its entry from the sidelines.\n\n## Full crib\n\n> **1\u2013**  \n> : 1c+2c set | turn BH, into ; 1c+2c \u00bdPoussette, finishing in the middle, facing down  \n> **9\u2013**  \n> : 2c+1c lead down the middle ; (2c divides) 1c+2c lead up to (1,2)  \n> **17\u2013**  \n> : Reel4 across the dance, 1W and 2M pass Lsh to begin, and finish with a loop on own side  \n> **25\u2013**  \n> : Tourn\u00e9e\n\n## Teaching focus\n\n### Bars 1\u20138: Half poussette into the middle\n\nThis prepares the dancers for the tourn\u00e9e by requiring control of:\n\n- Two-handed connection.\n- Strathspey travelling step.\n- Smooth directional change.\n- Finishing in the middle facing down.\n\nThe RSCDS manual describes a strathspey poussette as:\n\n- A two-couple formation beginning from the sidelines.\n- Non-progressive.\n- Danced with long, sweeping movements.\n- Led through the hands rather than pushed through the arms.\n\nObserve the change of foot required by the entry and exit of the poussette. The movement should remain continuous, with no jerking or stopping.\n\n### Bars 9\u201316: Lead down and up\n\nThe manual distinguishes between:\n\n- **\u201cLead\u201d down the middle:** right hands are used.\n- **\u201cDance\u201d down the middle:** nearer hands are used.\n\nIn this dance, make the hand connection and the division of the second couple clear. The first couple should arrive ready for the reel of four, not rush the final travelling step.\n\n### Bars 17\u201324: Reel of four\n\nThe first woman and second man pass left shoulder to begin.\n\nObserve:\n\n- Correct left-shoulder entry.\n- Even spacing across the dance.\n- A definite loop at the end on own sides.\n- The dancers should finish with enough time to prepare for the tourn\u00e9e.\n\n### Bars 25\u201332: Tourn\u00e9e\n\nUse this dance to reinforce the basic eight-bar technique already practised. The important transition is:\n\n> **Reel of four \u2014 loop on own side \u2014 gather immediately into the tourn\u00e9e.**\n\nDo not allow the end of the reel to become a pause. The final loop should place dancers naturally on the sidelines and ready to move towards their partners.\n\n## Suggested use of the nine minutes\n\n- **2 minutes:** Explain and walk bars 1\u201316.\n- **2 minutes:** Walk the reel-to-tourn\u00e9e transition.\n- **2 minutes:** Dance the tourn\u00e9e alone from the sidelines.\n- **3 minutes:** Dance the complete dance twice, focusing first on entry and then on the final turn.\n\n---\n\n# 0:21\u20130:31 \u2014 Dance 2: Argyll Strathspey\n\n**Formation:** Longwise 4 couple, 3-couple dance  \n**Purpose:** Transfer the tourn\u00e9e technique to a 3-couple set and develop spatial awareness when other couples are active.\n\n## Full crib\n\n> **1\u2013**  \n> : 1c+2c+3c \u00bd RH turn and remain in middle, swivel R and dance out to opposite side ; repeat, to own places  \n> **9\u2013**  \n> : 1c+2c+3c Circle6 and back, 1c & 3c finish facing down / up the middle  \n> **17\u2013**  \n> : 1c+3c R&L up / down, to own places  \n> **25\u2013**  \n> : 1c+2c Tourn\u00e9e.\n\n## Teaching focus\n\n### Bars 1\u20138: Half right-hand turns and swivels\n\nThe dancers must remain in the middle after each half turn, swivel to the right, and dance out to the opposite side.\n\nThis is a useful preparation for the tourn\u00e9e because dancers must:\n\n- Finish each turn with their body already organised for the next direction.\n- Avoid opening out too early.\n- Maintain even spacing in a crowded 3-couple set.\n- Use the supporting foot and torso to turn smoothly.\n\n### Bars 9\u201316: Circle six and back\n\nThe first and third couples must finish facing down and up the middle respectively.\n\nEmphasise:\n\n- A strong but controlled circle.\n- No over-travelling on the final step.\n- Accurate orientation at the end of the circle.\n- Awareness that the tourn\u00e9e uses only the first and second couples.\n\n### Bars 17\u201324: Rights and lefts\n\nThe first and third couples dance rights and lefts up and down the set.\n\nUse the final two bars to prepare the first and second couples for the tourn\u00e9e. The third couple should complete the phrase and remain out of the way without distracting the active couples.\n\n### Bars 25\u201332: Tourn\u00e9e\n\nThe tourn\u00e9e is danced by the first and second couples. In this 3-couple setting:\n\n- The active couples must keep the formation compact and centred.\n- The third couple must maintain their place and avoid encroaching.\n- The first and second couples should not widen the circular pathway merely because there is more space in the set.\n- The finishing places must be unambiguous before the next repetition.\n\n## Suggested use of the ten minutes\n\n- **2 minutes:** Walk bars 1\u201316 with all three couples.\n- **2 minutes:** Practise the ending of the rights and lefts into the tourn\u00e9e.\n- **2 minutes:** Dance the tourn\u00e9e with the third couple standing in place.\n- **4 minutes:** Dance the complete dance twice, changing lines or positions as necessary.\n\n**Correction priority:** Do not correct every detail simultaneously. First correct the men\u2019s and women\u2019s entry directions; then correct the release and final hand turns.\n\n---\n\n# 0:31\u20130:41 \u2014 Dance 3: Gaelic Mod\n\n**Formation:** Longwise 4 couple, 3-couple dance  \n**Purpose:** Challenge advanced dancers by placing the tourn\u00e9e at the beginning and then following it with rapid orientation changes, petronella turns and reels.\n\n## Full crib\n\n> **1\u2013**  \n> : 1c+2c Tourn\u00e9e (2,1,3)  \n> **9\u2013**  \n> : 2c+3c chase 1 place clw **as** 1c petronella, into facing lines3 | All set ; repeat  (3x,1x,2x)  \n> **17\u2013**  \n> : \u00bd Reels3 on sides, 1c Rsh to 2cnr (2x,1x,3x) ; \u00bd Reels3 across. 1c Rsh to 4cnr (2,1,3)  \n> **25\u2013**  \n> : All M cross & pass behind P Rsh | All M cross back, P loops and starts to follow ; All W pass Rsh behind P and cross to own side (2,1,3)\n\n## Teaching focus\n\n### Bars 1\u20138: Tourn\u00e9e\n\nThis is an excellent final test because dancers must begin the tourn\u00e9e immediately and finish in the progressed order:\n\n> **(2,1,3)**\n\nCheck that:\n\n- First and second couples identify themselves before the music starts.\n- The entry begins from the sidelines.\n- The men\u2019s left-shoulder-to-left-shoulder alignment is maintained.\n- The couples travel anticlockwise without breaking the circular flow.\n- The final turns finish decisively on own sides.\n- The progression is completed before bar 9.\n\n### Bars 9\u201316: Chase and petronella\n\nThe second and third couples chase one place clockwise as the first couple dances petronella, ending in facing lines of three.\n\nThe RSCDS manual describes petronella as a two-bar turning movement on the diagonal:\n\n- It turns to the right.\n- It uses two setting steps.\n- It may travel from the sidelines to the centre or from the centre to the sidelines.\n- It may be preceded or followed by setting.\n\nThe advanced challenge is the simultaneous contrast between the chasing couples and the petronella couple. Stress that dancers should know their pathway rather than react to neighbouring dancers.\n\n### Bars 17\u201324: Half reels of three\n\n- Half reels of three on the sides.\n- First couple pass right shoulder to second corners.\n- Half reels of three across.\n- First couple pass right shoulder to fourth corners.\n\nObserve:\n\n- The first couple\u2019s right-shoulder passes.\n- Correct corner identification after the progression.\n- Reels should remain compact and rhythmically even.\n- Avoid allowing the tourn\u00e9e\u2019s circular feeling to carry into the reels and distort the straight reel pathways.\n\n### Bars 25\u201332: Men\u2019s and women\u2019s crossing sequence\n\nThe men cross and pass behind their partners right shoulder. They cross back while partners loop and begin to follow. The women then pass right shoulder behind their partners and cross to own sides.\n\nThis final phrase requires precise orientation and should be walked once if the class is not already familiar with the dance.\n\n## Suggested use of the ten minutes\n\n- **2 minutes:** Walk the tourn\u00e9e into the progressed order.\n- **2 minutes:** Walk the transition from the tourn\u00e9e to chase/petronella.\n- **2 minutes:** Dance the first 16 bars twice.\n- **2 minutes:** Add bars 17\u201332.\n- **2 minutes:** Dance the complete dance once or twice, depending on confidence.\n\nIf time is short, prioritise a successful first 16 bars over repeatedly dancing the entire dance.\n\n---\n\n# 0:41\u20130:45 \u2014 Final consolidation\n\nReturn to 2-couple sets and dance the tourn\u00e9e several times without the rest of the dances.\n\nUse the following sequence:\n\n1. **Once slowly:** Teacher counts and names the phases.\n2. **Once to music:** Teacher coaches minimally.\n3. **Once at performance tempo:** No verbal intervention unless necessary.\n\n## Final checklist\n\nAsk dancers to self-assess:\n\n- Did we begin from the correct sidelines?\n- Were the men left shoulder to left shoulder after the entry?\n- Did we maintain a true anticlockwise curve?\n- Did we bring partners across rather than pull them?\n- Did we release hands near the end of bar 4?\n- Did the final one-and-a-half turns travel out to own sides?\n- Did we finish on the last bar rather than early?\n- Did the movement retain strathspey flow and dignity?\n\n## Main faults to watch for\n\n- Entering the middle too sharply and losing the circular shape.\n- Men pulling partners across instead of guiding them.\n- Women stepping too far ahead of the men.\n- Releasing promenade hold too early.\n- Turning on the spot in bars 5\u20138.\n- Lifting the turning arm or bending the elbow excessively.\n- Finishing early and waiting for the phrase.\n- Leaning into the partner instead of maintaining independent posture.\n- Allowing the tourn\u00e9e to become cramped in a 3-couple set.\n\nThe central correction throughout the lesson is:\n\n> **Keep the tourn\u00e9e flowing: gather, travel round, release, turn and travel out\u2014without stopping between phases.**",
+      "error": null,
+      "latency_s": 56.4,
+      "tool_calls": [
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "tournee OR tourn\u00e9e",
+            "limit": 20,
+            "kind": null,
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 15406
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 221
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 109
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 2353
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 2371
+          }
+        },
+        {
+          "name": "get_dance_detail",
+          "args": {
+            "dance_id": 4830
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Tourn\u00e9e",
+            "limit": 20,
+            "kind": "Reel",
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Tourn\u00e9e",
+            "limit": 20,
+            "kind": "Jig",
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "search_cribs",
+          "args": {
+            "query_text": "Tourn\u00e9e",
+            "limit": 20,
+            "kind": "Hornpipe",
+            "official_rscds_dances": true
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 221
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 221
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 109
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 109
+          }
+        },
+        {
+          "name": "get_full_crib",
+          "args": {
+            "dance_id": 2371
+          }
+        },
+        {
+          "name": "get_teaching_points_for_dance",
+          "args": {
+            "dance_id": 2371
+          }
+        },
+        {
+          "name": "get_teaching_guidance",
+          "args": {
+            "topic": "how to teach"
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "tourn\u00e9e",
+            "num_results": 5
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "poussette in strathspey time",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "strathspey travelling step",
+            "num_results": 3
+          }
+        },
+        {
+          "name": "search_manual",
+          "args": {
+            "query_str": "strathspey setting",
+            "num_results": 3
+          }
+        }
+      ],
+      "usage": {
+        "input": 50641,
+        "output": 5067,
+        "reasoning": 738,
+        "llm_calls": 6
+      },
+      "checks": {
+        "rscds_only": {
+          "passed": true,
+          "detail": "3 dances linked; non-RSCDS: none"
+        },
+        "min_dance_links": {
+          "passed": true,
+          "detail": "3 linked (need 3)"
+        },
+        "required_tools": {
+          "passed": true,
+          "detail": "missing: none; used: ['get_dance_detail', 'get_full_crib', 'get_teaching_guidance', 'get_teaching_points_for_dance', 'search_cribs', 'search_manual']"
+        },
+        "expect_any": {
+          "passed": true,
+          "detail": "hits: ['tourn\u00e9e']"
+        }
+      },
+      "score": {
+        "passed": true
+      },
+      "kind": "freeform",
+      "category": "lesson_plan"
+    }
+  ]
+}

@@ -108,10 +108,8 @@
         "to r or l"
       ],
       "required_all": [],
-      "forbidden_any": [
-        "allmnd;2c;",
-        "allemande for 2 couples"
-      ]
+      "forbidden_any": [],
+      "note": "A-vs-B question: correct answers legitimately mention the other option to contrast it, so no forbidden signals; predicted_label tracks which dominated."
     },
     {
       "id": "bars-skip-change-stephen",
@@ -285,10 +283,8 @@
         "cross lh"
       ],
       "required_all": [],
-      "forbidden_any": [
-        "reel of three",
-        "reels of 3"
-      ]
+      "forbidden_any": [],
+      "note": "A-vs-B question: correct answers say 'cross left hand, not the reel of three (which starts at bar 9)', so no forbidden signals."
     },
     {
       "id": "bars-diplomat-setting-steps",
@@ -362,7 +358,24 @@
         "no section",
         "cannot verify",
         "can't quote",
-        "cannot quote"
+        "cannot quote",
+        "couldn't find",
+        "could not find",
+        "can't find",
+        "cannot find",
+        "does not appear",
+        "doesn't appear",
+        "no manual entry",
+        "no entry",
+        "couldn't locate",
+        "could not locate",
+        "can't locate",
+        "cannot locate",
+        "did not return",
+        "didn't return",
+        "unable to find",
+        "not a term",
+        "not an rscds term"
       ],
       "required_all": [],
       "forbidden_any": [
@@ -387,7 +400,8 @@
       },
       "required_any": [
         "lack of hop",
-        "hop step close step"
+        "hop step close step",
+        "hop, step, close, step"
       ],
       "required_all": [],
       "forbidden_any": [

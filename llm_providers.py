@@ -92,27 +92,47 @@ class OpenAIProvider(BaseLLMProvider):
     
     MODELS = [
         {"id": "gpt-5.4-mini", "name": "GPT-5.4 Mini", "description": "Default fast and efficient model"},
+        {"id": "gpt-5.6-luna", "name": "GPT-5.6 Luna", "description": "Newer, more capable model (under evaluation)"},
         {"id": "gpt-5.2", "name": "GPT-5.2", "description": "Most capable model"},
         {"id": "gpt-5-mini", "name": "GPT-5 Mini", "description": "Fast and efficient"},
         {"id": "gpt-4o", "name": "GPT-4o", "description": "Previous generation flagship"},
         {"id": "gpt-4o-mini", "name": "GPT-4o Mini", "description": "Previous generation efficient"},
     ]
     
+    # Reasoning models refuse tool calls on the chat-completions endpoint
+    # unless reasoning is off; with it on they need the Responses API, which
+    # returns content as a list of blocks rather than a string (the app
+    # assumes strings), so production uses reasoning off. The "+reasoning"
+    # variant exists for experiments (experiments/model_compare.py).
+    MODEL_OPTIONS = {
+        "gpt-5.6-luna": {"reasoning_effort": "none"},
+    }
+    VARIANT_OPTIONS = {
+        "reasoning": {"use_responses_api": True},
+    }
+
     def create_chat_llm(
-        self, 
-        model: str, 
+        self,
+        model: str,
         temperature: float = 0,
         api_key: Optional[str] = None
     ) -> BaseChatModel:
         from langchain_openai import ChatOpenAI
-        
+
+        base_model, _, variant = model.partition("+")
         kwargs = {
-            "model": model,
+            "model": base_model,
             "temperature": temperature,
         }
+        if variant:
+            if variant not in self.VARIANT_OPTIONS:
+                raise ValueError(f"Unknown model variant '+{variant}' (known: {', '.join(self.VARIANT_OPTIONS)})")
+            kwargs.update(self.VARIANT_OPTIONS[variant])
+        else:
+            kwargs.update(self.MODEL_OPTIONS.get(base_model, {}))
         if api_key:
             kwargs["api_key"] = api_key
-            
+
         return ChatOpenAI(**kwargs)
     
     def validate_connection(

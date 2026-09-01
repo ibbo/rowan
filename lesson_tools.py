@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.tools import tool
 
 # Import shared components from dance_tools
-from dance_tools import _get_manual_kb
+from dance_tools import _get_manual_kb, resolve_dance
 from database import query, query_one
 
 # Lesson plan database path
@@ -96,26 +96,41 @@ init_lesson_db()
 
 
 @tool
-async def get_full_crib(dance_id: int) -> Dict[str, Any]:
+async def get_full_crib(
+    dance_id: Optional[int] = None,
+    dance_name: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Get the complete, untruncated crib for a dance.
 
     Unlike get_dance_detail which may truncate content, this returns
     the full crib text suitable for lesson planning and printing.
 
+    Pass EITHER dance_id (from an earlier tool result) OR dance_name.
+    NEVER guess a dance_id.
+
     Args:
         dance_id: The ID of the dance to get the crib for
+        dance_name: The dance title, used when you don't have an id
 
     Returns:
         Dictionary with dance name, type, bars, and complete crib text
     """
-    print(f"DEBUG: get_full_crib tool called for dance_id: {dance_id}", file=sys.stderr)
+    print(f"DEBUG: get_full_crib tool called for dance_id={dance_id} dance_name={dance_name!r}", file=sys.stderr)
+
+    if not dance_id:
+        if not dance_name:
+            return {"error": "Provide dance_name (or a real dance_id from find_dances / search_cribs). Do not guess ids."}
+        resolved = await resolve_dance(dance_name)
+        if "dance" not in resolved:
+            return resolved
+        dance_id = resolved["dance"]["id"]
 
     # Get dance metadata
     dance_info = await query_one("SELECT * FROM v_metaform WHERE id=?", (dance_id,))
 
     if not dance_info:
-        return {"error": f"Dance with ID {dance_id} not found"}
+        return {"error": f"Dance with ID {dance_id} not found. Look it up by dance_name or with find_dances instead of guessing ids."}
 
     # Get best crib
     crib = await query_one("SELECT reliability, last_modified, text FROM v_crib_best WHERE dance_id=?", (dance_id,))

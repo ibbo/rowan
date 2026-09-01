@@ -22,6 +22,50 @@ from database import query, query_one, DatabasePool
 # Database Tools - Direct SQLite Access
 # ============================================================================
 
+_LEADING_ARTICLE = re.compile(r"^(the|a|an)\s+", re.IGNORECASE)
+
+
+def _name_pattern(name: str) -> str:
+    """LIKE pattern for a dance-name search.
+
+    SCDDB stores titles with the article rotated to the end ("Diplomat, The"),
+    so a search for "The Diplomat" must drop the leading article or it
+    matches nothing (a quarter of the database is stored this way).
+    """
+    stripped = _LEADING_ARTICLE.sub("", name.strip())
+    return f"%{stripped or name.strip()}%"
+
+
+async def resolve_dance(dance_name: str) -> Dict[str, Any]:
+    """Resolve a dance name to a database row.
+
+    Prefers an exact title match (either "The X" or "X, The" form), then
+    falls back to a substring match. Returns {"dance": row} on a unique
+    match, {"candidates": rows} when several dances match, or
+    {"error": ...} when none do.
+    """
+    stripped = _LEADING_ARTICLE.sub("", dance_name.strip())
+    exact = await query(
+        """
+        SELECT id, name, kind, metaform, bars FROM v_metaform
+        WHERE name = ? COLLATE NOCASE OR name = ? COLLATE NOCASE OR name = ? COLLATE NOCASE
+        ORDER BY name LIMIT 10
+        """,
+        (dance_name.strip(), stripped, f"{stripped}, The"),
+    )
+    rows = exact or await query(
+        "SELECT id, name, kind, metaform, bars FROM v_metaform WHERE name LIKE ? COLLATE NOCASE ORDER BY name LIMIT 10",
+        (_name_pattern(dance_name),),
+    )
+    if not rows:
+        return {"error": f"No dance found matching {dance_name!r}. Try find_dances with a shorter name_contains, or search_cribs."}
+    if len(rows) == 1:
+        return {"dance": rows[0]}
+    return {
+        "candidates": rows,
+        "message": "Several dances match; call get_dance_detail again with the dance_id of the right one.",
+    }
+
 
 @tool
 async def find_dances(
@@ -120,7 +164,7 @@ async def find_dances(
     args: List[Any] = []
     if name_contains:
         sql += " AND m.name LIKE ? COLLATE NOCASE"
-        args.append(f"%{name_contains}%")
+        args.append(_name_pattern(name_contains))
     if kind:
         sql += " AND m.kind = ?"
         args.append(kind)
@@ -158,20 +202,41 @@ async def find_dances(
 
 
 @tool
-async def get_dance_detail(dance_id: int) -> Dict[str, Any]:
+async def get_dance_detail(
+    dance_id: Optional[int] = None,
+    dance_name: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Get detailed information about a specific dance including metaform, formations, and crib.
 
+    Pass EITHER a dance_id (from find_dances / search_cribs results) OR a
+    dance_name. NEVER guess or invent a dance_id - if you only know the
+    name, pass dance_name and the tool will look it up ("The Diplomat" and
+    "Diplomat, The" both work).
+
     Args:
-        dance_id: The ID of the dance to get details for
+        dance_id: The database ID of the dance (from a previous tool result)
+        dance_name: The dance title, used when you don't have an id
 
     Returns:
-        Dictionary with dance details, formations, crib, and publications
+        Dictionary with dance details, formations, crib, and publications;
+        or {"candidates": [...]} if the name matches several dances;
+        or {"error": ...} if nothing matches
     """
-    print(f"DEBUG: get_dance_detail tool called for dance_id: {dance_id}", file=sys.stderr)
+    print(f"DEBUG: get_dance_detail tool called for dance_id={dance_id} dance_name={dance_name!r}", file=sys.stderr)
+
+    if not dance_id:
+        if not dance_name:
+            return {"error": "Provide dance_name (or a real dance_id from find_dances / search_cribs). Do not guess ids."}
+        resolved = await resolve_dance(dance_name)
+        if "dance" not in resolved:
+            return resolved
+        dance_id = resolved["dance"]["id"]
 
     # Get dance metadata
     dance = await query_one("SELECT * FROM v_metaform WHERE id=?", (dance_id,))
+    if dance is None:
+        return {"error": f"No dance with id {dance_id}. Look the dance up by dance_name or with find_dances instead of guessing ids."}
 
     # Get formations
     formations = await query(
@@ -371,7 +436,7 @@ async def find_videos(
         args.append(int(dance_id))
     if dance_name:
         sql += " AND d.name LIKE ? COLLATE NOCASE"
-        args.append(f"%{dance_name}%")
+        args.append(_name_pattern(dance_name))
     if editors_pick:
         sql += " AND dv.editors_pick = 1"
 
@@ -443,7 +508,7 @@ async def find_recordings(
         args.append(int(dance_id))
     if dance_name:
         sql += " AND d.name LIKE ? COLLATE NOCASE"
-        args.append(f"%{dance_name}%")
+        args.append(_name_pattern(dance_name))
     if recording_name:
         sql += " AND r.name LIKE ? COLLATE NOCASE"
         args.append(f"%{recording_name}%")

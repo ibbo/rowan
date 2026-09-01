@@ -35,19 +35,49 @@ def load_dataset(path: Path) -> Dict[str, Any]:
         return json.load(handle)
 
 
+_QUOTE_FOLD = str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"'})
+
+
 def normalize(text: str) -> str:
+    # Models emit curly quotes ("couldn’t") and markdown emphasis
+    # ("does **not** appear"); signals are written plain
+    text = text.translate(_QUOTE_FOLD).replace("*", "").replace("_", " ")
     return " ".join(text.lower().split())
 
 
-def match_signals(text: str, signals: Iterable[str]) -> Tuple[List[str], List[str]]:
+import re
+
+# "not the same thing" / "aren't the same formation" must not count as
+# asserting the forbidden phrase: a negation within a few words before the
+# signal cancels the match
+_NEGATION_WINDOW = r"(?:\bnot\b|\bno\b|\bnever\b|n't)\W+(?:\w+\W+){0,3}$"
+
+
+def _negated(normalized: str, position: int) -> bool:
+    return re.search(_NEGATION_WINDOW, normalized[:position]) is not None
+
+
+def match_signals(
+    text: str,
+    signals: Iterable[str],
+    negation_aware: bool = False,
+) -> Tuple[List[str], List[str]]:
     normalized = normalize(text)
     hits: List[str] = []
     misses: List[str] = []
     for signal in signals:
-        if normalize(signal) in normalized:
-            hits.append(signal)
-        else:
-            misses.append(signal)
+        needle = normalize(signal)
+        found = False
+        start = 0
+        while True:
+            position = normalized.find(needle, start)
+            if position < 0:
+                break
+            if not (negation_aware and _negated(normalized, position)):
+                found = True
+                break
+            start = position + 1
+        (hits if found else misses).append(signal)
     return hits, misses
 
 
@@ -78,7 +108,7 @@ def infer_label(
 
 def score_case(case: Dict[str, Any], output: str, label_signals: Dict[str, List[str]]) -> CaseResult:
     expected_hits, expected_misses = match_signals(output, case.get("required_any", []))
-    forbidden_hits, _ = match_signals(output, case.get("forbidden_any", []))
+    forbidden_hits, _ = match_signals(output, case.get("forbidden_any", []), negation_aware=True)
     passed = bool(expected_hits) and not forbidden_hits
     return CaseResult(
         case_id=case["id"],

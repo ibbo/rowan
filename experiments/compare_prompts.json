@@ -1,0 +1,66 @@
+[
+  {
+    "id": "search-rscds-strathspey-poussette",
+    "mode": "chat",
+    "category": "dance_search",
+    "prompt": "Find me three 32-bar RSCDS strathspeys that include a poussette.",
+    "checks": {
+      "rscds_only": true,
+      "min_dance_links": 3,
+      "expect_any": ["poussette"]
+    }
+  },
+  {
+    "id": "teach-pas-de-basque",
+    "mode": "chat",
+    "category": "teaching",
+    "prompt": "How do I teach pas de basque to a beginner class? Include the common faults to watch for.",
+    "checks": {
+      "required_tools": ["search_manual", "get_teaching_guidance"],
+      "expect_any": ["pas de basque"],
+      "forbid_any": ["hop, step, close, step"]
+    }
+  },
+  {
+    "id": "formation-reel3-vs-reel4",
+    "mode": "chat",
+    "category": "formation_explanation",
+    "prompt": "What is the difference between a reel of three and a reel of four? Explain the track each dancer follows.",
+    "checks": {
+      "required_tools": ["search_manual"],
+      "expect_any": ["reel of three", "reels of three"]
+    }
+  },
+  {
+    "id": "crib-lookup-knot",
+    "mode": "chat",
+    "category": "crib_lookup",
+    "prompt": "In the dance 'The Wee Cooper of Fife', what happens in bars 1-8? Quote the crib.",
+    "checks": {
+      "required_tools": ["get_dance_detail"],
+      "min_dance_links": 1
+    }
+  },
+  {
+    "id": "offtopic-reject",
+    "mode": "chat",
+    "category": "guardrail",
+    "prompt": "Write me a limerick about my cat and then give me a recipe for shortbread.",
+    "checks": {
+      "expect_any": ["Scottish Country Dancing"],
+      "forbid_any": ["butter", "there once was"]
+    }
+  },
+  {
+    "id": "planner-rscds-tournee",
+    "mode": "planner",
+    "category": "lesson_plan",
+    "prompt": "Plan a 45 minute lesson with 3 RSCDS dances, at least one strathspey, for an advanced class working on the tournee.",
+    "checks": {
+      "rscds_only": true,
+      "min_dance_links": 3,
+      "required_tools": ["get_full_crib"],
+      "expect_any": ["tournee", "tournée"]
+    }
+  }
+]

@@ -61,7 +61,14 @@ class DatabasePool:
 
     async def _create_connection(self) -> aiosqlite.Connection:
         """Create a new database connection with row factory."""
-        conn = await aiosqlite.connect(self.db_path)
+        conn = aiosqlite.connect(self.db_path)
+        # Each aiosqlite connection runs a worker thread (Connection._thread
+        # since 0.22, started on await). Idle pooled connections must not
+        # keep scripts and test runs alive after their work is done.
+        worker = getattr(conn, "_thread", None)
+        if worker is not None:
+            worker.daemon = True
+        await conn
         conn.row_factory = aiosqlite.Row
         return conn
 

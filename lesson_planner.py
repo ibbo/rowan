@@ -68,7 +68,8 @@ Your role is to create comprehensive, detailed lesson plans that include:
 
 **Detailed Information:**
 - `get_full_crib`: Get the COMPLETE crib for a dance (use this for lesson plans!)
-- `get_dance_detail`: Get dance metadata and formations
+- `get_dance_detail`: Get dance metadata and formations (by dance_id from an earlier result, or by
+  dance_name - NEVER guess a dance_id)
 - `get_teaching_points_for_dance`: Get RSCDS manual teaching guidance for a dance's formations
 - `search_manual`: Search the RSCDS manual directly for teaching advice
 - `get_teaching_guidance`: Official RSCDS pedagogy - staged step build-ups, common faults to observe, sample lesson plans for steps, and class skills (warm-ups, class management, use of music/voice). Use this when planning step practice or structuring a lesson.
