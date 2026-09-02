@@ -142,7 +142,7 @@ class LessonPlannerAgent:
     def __init__(
         self,
         provider: str = "openai",
-        model: str = "gpt-5.4-mini",
+        model: str = "gpt-5.6-luna",
         temperature: float = 0,
         api_key: str | None = None
     ):

@@ -15,9 +15,14 @@ from typing import Any, Optional
 # Settings database path (same directory as chat history)
 SETTINGS_DB_PATH = "data/settings.db"
 DEFAULT_LLM_PROVIDER = "openai"
-DEFAULT_LLM_MODEL = "gpt-5.4-mini"
+DEFAULT_LLM_MODEL = "gpt-5.6-luna"
 DEFAULT_LLM_TEMPERATURE = "0"
-LLM_DEFAULTS_VERSION = "2026-03-23-gpt-5-4-mini"
+LLM_DEFAULTS_VERSION = "2026-09-02-gpt-5-6-luna"
+
+# Models that were the app default at some point: a stored value equal to
+# one of these is migrated to the current default, an explicit admin
+# choice of anything else is left alone
+PREVIOUS_DEFAULT_MODELS = ("gpt-4o-mini", "gpt-5.4-mini")
 
 
 def _get_connection() -> sqlite3.Connection:
@@ -79,7 +84,7 @@ def _migrate_default_model(cursor: sqlite3.Cursor):
     model = model_row["value"] if model_row else DEFAULT_LLM_MODEL
     now = datetime.utcnow().isoformat()
 
-    if provider == "openai" and model == "gpt-4o-mini":
+    if provider == "openai" and model in PREVIOUS_DEFAULT_MODELS:
         cursor.execute("""
             UPDATE settings
             SET value = ?, updated_at = ?

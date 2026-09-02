@@ -6,6 +6,8 @@ Tests for model list and default model configuration.
 import ast
 from pathlib import Path
 
+import pytest
+
 import settings
 
 
@@ -56,27 +58,30 @@ def _get_openai_model_ids(module: ast.AST) -> list[str]:
     raise AssertionError("Could not find OpenAIProvider.MODELS")
 
 
-def test_openai_models_include_gpt_5_4_mini_first():
-    """The new default OpenAI model should be offered first."""
+DEFAULT_MODEL = "gpt-5.6-luna"
+
+
+def test_openai_models_offer_default_first():
+    """The default OpenAI model should be offered first."""
     model_ids = _get_openai_model_ids(_parse_module("llm_providers.py"))
 
-    assert "gpt-5.4-mini" in model_ids
-    assert model_ids[0] == "gpt-5.4-mini"
+    assert DEFAULT_MODEL in model_ids
+    assert model_ids[0] == DEFAULT_MODEL
 
 
-def test_runtime_defaults_use_gpt_5_4_mini():
-    """Core code paths should default to the new model."""
+def test_runtime_defaults_use_default_model():
+    """Core code paths should default to the current model."""
     llm_providers = _parse_module("llm_providers.py")
     scd_agent = _parse_module("scd_agent.py")
     lesson_planner = _parse_module("lesson_planner.py")
 
-    assert _get_function_arg_default(llm_providers, "get_llm", "model") == "gpt-5.4-mini"
-    assert _get_method_arg_default(scd_agent, "SCDAgent", "__init__", "model") == "gpt-5.4-mini"
-    assert _get_method_arg_default(lesson_planner, "LessonPlannerAgent", "__init__", "model") == "gpt-5.4-mini"
+    assert _get_function_arg_default(llm_providers, "get_llm", "model") == DEFAULT_MODEL
+    assert _get_method_arg_default(scd_agent, "SCDAgent", "__init__", "model") == DEFAULT_MODEL
+    assert _get_method_arg_default(lesson_planner, "LessonPlannerAgent", "__init__", "model") == DEFAULT_MODEL
 
 
-def test_settings_default_model_is_gpt_5_4_mini(tmp_path, monkeypatch):
-    """Fresh settings databases should default to the new model."""
+def test_settings_default_model(tmp_path, monkeypatch):
+    """Fresh settings databases should default to the current model."""
     monkeypatch.setattr(settings, "SETTINGS_DB_PATH", str(tmp_path / "settings.db"))
 
     settings.init_settings_db()
@@ -84,19 +89,34 @@ def test_settings_default_model_is_gpt_5_4_mini(tmp_path, monkeypatch):
     llm_settings = settings.get_llm_settings()
 
     assert llm_settings["provider"] == "openai"
-    assert llm_settings["model"] == "gpt-5.4-mini"
+    assert llm_settings["model"] == DEFAULT_MODEL
     assert llm_settings["temperature"] == 0.0
 
 
-def test_settings_migrate_legacy_openai_default(tmp_path, monkeypatch):
-    """Existing installs on the old untouched OpenAI default should migrate once."""
+@pytest.mark.parametrize("legacy_model", settings.PREVIOUS_DEFAULT_MODELS)
+def test_settings_migrate_previous_defaults(tmp_path, monkeypatch, legacy_model):
+    """Installs left on an earlier default should migrate once."""
     monkeypatch.setattr(settings, "SETTINGS_DB_PATH", str(tmp_path / "settings.db"))
 
     settings.init_settings_db()
     settings.set_setting("llm_provider", "openai")
-    settings.set_setting("llm_model", "gpt-4o-mini")
+    settings.set_setting("llm_model", legacy_model)
     settings.set_setting("llm_defaults_version", "older-default")
 
     settings.init_settings_db()
 
-    assert settings.get_llm_settings()["model"] == "gpt-5.4-mini"
+    assert settings.get_llm_settings()["model"] == DEFAULT_MODEL
+
+
+def test_settings_keep_explicit_admin_choice(tmp_path, monkeypatch):
+    """A model the admin deliberately picked must survive the migration."""
+    monkeypatch.setattr(settings, "SETTINGS_DB_PATH", str(tmp_path / "settings.db"))
+
+    settings.init_settings_db()
+    settings.set_setting("llm_provider", "openai")
+    settings.set_setting("llm_model", "gpt-5.2")
+    settings.set_setting("llm_defaults_version", "older-default")
+
+    settings.init_settings_db()
+
+    assert settings.get_llm_settings()["model"] == "gpt-5.2"

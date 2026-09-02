@@ -59,7 +59,10 @@ alerts (manual), token-usage logging, prompt caching, static library page.*
 
 Cost profile: VPS is fixed and small; the risk is LLM spend, which scales
 with (a) real users, (b) scrapers/abuse. Defaults are already cheap
-(gpt-5.4-mini, and the prompt checker now always uses the cheap model).
+(gpt-5.6-luna since 2026-09-02 — $0.20/$1.20 per million input/output
+tokens, 3.75x cheaper than the previous gpt-5.4-mini default and slightly
+more accurate in `experiments/model_compare.py`; the prompt checker always
+uses the provider's cheapest model).
 
 Recommended, in order:
 
