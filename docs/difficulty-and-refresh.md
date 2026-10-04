@@ -45,10 +45,9 @@ difficulty remains unassessed.
 
 The old misleading instructions were in `find_dances`,
 `docs/database_fields_roadmap.md` and `test_intensity_filter.py`; these are corrected.
-`INTENSITY_RECURSION_FIX.md` is marked historical. The separate, local programme
-planner now also uses published grades for optional difficulty balances and
-coverage checks (see `programme-planner.md`). Its difficulty selection remains
-local for testing; it was not part of the chat deployment below.
+`INTENSITY_RECURSION_FIX.md` is marked historical. The programme planner also
+uses published grades for optional difficulty balances and coverage checks (see
+`programme-planner.md`). It was deployed separately, on 4 October 2026.
 
 ## Refresh reliability
 
@@ -73,7 +72,8 @@ an atomic replacement. Run:
 Deployed 19 September 2026, 11:32 UTC, including a successful live refresh.
 Rollback code and database: `/home/ubuntu/dance-teacher-release-backups/rscds-grades-20260919T113225Z/`.
 Only the difficulty/import/agent modules were deployed; existing local settings,
-web UI and programme-planner changes remain separate.
+web UI and programme-planner changes remained separate at the time. These files
+were copied by hand and committed later, in `e79a710` (4 October 2026).
 
 Verified 41 local tests (including the existing programme-planner regressions)
 and 25 tests on the VPS. Browser checks on the public site confirmed:

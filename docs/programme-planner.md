@@ -1,14 +1,16 @@
-# Local programme planner
+# Programme planner
 
-Open **http://127.0.0.1:8015/programmes**. The chat sidebar also links to it.
+Live at **https://chatscd.com/programmes** (deployed 4 October 2026, `main` at `1f23d16`). The chat sidebar also links to it.
 
-To start it again from the repository root:
+## Local preview
+
+Open **http://127.0.0.1:8015/programmes**. To start it from the repository root:
 
 ```sh
 ./start_local_planner.sh
 ```
 
-The launcher binds only to `127.0.0.1`. It uses separate chat and settings databases in `data/local-preview/`; production defaults remain unchanged. No deployment is performed. `CHAT_SCD_LOCAL_PORT` can override 8015. The existing local dance catalogue is opened read-only, and programme generation/checking makes no model or external network requests.
+The launcher binds only to `127.0.0.1`. It uses separate chat and settings databases in `data/local-preview/`; production defaults remain unchanged. `CHAT_SCD_LOCAL_PORT` can override 8015. The existing local dance catalogue is opened read-only, and programme generation/checking makes no model or external network requests.
 
 ## Try it
 
@@ -72,3 +74,7 @@ counts, invalid totals preserving the draft, ungraded coverage, custom settings
 surviving reload, and Undo restoring the original programme.
 
 Two existing legacy scripts, `test_chat_sessions.py` and `test_chat_persistence.py`, fail respectively on unowned-session listing and unauthorized clearing. Both failures were reproduced using `HEAD:web_app.py` with disposable databases. They predate this feature and were not changed as part of it. Do not run those scripts against a real chat database: they delete their configured database at startup.
+
+## Deployment record
+
+Deployed 4 October 2026 with the standard flow (push `main`, `git pull` on the VPS, `sudo systemctl restart chatscd`). The release also committed the difficulty work and `gpt-6-luna` default that were already running on the VPS from hand-copied files, so the VPS checkout is now clean on `main`. Backup of those hand-copied files: `/home/ubuntu/dance-teacher-release-backups/planner-20261004T113259Z/`. No database changes; the planner reads the SCDDB catalogue read-only and makes no model requests. Checked on the public site: the page and catalogue search return 200, and a programme generates without console errors.
