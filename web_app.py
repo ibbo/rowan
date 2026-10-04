@@ -41,6 +41,10 @@ load_dotenv()
 # Initialize FastAPI
 app = FastAPI(title="ChatSCD - Scottish Country Dance Assistant")
 
+# Programme planner uses the same app and static asset surface.
+from programme_routes import router as programme_router
+app.include_router(programme_router)
+
 # OAuth session middleware (used by Authlib for state/PKCE handling)
 OAUTH_SESSION_SECRET = os.getenv("OAUTH_SESSION_SECRET", secrets.token_hex(32))
 app.add_middleware(SessionMiddleware, secret_key=OAUTH_SESSION_SECRET, max_age=86400)
@@ -60,7 +64,7 @@ agent_cache: OrderedDict[tuple, SCDAgent] = OrderedDict()
 lesson_planner_cache: OrderedDict[tuple, LessonPlannerAgent] = OrderedDict()
 
 # Chat history database path
-CHAT_DB_PATH = "data/chat_history.db"
+CHAT_DB_PATH = os.getenv("CHAT_DB_PATH", "data/chat_history.db")
 
 # Most recent messages replayed into agent memory after a restart/eviction
 MAX_SEED_MESSAGES = 20

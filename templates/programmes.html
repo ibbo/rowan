@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Programme planner · ChatSCD</title>
+    <link rel="icon" href="/assets/chatscd_logo.png" />
+    <link rel="stylesheet" href="/assets/programmes.css?v=8" />
+    <script src="/assets/programmes.js?v=8" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a href="/" class="brand"
+        ><img src="/assets/chatscd_logo.png" alt="" /><strong>ChatSCD</strong></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="/">Dance chat</a
+        ><a href="/programmes" aria-current="page">Programme planner</a>
+      </nav>
+      <span id="preview-badge" hidden>Local preview</span>
+    </header>
+
+    <main>
+      <section class="card setup" aria-label="Programme setup">
+        <div class="title-line">
+          <label class="sr-only" for="title">Programme title</label
+          ><input id="title" class="title-input" value="My dance programme" maxlength="160" />
+          <span id="save-state" class="muted">Saved in this browser</span>
+        </div>
+        <div class="setup-line">
+          <p class="sentence">
+            A
+            <label class="sr-only" for="profile">Event style</label
+            ><select id="profile">
+              <option value="social">social dance</option>
+              <option value="ball">annual ball</option>
+              <option value="beginner">beginners’ social</option>
+            </select>
+            with
+            <label class="sr-only" for="length">Number of main dances</label
+            ><input id="length" type="number" min="4" max="32" value="16" />
+            dances
+          </p>
+          <button id="generate" class="primary">Generate</button>
+        </div>
+        <p class="options-line">
+          <span id="options-summary"></span>
+          <button id="open-options" class="link">More options</button>
+        </p>
+      </section>
+
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+
+      <section class="card programme" aria-label="Programme">
+        <div class="list-head">
+          <span id="counts" class="muted"></span>
+          <button id="status" class="status" hidden></button>
+          <span class="spacer"></span>
+          <button id="undo" class="ghost" title="Undo the last change" disabled>Undo</button>
+          <details class="menu" id="menu">
+            <summary class="ghost" aria-label="More actions">•••</summary>
+            <div class="menu-list">
+              <button data-menu="paste">Paste a list…</button>
+              <button data-menu="saved">Saved programmes…</button>
+              <button data-menu="export">Export as text</button>
+              <button data-menu="print">Print</button>
+              <hr />
+              <button data-menu="clear">Start empty</button>
+            </div>
+          </details>
+        </div>
+        <ol id="programme-list"></ol>
+        <div class="add-area" id="add-slot">
+          <div id="search-box" class="search">
+            <div class="search-line">
+              <label class="sr-only" for="dance-search" id="search-label">Add a dance</label
+              ><input id="dance-search" type="search" placeholder="Add a dance by name…" autocomplete="off" /><button
+                id="cancel-replace"
+                class="ghost"
+                hidden
+              >
+                Cancel
+              </button>
+            </div>
+            <div id="search-results" role="region" aria-label="Dance search results" hidden></div>
+          </div>
+          <button id="add-break" class="link">+ Interval</button>
+        </div>
+      </section>
+
+      <section class="card review" id="review" aria-labelledby="review-heading" hidden>
+        <h2 id="review-heading">Review</h2>
+        <div id="issues"></div>
+        <details id="summary-details">
+          <summary>Programme summary</summary>
+          <div id="summary-body"></div>
+        </details>
+      </section>
+
+      <footer>
+        Dance information from
+        <a href="https://my.strathspey.org/dd/" target="_blank" rel="noopener">SCDDB</a>. Checks use
+        catalogue data. Musical style and running time are not assessed.
+      </footer>
+    </main>
+
+    <dialog id="options-dialog" aria-labelledby="options-heading">
+      <div class="dialog-head">
+        <h2 id="options-heading">Programme options</h2>
+        <button class="primary" data-close>Done</button>
+      </div>
+
+      <section>
+        <h3>Shape</h3>
+        <div class="grid3">
+          <label><span class="dot jig"></span> Jigs<input id="jigs" type="number" min="0" max="32" value="5" /></label>
+          <label><span class="dot reel"></span> Reels<input id="reels" type="number" min="0" max="32" value="6" /></label>
+          <label
+            ><span class="dot strathspey"></span> Strathspeys<input id="strathspeys" type="number" min="0" max="32" value="5"
+          /></label>
+        </div>
+        <p id="mix-total" class="hint"></p>
+        <label class="inline"
+          >Interval after dance <input id="break-after" type="number" min="0" max="31" value="8" />
+          <span class="hint">0 for none</span></label
+        >
+      </section>
+
+      <section>
+        <h3>Difficulty</h3>
+        <label class="inline"
+          >Balance
+          <select id="difficulty-preset">
+            <option value="beginner">Easier evening</option>
+            <option value="social">Mixed social</option>
+            <option value="ball">Annual ball</option>
+            <option value="custom">Custom</option>
+            <option value="off">No preference</option>
+          </select></label
+        >
+        <p id="difficulty-description" class="hint"></p>
+        <div id="difficulty-custom" class="grid4" hidden>
+          <label>1 ghillie %<input id="difficulty-one" type="number" min="0" max="100" value="40" /></label>
+          <label>2 ghillies %<input id="difficulty-two" type="number" min="0" max="100" value="45" /></label>
+          <label>3 ghillies %<input id="difficulty-three" type="number" min="0" max="100" value="15" /></label>
+          <label>Expert %<input id="difficulty-expert" type="number" min="0" max="100" value="0" /></label>
+        </div>
+        <p id="difficulty-total" class="hint" aria-live="polite"></p>
+        <label class="check" id="allow-ungraded-label"
+          ><input id="allow-ungraded" type="checkbox" /> Allow dances with no published grade</label
+        >
+      </section>
+
+      <section>
+        <h3>Flow</h3>
+        <div class="grid2">
+          <label
+            >Same rhythm back to back<select id="rhythm-mode">
+              <option value="error">Avoid</option>
+              <option value="warning">Warn me</option>
+              <option value="off">Allow</option>
+            </select></label
+          >
+          <label
+            >Repeated dances<select id="duplicate-mode">
+              <option value="error">Avoid</option>
+              <option value="warning">Warn me</option>
+              <option value="off">Allow</option>
+            </select></label
+          >
+        </div>
+        <label class="inline"
+          >Warn after <input id="max-fast-run" type="number" min="0" max="32" value="2" /> quick-time dances in a row
+          <span class="hint">0 for off</span></label
+        >
+        <label class="check"><input id="jig-opener" type="checkbox" checked /> Open with a jig</label>
+        <label class="check"><input id="quick-finish" type="checkbox" checked /> Finish with a jig or reel</label>
+      </section>
+
+      <section>
+        <h3>Dance choice</h3>
+        <label class="inline"
+          >Pick from
+          <select id="pool">
+            <option value="sample">dances seen on real programmes</option>
+            <option value="catalogue">the whole catalogue</option>
+          </select></label
+        >
+        <label class="check"
+          ><input id="rscds-enabled" type="checkbox" checked /> Aim for
+          <output id="rscds-value">75%</output>&nbsp;RSCDS-published dances</label
+        >
+        <input id="rscds-target" type="range" min="0" max="100" step="5" value="75" aria-label="RSCDS-published target" />
+      </section>
+
+      <section>
+        <h3>Figure rules</h3>
+        <p class="hint">Limit how often a figure appears, or keep it spaced out.</p>
+        <div id="figure-rules"></div>
+        <button id="add-figure" class="link">+ Add a figure rule</button>
+      </section>
+
+      <p class="hint fine-print">
+        Difficulty uses published RSCDS grades via SCDDB; the balances are starting points, not official RSCDS
+        recommendations. Locked dances and required rules always take priority.
+      </p>
+    </dialog>
+
+    <dialog id="import-dialog" aria-labelledby="import-heading">
+      <div class="dialog-head">
+        <h2 id="import-heading">Paste a programme</h2>
+        <button class="ghost" data-close aria-label="Close">✕</button>
+      </div>
+      <p class="hint">
+        One dance per line. Add “Interval” and an “Extras” heading where needed. This replaces the current list (you can
+        undo).
+      </p>
+      <label class="sr-only" for="import-text">Programme to import</label
+      ><textarea
+        id="import-text"
+        rows="12"
+        placeholder="The Machine without Horses&#10;The Reel of the 51st Division&#10;The Minister on the Loch&#10;Interval&#10;…"
+      ></textarea>
+      <button id="import-submit" class="primary">Import and check</button>
+    </dialog>
+
+    <dialog id="saved-dialog" aria-labelledby="saved-heading">
+      <div class="dialog-head">
+        <h2 id="saved-heading">Saved programmes</h2>
+        <button class="ghost" data-close aria-label="Close">✕</button>
+      </div>
+      <p class="hint">Your current programme saves automatically in this browser. Save a copy to keep a version.</p>
+      <button id="save-draft" class="primary">Save a copy</button>
+      <ul id="saved-list"></ul>
+      <h3>Use on another device</h3>
+      <div class="button-row">
+        <button id="download-json">Download file</button
+        ><label class="file-button"
+          >Open file…<input id="upload-json" type="file" accept=".json,application/json"
+        /></label>
+      </div>
+    </dialog>
+  </body>
+</html>

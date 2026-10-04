@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 # Settings database path (same directory as chat history)
-SETTINGS_DB_PATH = "data/settings.db"
+SETTINGS_DB_PATH = os.getenv("SETTINGS_DB_PATH", "data/settings.db")
 DEFAULT_LLM_PROVIDER = "openai"
 DEFAULT_LLM_MODEL = "gpt-5.6-luna"
 DEFAULT_LLM_TEMPERATURE = "0"
