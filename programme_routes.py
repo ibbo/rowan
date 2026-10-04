@@ -8,9 +8,14 @@ router=APIRouter()
 templates=Jinja2Templates(directory='templates')
 
 
+def shell_context(request):
+    """Sidebar sign-in state; web_app replaces this with the real one."""
+    return {'current_user':None,'oauth_providers':{},'dev_auth_enabled':False}
+
+
 @router.get('/programmes')
 def programme_page(request: Request):
-    return templates.TemplateResponse(request=request,name='programmes.html',context={})
+    return templates.TemplateResponse(request=request,name='programmes.html',context=shell_context(request))
 
 
 @router.get('/api/programmes/catalogue')

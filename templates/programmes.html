@@ -5,22 +5,62 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Programme planner · ChatSCD</title>
     <link rel="icon" href="/assets/chatscd_logo.png" />
-    <link rel="stylesheet" href="/assets/programmes.css?v=8" />
-    <script src="/assets/programmes.js?v=8" defer></script>
+    <link rel="stylesheet" href="/assets/shell.css?v=4" />
+    <link rel="stylesheet" href="/assets/programmes.css?v=10" />
+    <script src="/assets/programmes.js?v=10" defer></script>
   </head>
   <body>
-    <header class="site-header">
-      <a href="/" class="brand"
-        ><img src="/assets/chatscd_logo.png" alt="" /><strong>ChatSCD</strong></a
-      >
-      <nav aria-label="Main navigation">
-        <a href="/">Dance chat</a
-        ><a href="/programmes" aria-current="page">Programme planner</a>
-      </nav>
-      <span id="preview-badge" hidden>Local preview</span>
-    </header>
+    <div class="app" id="app">
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-    <main>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+          <a class="brand" href="/">
+            <img src="/assets/chatscd_logo.png" alt="ChatSCD logo" />
+            <div>
+              <span class="brand-name">ChatSCD</span>
+              <span class="brand-sub">Scottish Country Dance assistant</span>
+            </div>
+          </a>
+          <button class="new-chat-btn" id="new-programme">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+            New programme
+          </button>
+        </div>
+        <div class="sessions-list" id="programme-library" aria-label="Your programmes"></div>
+        <div class="sidebar-footer">
+          <p class="library-note">Programmes are saved in this browser.</p>
+          {% include "_account.html" %}
+        </div>
+      </aside>
+
+      <div class="main">
+        <div class="topbar">
+          <button class="icon-btn" id="sidebar-toggle" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" /></svg>
+          </button>
+          <a class="topbar-brand" href="/"><img src="/assets/chatscd_logo.png" alt="" />ChatSCD</a>
+          <nav class="mode-switch" aria-label="ChatSCD tools">
+            <a class="mode-btn" href="/?mode=chat" title="Chat" aria-label="Chat">
+              <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
+              <span class="mode-label">Chat</span>
+            </a>
+            <a class="mode-btn" href="/?mode=planner" title="Lesson planner" aria-label="Lesson planner">
+              <svg viewBox="0 0 24 24">
+                <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
+              </svg>
+              <span class="mode-label">Lesson planner</span>
+            </a>
+            <a class="mode-btn active" href="/programmes" aria-current="page" title="Programme planner" aria-label="Programme planner">
+              <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" /></svg>
+              <span class="mode-label">Programme planner</span>
+            </a>
+          </nav>
+          <div class="topbar-right"><span id="preview-badge" hidden>Local preview</span></div>
+        </div>
+
+        <div class="page" id="page">
+        <main>
       <section class="card setup" aria-label="Programme setup">
         <div class="title-line">
           <label class="sr-only" for="title">Programme title</label
@@ -61,11 +101,14 @@
             <summary class="ghost" aria-label="More actions">•••</summary>
             <div class="menu-list">
               <button data-menu="paste">Paste a list…</button>
-              <button data-menu="saved">Saved programmes…</button>
+              <button data-menu="duplicate">Duplicate programme</button>
+              <hr />
               <button data-menu="export">Export as text</button>
               <button data-menu="print">Print</button>
+              <button data-menu="download">Download file</button>
+              <label class="menu-file">Open file…<input id="upload-json" type="file" accept=".json,application/json" /></label>
               <hr />
-              <button data-menu="clear">Start empty</button>
+              <button data-menu="clear">Clear all dances</button>
             </div>
           </details>
         </div>
@@ -103,6 +146,9 @@
         catalogue data. Musical style and running time are not assessed.
       </footer>
     </main>
+        </div>
+      </div>
+    </div>
 
     <dialog id="options-dialog" aria-labelledby="options-heading">
       <div class="dialog-head">
@@ -224,21 +270,5 @@
       <button id="import-submit" class="primary">Import and check</button>
     </dialog>
 
-    <dialog id="saved-dialog" aria-labelledby="saved-heading">
-      <div class="dialog-head">
-        <h2 id="saved-heading">Saved programmes</h2>
-        <button class="ghost" data-close aria-label="Close">✕</button>
-      </div>
-      <p class="hint">Your current programme saves automatically in this browser. Save a copy to keep a version.</p>
-      <button id="save-draft" class="primary">Save a copy</button>
-      <ul id="saved-list"></ul>
-      <h3>Use on another device</h3>
-      <div class="button-row">
-        <button id="download-json">Download file</button
-        ><label class="file-button"
-          >Open file…<input id="upload-json" type="file" accept=".json,application/json"
-        /></label>
-      </div>
-    </dialog>
   </body>
 </html>

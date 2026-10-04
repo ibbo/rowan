@@ -14,17 +14,17 @@ The launcher binds only to `127.0.0.1`. It uses separate chat and settings datab
 
 ## Try it
 
-The page is one column: a setup sentence, the programme, then a short review.
+The planner shares the chat page's shell: the top-bar tabs switch between **Chat**, **Lesson planner** and **Programme planner**, and the sidebar lists your programmes the way it lists chats. The page itself is one column: a setup sentence, the programme, then a short review.
 
 1. Choose the event ("A social dance with 16 dances") and press **Generate**. The line underneath summarises the other settings; **More options** opens them (J/R/S counts, interval, difficulty balance, flow rules, dance pool, RSCDS target, figure rules). Changing the length re-splits J/R/S automatically.
 2. Lock dances with the padlock and press **Regenerate**: locked dances stay in place. Intervals and extras are retained.
 3. Click a dance to see its details, any problems with it, and Up/Down/Replace/Remove. Replace searches inside the row. Rows with problems carry a red (fix) or amber (consider) dot.
 4. Paste an existing list from the **•••** menu (one dance per line; `Interval` and `Extras` headings). Unmatched names show "Did you mean" choices in the row.
 5. The **Review** card lists problems with **Show** links to the rows. **Programme summary** holds the stats, difficulty target vs actual, figure variety and data-coverage notes.
-6. The **•••** menu also has saved copies (save, reopen, download/open a file), export as text, print and start empty. **Undo** sits beside it.
+6. **+ New programme** in the sidebar starts another programme; every programme saves itself and can be renamed or deleted from the sidebar. The **•••** menu has paste, duplicate, export as text, print, download/open a file and clear all dances. **Undo** sits beside it.
 7. Difficulty balances are easier evening (75/25/0%), mixed social (40/45/15%) or annual ball (20/45/35%) across one/two/three ghillies. These are adjustable ChatSCD starting points, not official RSCDS recommendations. Choose **Custom** to edit the percentages (including the separate expert/unusual category), or **No preference**. The event style sets the matching balance.
 
-Drafts are saved in **this browser and origin**, not an account or the server. `localhost` and `127.0.0.1`, or different browsers, have different draft stores. Download a draft file to transfer it. Undo retains the last 30 edits during the current page session. Saved copies retain the latest 50 snapshots.
+Programmes are saved in **this browser and origin** (`chatscd.programme.library.v1`), not an account or the server. `localhost` and `127.0.0.1`, or different browsers, have different stores. Download a file to transfer a programme. Undo retains the last 30 edits to the open programme during the current page session. The earlier single draft and "saved copies" are migrated into the library on first load; the old keys are left in place.
 
 ## Rule behaviour
 

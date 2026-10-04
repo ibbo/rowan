@@ -42,8 +42,8 @@ load_dotenv()
 app = FastAPI(title="ChatSCD - Scottish Country Dance Assistant")
 
 # Programme planner uses the same app and static asset surface.
-from programme_routes import router as programme_router
-app.include_router(programme_router)
+import programme_routes
+app.include_router(programme_routes.router)
 
 # OAuth session middleware (used by Authlib for state/PKCE handling)
 OAUTH_SESSION_SECRET = os.getenv("OAUTH_SESSION_SECRET", secrets.token_hex(32))
@@ -1373,23 +1373,27 @@ async def shutdown_event():
     print("✅ Cleanup complete")
 
 
+def shell_context(request: Request) -> dict:
+    """Sign-in state for the shared sidebar on the chat and programme pages."""
+    return {
+        "current_user": get_current_user(request),
+        "oauth_providers": {
+            "google": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
+            "facebook": bool(FACEBOOK_CLIENT_ID and FACEBOOK_CLIENT_SECRET),
+        },
+        "dev_auth_enabled": DEV_AUTH_ENABLED,
+    }
+
+
+programme_routes.shell_context = shell_context
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Serve the main page."""
-    user = get_current_user(request)
-    oauth_providers = {
-        "google": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
-        "facebook": bool(FACEBOOK_CLIENT_ID and FACEBOOK_CLIENT_SECRET),
-    }
     return templates.TemplateResponse(
         "index.html",
-        {
-            "request": request,
-            "current_user": user,
-            "oauth_providers": oauth_providers,
-            "dev_auth_enabled": DEV_AUTH_ENABLED,
-            "donation_url": DONATION_URL,
-        },
+        {"request": request, **shell_context(request), "donation_url": DONATION_URL},
     )
 
 

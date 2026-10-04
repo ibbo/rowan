@@ -19,26 +19,8 @@
     <link rel="apple-touch-icon" href="/assets/chatscd_logo.png">
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="/assets/shell.css?v=4">
     <style>
-        :root {
-            --bg: #f5f4f0;
-            --surface: #ffffff;
-            --sidebar-bg: #faf9f6;
-            --border: #e5e3dc;
-            --border-strong: #d6d3ca;
-            --text: #22272b;
-            --muted: #6d7378;
-            --faint: #9aa0a6;
-            --accent: #1f6e5a;
-            --accent-hover: #185846;
-            --accent-soft: #e7f1ed;
-            --accent-border: #c3ddd4;
-            --danger: #b3382f;
-            --danger-soft: #fdecea;
-            --radius: 10px;
-            --shadow-sm: 0 1px 2px rgba(30, 35, 40, 0.06);
-            --shadow-md: 0 4px 16px rgba(30, 35, 40, 0.10);
-        }
 
         * {
             margin: 0;
@@ -61,320 +43,6 @@
 
         button {
             font-family: inherit;
-        }
-
-        .app {
-            display: flex;
-            height: 100vh;
-            height: 100dvh;
-            overflow: hidden;
-        }
-
-        /* ============ Sidebar ============ */
-        .sidebar {
-            width: 272px;
-            min-width: 272px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            transition: margin-left 0.25s ease;
-            z-index: 60;
-        }
-
-        .sidebar.collapsed {
-            margin-left: -272px;
-        }
-
-        .sidebar-top {
-            padding: 14px 14px 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 2px 4px;
-        }
-
-        .brand img {
-            width: 30px;
-            height: 30px;
-        }
-
-        .brand .brand-name {
-            font-size: 1.05rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-        }
-
-        .brand .brand-sub {
-            font-size: 0.72rem;
-            color: var(--muted);
-            display: block;
-            margin-top: -2px;
-        }
-
-        .new-chat-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 9px 12px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: var(--radius);
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .new-chat-btn:hover {
-            background: var(--accent-hover);
-        }
-
-        .new-chat-btn svg {
-            width: 15px;
-            height: 15px;
-            fill: currentColor;
-        }
-
-        .sessions-list {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 4px 8px 12px;
-            min-height: 0;
-        }
-
-        .session-group-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--faint);
-            padding: 14px 8px 5px;
-        }
-
-        .session-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: var(--text);
-            position: relative;
-        }
-
-        .session-item:hover {
-            background: #efede7;
-        }
-
-        .session-item.active {
-            background: var(--accent-soft);
-        }
-
-        .session-mode-icon {
-            flex-shrink: 0;
-            width: 16px;
-            height: 16px;
-            color: var(--faint);
-            display: flex;
-            align-items: center;
-        }
-
-        .session-item.active .session-mode-icon {
-            color: var(--accent);
-        }
-
-        .session-mode-icon svg {
-            width: 15px;
-            height: 15px;
-            fill: currentColor;
-        }
-
-        .session-body {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .session-title {
-            font-size: 0.86rem;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .session-time {
-            font-size: 0.72rem;
-            color: var(--faint);
-            margin-top: 1px;
-        }
-
-        .session-title-input {
-            width: 100%;
-            font: inherit;
-            font-size: 0.86rem;
-            padding: 2px 4px;
-            border: 1px solid var(--accent);
-            border-radius: 5px;
-            outline: none;
-            background: #fff;
-        }
-
-        .session-actions {
-            display: none;
-            align-items: center;
-            gap: 2px;
-            flex-shrink: 0;
-        }
-
-        .session-item:hover .session-actions {
-            display: flex;
-        }
-
-        .session-action-btn {
-            width: 24px;
-            height: 24px;
-            border: none;
-            background: transparent;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--muted);
-        }
-
-        .session-action-btn svg {
-            width: 14px;
-            height: 14px;
-            fill: currentColor;
-        }
-
-        .session-action-btn:hover {
-            background: #e2dfd7;
-            color: var(--text);
-        }
-
-        .session-action-btn.delete:hover {
-            background: var(--danger-soft);
-            color: var(--danger);
-        }
-
-        .sessions-empty {
-            padding: 24px 12px;
-            text-align: center;
-            color: var(--faint);
-            font-size: 0.85rem;
-        }
-
-        /* Sidebar footer: account */
-        .sidebar-footer {
-            border-top: 1px solid var(--border);
-            padding: 12px 14px;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .user-meta {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .user-name {
-            font-weight: 600;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .user-provider {
-            font-size: 0.72rem;
-            color: var(--muted);
-        }
-
-        .user-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 10px;
-        }
-
-        .user-link {
-            flex: 1;
-            text-align: center;
-            padding: 6px 8px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--text);
-            text-decoration: none;
-            font-size: 0.78rem;
-            font-weight: 600;
-        }
-
-        .user-link:hover {
-            border-color: var(--border-strong);
-            background: #f4f2ec;
-        }
-
-        .auth-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .auth-btn {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--text);
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.82rem;
-            cursor: pointer;
-        }
-
-        .auth-btn:hover {
-            background: #f4f2ec;
-            border-color: var(--border-strong);
-        }
-
-        .auth-btn.facebook {
-            background: #1877f2;
-            border-color: #1877f2;
-            color: white;
-        }
-
-        .auth-btn.facebook:hover {
-            background: #166fe0;
-        }
-
-        .auth-btn.dev {
-            background: var(--accent-soft);
-            border-color: var(--accent-border);
-            color: var(--accent);
         }
 
         /* ============ Response feedback ============ */
@@ -459,111 +127,6 @@
             font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
-        }
-
-        /* ============ Main column ============ */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .topbar {
-            height: 54px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 0 14px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .icon-btn {
-            width: 34px;
-            height: 34px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--muted);
-            flex-shrink: 0;
-        }
-
-        .icon-btn:hover {
-            background: #f0eee8;
-            color: var(--text);
-        }
-
-        .icon-btn svg {
-            width: 19px;
-            height: 19px;
-            fill: currentColor;
-        }
-
-        .topbar-brand {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
-
-        .topbar-brand img {
-            width: 24px;
-            height: 24px;
-        }
-
-        .sidebar.collapsed~.main .topbar-brand,
-        .app.sidebar-collapsed .topbar-brand {
-            display: flex;
-        }
-
-        .mode-switch {
-            display: inline-flex;
-            background: #edebe4;
-            border-radius: 10px;
-            padding: 3px;
-            margin: 0 auto;
-        }
-
-        .mode-btn {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            padding: 6px 16px;
-            border: none;
-            border-radius: 8px;
-            background: transparent;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--muted);
-            cursor: pointer;
-            transition: color 0.15s;
-        }
-
-        .mode-btn svg {
-            width: 15px;
-            height: 15px;
-            fill: currentColor;
-        }
-
-        .mode-btn.active {
-            background: var(--surface);
-            color: var(--accent);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .topbar-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 34px;
-            justify-content: flex-end;
         }
 
         .view-lesson-btn {
@@ -1143,46 +706,7 @@
             padding: 0;
         }
 
-        /* ============ Mobile ============ */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(20, 24, 28, 0.45);
-            z-index: 55;
-        }
-
-        .sidebar-overlay.active {
-            display: block;
-        }
-
         @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: 0;
-                top: 0;
-                height: 100dvh;
-                transform: translateX(-100%);
-                transition: transform 0.25s ease;
-                margin-left: 0 !important;
-                box-shadow: var(--shadow-md);
-            }
-
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
-
-            .topbar-brand {
-                display: flex !important;
-            }
-
-            .mode-btn {
-                padding: 6px 10px;
-            }
-
-            .mode-btn .mode-label {
-                display: none;
-            }
 
             .messages-inner {
                 padding: 18px 14px 10px;
@@ -1249,41 +773,11 @@
                     New chat
                 </button>
             </div>
-            <a href="/programmes" style="margin:0 14px 12px;padding:10px 12px;border:1px solid var(--accent-border);border-radius:8px;background:var(--accent-soft);color:var(--accent);text-decoration:none;font-size:13px;font-weight:600">Programme planner <span aria-hidden="true" style="float:right">↗</span></a>
             <div class="sessions-list" id="sessions-list">
                 <!-- Sessions load here -->
             </div>
             <div class="sidebar-footer">
-                {% if current_user %}
-                <div class="user-info">
-                    {% if current_user.avatar_url %}
-                    <img src="{{ current_user.avatar_url }}" alt="User avatar" class="user-avatar">
-                    {% endif %}
-                    <div class="user-meta">
-                        <div class="user-name">{{ current_user.name or current_user.email or "Signed In" }}</div>
-                        <div class="user-provider">via {{ current_user.provider | title }}</div>
-                    </div>
-                </div>
-                <div class="user-actions">
-                    <a class="user-link" href="/settings">Settings</a>
-                    <a class="user-link" href="/auth/logout">Log out</a>
-                </div>
-                {% else %}
-                <div class="auth-buttons">
-                    {% if oauth_providers.google %}
-                    <button class="auth-btn google" onclick="startOAuth('google')">Continue with Google</button>
-                    {% endif %}
-                    {% if oauth_providers.facebook %}
-                    <button class="auth-btn facebook" onclick="startOAuth('facebook')">Continue with Facebook</button>
-                    {% endif %}
-                    {% if dev_auth_enabled %}
-                    <button class="auth-btn dev" onclick="startDevAuth()">Dev login (test)</button>
-                    {% endif %}
-                    {% if not oauth_providers.google and not oauth_providers.facebook and not dev_auth_enabled %}
-                    <div style="color: var(--faint); font-size: 0.8rem; text-align:center;">Sign-in not configured</div>
-                    {% endif %}
-                </div>
-                {% endif %}
+                {% include "_account.html" %}
             </div>
         </div>
 
@@ -1300,18 +794,24 @@
                     ChatSCD
                 </div>
                 <div class="mode-switch" role="tablist">
-                    <button class="mode-btn active" id="chat-mode-btn" onclick="switchMode('chat')" role="tab">
+                    <button class="mode-btn active" id="chat-mode-btn" onclick="switchMode('chat')" role="tab" title="Chat" aria-label="Chat">
                         <svg viewBox="0 0 24 24">
                             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
                         </svg>
                         <span class="mode-label">Chat</span>
                     </button>
-                    <button class="mode-btn" id="planner-mode-btn" onclick="switchMode('planner')" role="tab">
+                    <button class="mode-btn" id="planner-mode-btn" onclick="switchMode('planner')" role="tab" title="Lesson planner" aria-label="Lesson planner">
                         <svg viewBox="0 0 24 24">
                             <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
                         </svg>
                         <span class="mode-label">Lesson planner</span>
                     </button>
+                    <a class="mode-btn" href="/programmes" role="tab" title="Programme planner" aria-label="Programme planner">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                        </svg>
+                        <span class="mode-label">Programme planner</span>
+                    </a>
                 </div>
                 <div class="topbar-right">
                     <button class="view-lesson-btn" onclick="toggleLessonPreview()">View lesson</button>
@@ -2224,6 +1724,12 @@
             restoreSidebarState();
             initResizer();
 
+            // The programme planner links back here with ?mode=chat or ?mode=planner
+            const requestedMode = new URLSearchParams(location.search).get('mode');
+            if (requestedMode === 'chat' || requestedMode === 'planner') {
+                localStorage.setItem('chatSCD_mode', requestedMode);
+                history.replaceState(null, '', location.pathname);
+            }
             const savedMode = localStorage.getItem('chatSCD_mode');
             if (savedMode === 'planner') applyMode('planner');
 

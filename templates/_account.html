@@ -1,0 +1,31 @@
+{# Sign-in state for the sidebar footer, shared by the chat and programme pages. #}
+{% if current_user %}
+<div class="user-info">
+    {% if current_user.avatar_url %}
+    <img src="{{ current_user.avatar_url }}" alt="User avatar" class="user-avatar">
+    {% endif %}
+    <div class="user-meta">
+        <div class="user-name">{{ current_user.name or current_user.email or "Signed In" }}</div>
+        <div class="user-provider">via {{ current_user.provider | title }}</div>
+    </div>
+</div>
+<div class="user-actions">
+    <a class="user-link" href="/settings">Settings</a>
+    <a class="user-link" href="/auth/logout">Log out</a>
+</div>
+{% else %}
+<div class="auth-buttons">
+    {% if oauth_providers.google %}
+    <button class="auth-btn google" onclick="startOAuth('google')">Continue with Google</button>
+    {% endif %}
+    {% if oauth_providers.facebook %}
+    <button class="auth-btn facebook" onclick="startOAuth('facebook')">Continue with Facebook</button>
+    {% endif %}
+    {% if dev_auth_enabled %}
+    <button class="auth-btn dev" onclick="startDevAuth()">Dev login (test)</button>
+    {% endif %}
+    {% if not oauth_providers.google and not oauth_providers.facebook and not dev_auth_enabled %}
+    <div style="color: var(--faint); font-size: 0.8rem; text-align:center;">Sign-in not configured</div>
+    {% endif %}
+</div>
+{% endif %}

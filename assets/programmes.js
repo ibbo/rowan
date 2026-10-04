@@ -94,12 +94,24 @@ function remember() {
   $("undo").disabled = false;
 }
 function store() {
+  let item = activeItem();
+  if (!item) {
+    item = { id: library.active || newId() };
+    library.items.unshift(item);
+    library.active = item.id;
+  }
+  const snapshot = JSON.stringify(state);
+  if (JSON.stringify(item.state) !== snapshot) {
+    item.state = JSON.parse(snapshot);
+    item.updatedAt = new Date().toISOString();
+  }
   try {
-    localStorage.setItem("chatscd.programme.current.v1", JSON.stringify(state));
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify(library));
     $("save-state").textContent = "Saved in this browser";
   } catch {
     $("save-state").textContent = "Not saved — download a file to keep it";
   }
+  renderLibrary();
 }
 function changed() {
   revision++;
@@ -793,10 +805,9 @@ document.addEventListener("click", (event) => {
   $("menu").open = false;
   const action = item.dataset.menu;
   if (action === "paste") $("import-dialog").showModal();
-  else if (action === "saved") {
-    renderSaved();
-    $("saved-dialog").showModal();
-  } else if (action === "export") download(textExport(), "text/plain", ".txt");
+  else if (action === "duplicate") duplicateProgramme();
+  else if (action === "export") download(textExport(), "text/plain", ".txt");
+  else if (action === "download") download(JSON.stringify(state, null, 2), "application/json", ".json");
   else if (action === "print") window.print();
   else if (action === "clear")
     mutate(() => {
@@ -881,47 +892,7 @@ function download(content, type, suffix) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-$("download-json").onclick = () => download(JSON.stringify(state, null, 2), "application/json", ".json");
-function savedDrafts() {
-  try {
-    return JSON.parse(localStorage.getItem("chatscd.programme.drafts.v1") || "[]");
-  } catch {
-    return [];
-  }
-}
-function renderSaved() {
-  const drafts = savedDrafts();
-  $("saved-list").innerHTML = drafts.length
-    ? drafts
-        .map(
-          (d, i) =>
-            `<li><span>${escapeHtml(d.title)}<small>${new Date(d.savedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · ${plural(d.entries.filter((e) => e.kind === "dance").length, "dance")}</small></span><button data-open-draft="${i}">Open</button></li>`,
-        )
-        .join("")
-    : '<li class="hint">No saved copies yet.</li>';
-}
-$("save-draft").onclick = () => {
-  try {
-    const drafts = savedDrafts();
-    drafts.unshift({ ...JSON.parse(JSON.stringify(state)), savedAt: new Date().toISOString() });
-    localStorage.setItem("chatscd.programme.drafts.v1", JSON.stringify(drafts.slice(0, 50)));
-    renderSaved();
-  } catch {
-    notify("Could not save in this browser. Use Download file instead.", true);
-  }
-};
-$("saved-list").onclick = async (event) => {
-  const b = event.target.closest("[data-open-draft]");
-  if (!b) return;
-  try {
-    await loadDraft(savedDrafts()[Number(b.dataset.openDraft)]);
-    $("saved-dialog").close();
-    notify("Saved programme opened.");
-  } catch (e) {
-    notify(e.message, true);
-  }
-};
-async function loadDraft(candidate) {
+async function loadDraft(candidate, targetId = null) {
   if (
     !candidate ||
     candidate.version !== 1 ||
@@ -945,6 +916,8 @@ async function loadDraft(candidate) {
   delete next.options.max_rscds_grade;
   delete next.options.difficulty_mode;
   const result = await api("check", next);
+  // Switch programmes only once the draft is known to be valid.
+  if (targetId) library.active = targetId;
   mutate(() => {
     state = next;
     openRow = null;
@@ -961,34 +934,234 @@ async function loadDraft(candidate) {
 }
 $("upload-json").onchange = async (event) => {
   const file = event.target.files[0];
+  $("menu").open = false;
   if (!file) return;
   try {
     if (file.size > 200000) throw Error("This file is too large for a programme draft.");
-    await loadDraft(JSON.parse(await file.text()));
-    $("saved-dialog").close();
-    notify("Programme file opened.");
+    await openProgramme(JSON.parse(await file.text()), newId());
+    notify("Programme file opened as a new programme.");
   } catch (e) {
     notify(e.message, true);
   }
   event.target.value = "";
 };
+
+/* ---------- Programme library (sidebar) ---------- */
+// Each programme saves itself, like a chat session. The old single draft and
+// "saved copies" keys are migrated once and left in place.
+const LIBRARY_KEY = "chatscd.programme.library.v1";
+const PROGRAMME_ICON =
+  '<svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>';
+const RENAME_ICON =
+  '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+const DELETE_ICON =
+  '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+let library = { active: null, items: [] };
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+const activeItem = () => library.items.find((item) => item.id === library.active);
+const freshState = () => ({
+  version: 1,
+  title: "Untitled programme",
+  entries: [],
+  options: JSON.parse(JSON.stringify(defaults)),
+});
+function readLibrary() {
+  const read = (key) => {
+    try {
+      return JSON.parse(localStorage.getItem(key) || "null");
+    } catch {
+      return null;
+    }
+  };
+  const saved = read(LIBRARY_KEY);
+  if (saved?.items) return saved;
+  const items = [],
+    now = new Date().toISOString(),
+    current = read("chatscd.programme.current.v1");
+  if (current?.entries) items.push({ id: newId(), updatedAt: now, state: current });
+  for (const { savedAt, ...copy } of read("chatscd.programme.drafts.v1") || [])
+    items.push({ id: newId(), updatedAt: savedAt || now, state: copy });
+  return { active: items[0]?.id || null, items };
+}
+function groupLabel(iso) {
+  const then = new Date(iso),
+    now = new Date(),
+    startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+    days = Math.floor((startOfToday - then) / 86400000) + 1;
+  if (then >= startOfToday) return "Today";
+  if (days <= 1) return "Yesterday";
+  if (days <= 7) return "Previous 7 days";
+  return "Older";
+}
+function timeAgo(iso) {
+  const seconds = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+function renderLibrary() {
+  const items = [...library.items].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+  if (!items.length) {
+    $("programme-library").innerHTML = '<div class="sessions-empty">No programmes yet.</div>';
+    return;
+  }
+  let lastGroup = null;
+  $("programme-library").innerHTML = items
+    .map((item) => {
+      const group = groupLabel(item.updatedAt),
+        heading = group !== lastGroup ? `<div class="session-group-label">${group}</div>` : "",
+        dances = item.state.entries.filter((e) => e.kind === "dance").length;
+      lastGroup = group;
+      return `${heading}<div class="session-item ${item.id === library.active ? "active" : ""}" data-programme="${item.id}" role="button" tabindex="0" title="${escapeHtml(item.state.title)}">
+        <div class="session-mode-icon">${PROGRAMME_ICON}</div>
+        <div class="session-body"><div class="session-title">${escapeHtml(item.state.title || "Untitled programme")}</div><div class="session-time">${dances ? plural(dances, "dance") + " · " : ""}${timeAgo(item.updatedAt)}</div></div>
+        <div class="session-actions"><button class="session-action-btn" data-rename title="Rename">${RENAME_ICON}</button><button class="session-action-btn delete" data-delete title="Delete">${DELETE_ICON}</button></div>
+      </div>`;
+    })
+    .join("");
+}
+async function openProgramme(candidate, id) {
+  if (busy) return;
+  cancelReplace();
+  await loadDraft(candidate, id);
+  $("title").value = state.title;
+  history = [];
+  $("undo").disabled = true;
+  closeMobileSidebar();
+}
+async function newProgramme() {
+  if (activeItem() && !state.entries.length) {
+    // Reuse an empty programme rather than piling up blank ones.
+    closeMobileSidebar();
+    $("title").focus();
+    $("title").select();
+    return;
+  }
+  await openProgramme(freshState(), newId());
+  $("title").focus();
+  $("title").select();
+}
+async function duplicateProgramme() {
+  const copy = JSON.parse(JSON.stringify(state));
+  copy.title = `${state.title} (copy)`.slice(0, 160);
+  await openProgramme(copy, newId());
+  notify("Duplicated. You’re now editing the copy.");
+}
+async function deleteProgramme(id) {
+  const item = library.items.find((i) => i.id === id);
+  if (!item || !confirm(`Delete “${item.state.title}”? This cannot be undone.`)) return;
+  library.items = library.items.filter((i) => i.id !== id);
+  if (id !== library.active) return store();
+  const next = [...library.items].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0];
+  library.active = null;
+  await openProgramme(next ? next.state : freshState(), next ? next.id : newId());
+}
+function startRename(row, id) {
+  const item = library.items.find((i) => i.id === id),
+    title = row.querySelector(".session-title"),
+    input = document.createElement("input");
+  input.className = "session-title-input";
+  input.value = item.state.title;
+  input.maxLength = 160;
+  title.replaceWith(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    const value = input.value.trim();
+    if (save && value) {
+      if (id === library.active) state.title = value;
+      else item.state.title = value;
+      if (id === library.active) $("title").value = value;
+    }
+    store();
+  };
+  input.onkeydown = (event) => {
+    if (event.key === "Enter") finish(true);
+    if (event.key === "Escape") finish(false);
+  };
+  input.onblur = () => finish(true);
+  input.onclick = (event) => event.stopPropagation();
+}
+$("programme-library").onclick = async (event) => {
+  const row = event.target.closest("[data-programme]");
+  if (!row || busy) return;
+  const id = row.dataset.programme;
+  if (event.target.closest("[data-rename]")) return startRename(row, id);
+  if (event.target.closest("[data-delete]")) return deleteProgramme(id);
+  if (event.target.closest("input")) return;
+  if (id === library.active) return closeMobileSidebar();
+  try {
+    await openProgramme(library.items.find((i) => i.id === id).state, id);
+  } catch (e) {
+    notify(e.message, true);
+  }
+};
+$("programme-library").onkeydown = (event) => {
+  if (event.key === "Enter" && event.target.matches("[data-programme]")) event.target.click();
+};
+$("new-programme").onclick = newProgramme;
+
+/* ---------- Shell: sidebar and sign-in (shared with the chat page) ---------- */
+function closeMobileSidebar() {
+  $("sidebar").classList.remove("mobile-open");
+  $("sidebar-overlay").classList.remove("active");
+}
+$("sidebar-toggle").onclick = () => {
+  if (innerWidth <= 768) {
+    const open = !$("sidebar").classList.contains("mobile-open");
+    $("sidebar").classList.toggle("mobile-open", open);
+    $("sidebar-overlay").classList.toggle("active", open);
+    return;
+  }
+  const collapsed = $("sidebar").classList.toggle("collapsed");
+  $("app").classList.toggle("sidebar-collapsed", collapsed);
+  try {
+    localStorage.setItem("chatSCD_sidebarCollapsed", collapsed);
+  } catch {}
+};
+$("sidebar-overlay").onclick = closeMobileSidebar;
+function browserId() {
+  let id = localStorage.getItem("chatSCD_browserId");
+  if (!id) {
+    id = newId();
+    localStorage.setItem("chatSCD_browserId", id);
+  }
+  return id;
+}
+function startOAuth(provider) {
+  location.href = `/auth/login/${provider}?browser_id=${encodeURIComponent(browserId())}&next=${encodeURIComponent(location.pathname)}`;
+}
+function startDevAuth() {
+  location.href = `/auth/dev-login?browser_id=${encodeURIComponent(browserId())}&next=${encodeURIComponent(location.pathname)}`;
+}
+
 async function init() {
   if (["localhost", "127.0.0.1"].includes(location.hostname)) $("preview-badge").hidden = false;
+  try {
+    if (innerWidth > 768 && localStorage.getItem("chatSCD_sidebarCollapsed") === "true") {
+      $("sidebar").classList.add("collapsed");
+      $("app").classList.add("sidebar-collapsed");
+    }
+  } catch {}
+  library = readLibrary();
+  if (!activeItem() && library.items.length) library.active = library.items[0].id;
+  renderLibrary();
   try {
     const cat = await api("catalogue");
     difficultyGrades = cat.difficulty_grades || {};
     difficultyPresets = cat.difficulty_presets || {};
     figures = cat.figures.sort((a, b) => a.name.localeCompare(b.name));
-    let saved;
-    try {
-      saved = JSON.parse(localStorage.getItem("chatscd.programme.current.v1") || "null");
-    } catch {
-      notify("The saved programme could not be read. Start a new one or open a downloaded file.", true);
-    }
-    if (saved) {
-      await loadDraft(saved);
+    const item = activeItem();
+    if (item) {
+      await loadDraft(item.state, item.id);
       history = [];
     } else {
+      state = freshState();
       applyOptions();
       render();
     }
