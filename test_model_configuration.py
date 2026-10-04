@@ -58,7 +58,7 @@ def _get_openai_model_ids(module: ast.AST) -> list[str]:
     raise AssertionError("Could not find OpenAIProvider.MODELS")
 
 
-DEFAULT_MODEL = "gpt-5.6-luna"
+DEFAULT_MODEL = "gpt-6-luna"
 
 
 def test_openai_models_offer_default_first():
@@ -67,6 +67,15 @@ def test_openai_models_offer_default_first():
 
     assert DEFAULT_MODEL in model_ids
     assert model_ids[0] == DEFAULT_MODEL
+
+
+def test_default_model_supports_chat_completions_tool_calls():
+    """Production uses Chat Completions and requires non-reasoning tool calls."""
+    from llm_providers import get_provider
+
+    llm = get_provider("openai").create_chat_llm(DEFAULT_MODEL, api_key="test-key")
+    assert llm.model_name == DEFAULT_MODEL
+    assert llm.reasoning_effort == "none"
 
 
 def test_runtime_defaults_use_default_model():

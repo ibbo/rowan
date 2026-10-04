@@ -91,7 +91,8 @@ class OpenAIProvider(BaseLLMProvider):
     display_name = "OpenAI"
     
     MODELS = [
-        {"id": "gpt-5.6-luna", "name": "GPT-5.6 Luna", "description": "Default: cheapest and most accurate in our eval (Sept 2026)"},
+        {"id": "gpt-6-luna", "name": "GPT-6 Luna", "description": "Default: efficient model for chat and prompt checking"},
+        {"id": "gpt-5.6-luna", "name": "GPT-5.6 Luna", "description": "Previous default"},
         {"id": "gpt-5.4-mini", "name": "GPT-5.4 Mini", "description": "Previous default; ~3.75x the price of Luna"},
         {"id": "gpt-5.2", "name": "GPT-5.2", "description": "Most capable model"},
         {"id": "gpt-5-mini", "name": "GPT-5 Mini", "description": "Fast and efficient"},
@@ -105,6 +106,7 @@ class OpenAIProvider(BaseLLMProvider):
     # assumes strings), so production uses reasoning off. The "+reasoning"
     # variant exists for experiments (experiments/model_compare.py).
     MODEL_OPTIONS = {
+        "gpt-6-luna": {"reasoning_effort": "none"},
         "gpt-5.6-luna": {"reasoning_effort": "none"},
     }
     VARIANT_OPTIONS = {
@@ -261,7 +263,7 @@ def list_providers() -> list[dict]:
 
 def get_llm(
     provider: str = "openai",
-    model: str = "gpt-5.6-luna",
+    model: str = "gpt-6-luna",
     temperature: float = 0,
     api_key: Optional[str] = None,
 ) -> BaseChatModel:
