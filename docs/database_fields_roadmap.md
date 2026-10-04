@@ -1,5 +1,9 @@
 # Database Fields Enhancement Roadmap
 
+> Updated 2026-09-19: published `rscds_grade` is now the primary difficulty source.
+> See [difficulty and nightly refresh](difficulty-and-refresh.md). Statistics below are historical.
+> Intensity is an activity measure and only a weak fallback estimate for ungraded dances.
+
 ## Overview
 This document outlines all available database fields that could be exposed via MCP tools to enhance the Scottish Country Dance agent's capabilities.
 
@@ -20,8 +24,11 @@ This document outlines all available database fields that could be exposed via M
 | `bars` | Number of bars per repeat | 100% |
 | `formation_token` | Specific formation search tokens | 100% |
 | `official_rscds_dances` | RSCDS publication filter | 100% |
-| `min_intensity` / `max_intensity` | Difficulty level filter (1-100 scale) | 43.5% |
-| `sort_by_intensity` | Sort by difficulty (asc/desc) | 43.5% |
+| `min_intensity` / `max_intensity` | Legacy activity filter; fallback estimates only | 43.5% |
+| `sort_by_intensity` | Sort by legacy activity (asc/desc) | 43.5% |
+| `min_rscds_grade` / `max_rscds_grade` | Published grade 1-4; unknown excluded | 961 dances (2026-09-19) |
+| `has_rscds_grade` | Select graded/ungraded dances | 100% |
+| `sort_by_rscds_grade` | Sort published grades | Graded dances |
 | `random_variety` | Randomize results for variety | N/A |
 
 ---
@@ -29,11 +36,11 @@ This document outlines all available database fields that could be exposed via M
 ## Tier 1 - High Impact 🔥
 **Implement First - Maximum User Value**
 
-### 1. Intensity/Difficulty ⭐ ✅ COMPLETED (2025-10-03)
+### 1. Legacy Intensity ⭐ ✅ COMPLETED (2025-10-03)
 - **Database Field:** `dance.intensity` (integer, 0-100+ scale)
 - **Coverage:** 9,852 / 22,633 dances (43.5%)
-- **Data Range:** 1 (easiest) to 100 (hardest), some outliers at 231
-- **Difficulty Distribution:**
+- **Data Range:** activity scores, including values over 100; not a validated difficulty scale
+- **Historical intensity proxy bands (not official difficulty):**
   - Easy (1-40): 342 dances
   - Medium (41-69): 6,407 dances
   - Hard (70+): 3,103 dances
@@ -294,7 +301,7 @@ Tune: Alewife and her Barrel, The
 ## Implementation Strategy
 
 ### Phase 1: Quick Wins (Week 1)
-1. **Intensity/Difficulty** - Add to `find_dances` tool
+1. **Published RSCDS grades** - Primary difficulty filters in `find_dances`; retain intensity for ungraded estimates
 2. **Recordings** - Add to `dance_detail` response (easy)
 3. **Tunes** - Add to `dance_detail` response (easy)
 

@@ -68,7 +68,7 @@ def download_latest_sql():
     raise RuntimeError("Could not download any dump variant.")
 
 def rebuild_db_from_dump():
-    """Executes the .sql into a fresh tmp db, then swaps atomically."""
+    """Execute the dump into a private database; publish only after validation."""
     if not DUMP_PATH.exists():
         raise FileNotFoundError(f"Missing dump: {DUMP_PATH}")
     if TMP_DB_PATH.exists():
@@ -78,26 +78,22 @@ def rebuild_db_from_dump():
     log("Creating temporary database...")
     con = sqlite3.connect(TMP_DB_PATH)
     try:
-        con.executescript("PRAGMA journal_mode=WAL;")
+        con.executescript("PRAGMA journal_mode=DELETE;")
         con.executescript(sql_text)
         con.commit()
     finally:
         con.close()
-    # Atomic replace
-    log("Swapping new database into place...")
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    TMP_DB_PATH.replace(DB_PATH)
 
-def exec_sql(sql: str):
-    con = sqlite3.connect(DB_PATH)
+def exec_sql(sql: str, db_path=None):
+    con = sqlite3.connect(db_path or DB_PATH)
     try:
         con.executescript(sql)
         con.commit()
     finally:
         con.close()
 
-def query_one(sql: str, args=()):
-    con = sqlite3.connect(DB_PATH)
+def query_one(sql: str, args=(), db_path=None):
+    con = sqlite3.connect(db_path or DB_PATH)
     con.row_factory = sqlite3.Row
     try:
         row = con.execute(sql, args).fetchone()
@@ -105,7 +101,7 @@ def query_one(sql: str, args=()):
     finally:
         con.close()
 
-def postprocess_views_indexes_fts():
+def postprocess_views_indexes_fts(db_path=None):
     """Create views, indexes, and FTS table. Safe to re-run."""
     log("Creating views and indexes...")
     post_sql = r"""
@@ -121,7 +117,8 @@ def postprocess_views_indexes_fts():
         c.name  AS couples,
         p.name  AS progression,
         d.type_id, d.shape_id, d.couples_id, d.progression_id,
-        d.intensity
+        d.intensity,
+        CASE WHEN d.rscds_grade BETWEEN 1 AND 4 THEN d.rscds_grade END AS rscds_grade
       FROM dance d
       LEFT JOIN dancetype  dt ON dt.id = d.type_id
       LEFT JOIN shape       s ON s.id  = d.shape_id
@@ -173,6 +170,7 @@ def postprocess_views_indexes_fts():
              REPLACE(d.couples, ' couples', 'C')) AS metaform,
       d.progression,
       d.intensity,
+      d.rscds_grade,
       d.type_id, d.shape_id, d.couples_id, d.progression_id
     FROM v_dances d;
 
@@ -206,6 +204,7 @@ def postprocess_views_indexes_fts():
     CREATE INDEX IF NOT EXISTS idx_metaform_name ON v_metaform(name COLLATE NOCASE);
     CREATE INDEX IF NOT EXISTS idx_metaform_kind ON v_metaform(kind);
     CREATE INDEX IF NOT EXISTS idx_metaform_bars ON v_metaform(bars);
+    CREATE INDEX IF NOT EXISTS idx_metaform_rscds_grade ON v_metaform(rscds_grade);
     
     -- Composite indexes
     CREATE INDEX IF NOT EXISTS idx_metaform_kind_name ON v_metaform(kind, name COLLATE NOCASE);
@@ -213,11 +212,11 @@ def postprocess_views_indexes_fts():
     -- Dance detail Lookups
     CREATE INDEX IF NOT EXISTS idx_dance_formations_dance_id ON v_dance_formations(dance_id);
     """
-    exec_sql(post_sql)
+    exec_sql(post_sql, db_path)
 
     # FTS (rebuild each refresh)
     log("Building FTS index over best cribs...")
-    con = sqlite3.connect(DB_PATH)
+    con = sqlite3.connect(db_path or DB_PATH)
     try:
         # Contentless FTS5 can only return rowid, so store the dance id AS
         # the rowid; a separate dance_id column would always read back NULL.
@@ -234,16 +233,23 @@ def postprocess_views_indexes_fts():
     finally:
         con.close()
 
-def sanity_print():
-    one = query_one("SELECT COUNT(*) AS n FROM dance;")
-    two = query_one("SELECT kind, COUNT(*) AS n FROM v_dances GROUP BY kind ORDER BY n DESC LIMIT 1;")
-    three = query_one("SELECT metaform, COUNT(*) AS n FROM v_metaform GROUP BY metaform ORDER BY n DESC LIMIT 1;")
+def sanity_print(db_path=None):
+    one = query_one("SELECT COUNT(*) AS n FROM dance;", db_path=db_path)
+    two = query_one("SELECT kind, COUNT(*) AS n FROM v_dances GROUP BY kind ORDER BY n DESC LIMIT 1;", db_path=db_path)
+    three = query_one("SELECT metaform, COUNT(*) AS n FROM v_metaform GROUP BY metaform ORDER BY n DESC LIMIT 1;", db_path=db_path)
+    grades = query_one("SELECT COUNT(*) AS n FROM v_metaform WHERE rscds_grade IS NOT NULL", db_path=db_path)
+    if not one or not one['n'] or not grades['n']:
+        raise RuntimeError("Refusing to publish a database without dances or RSCDS grades")
+    check = query_one("PRAGMA quick_check", db_path=db_path)
+    if list(check.values()) != ['ok']:
+        raise RuntimeError(f"Database validation failed: {check}")
+    log(f"Dances with RSCDS grades: {grades['n']}")
     log(f"Total dances: {one['n'] if one else '?'}")
     if two:  log(f"Most-common kind: {two['kind']} ({two['n']})")
     if three:log(f"Most-common metaform: {three['metaform']} ({three['n']})")
 
-def vacuum_analyze():
-    con = sqlite3.connect(DB_PATH)
+def vacuum_analyze(db_path=None):
+    con = sqlite3.connect(db_path or DB_PATH)
     try:
         con.execute("PRAGMA optimize;")
         con.execute("VACUUM;")
@@ -256,9 +262,11 @@ def main():
     try:
         download_latest_sql()
         rebuild_db_from_dump()
-        postprocess_views_indexes_fts()
-        sanity_print()
-        vacuum_analyze()
+        postprocess_views_indexes_fts(TMP_DB_PATH)
+        sanity_print(TMP_DB_PATH)
+        vacuum_analyze(TMP_DB_PATH)
+        log("Swapping fully prepared database into place...")
+        TMP_DB_PATH.replace(DB_PATH)
         log("OK: database refreshed.")
         log("Attribution: Scottish Country Dance Database (SCDDB), CC BY 3.0 DE.")
     except Exception as e:

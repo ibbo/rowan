@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test script for intensity/difficulty filtering in find_dances tool."""
+"""Test script for legacy intensity filtering in find_dances tool."""
 
 import json
 import sqlite3
@@ -31,12 +31,12 @@ def test_query(description, sql, args=()):
     return rows
 
 def main():
-    print("Testing Intensity/Difficulty Filtering")
+    print("Testing Legacy Intensity Filtering")
     print("=" * 80)
     
     # Test 1: Easy dances (intensity <= 40)
     test_query(
-        "Easy dances for beginners (intensity <= 40)",
+        "Low activity dances (intensity <= 40)",
         """
         SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression, d.intensity
         FROM v_metaform m
@@ -49,7 +49,7 @@ def main():
     
     # Test 2: Hard dances (intensity >= 70)
     test_query(
-        "Hard dances for experienced dancers (intensity >= 70)",
+        "High activity dances (intensity >= 70)",
         """
         SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression, d.intensity
         FROM v_metaform m
@@ -60,9 +60,9 @@ def main():
         """
     )
     
-    # Test 3: Medium difficulty reels (40 < intensity < 70)
+    # Test 3: Medium activity reels (40 < intensity < 70)
     test_query(
-        "Medium difficulty Reels (intensity 40-70)",
+        "Medium activity Reels (intensity 40-70)",
         """
         SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression, d.intensity
         FROM v_metaform m
@@ -99,10 +99,10 @@ def main():
     print(f"Dances with intensity: {stats['with_intensity']} ({stats['with_intensity']/stats['total_dances']*100:.1f}%)")
     print(f"Intensity range: {stats['min_intensity']} - {stats['max_intensity']}")
     print(f"Average intensity: {stats['avg_intensity']:.1f}")
-    print(f"\nDifficulty distribution:")
-    print(f"  Easy (1-40): {stats['easy']} dances")
+    print(f"\nLegacy activity bands (not official difficulty):")
+    print(f"  Low (1-40): {stats['easy']} dances")
     print(f"  Medium (41-69): {stats['medium']} dances")
-    print(f"  Hard (70+): {stats['hard']} dances")
+    print(f"  High (70+): {stats['hard']} dances")
     
     print(f"\n{'='*80}")
     print("✅ All tests completed successfully!")

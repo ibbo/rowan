@@ -42,6 +42,7 @@ from lesson_tools import (
     format_lesson_plan_markdown,
 )
 from llm_providers import get_provider
+from dance_difficulty import DIFFICULTY_GUIDANCE
 
 
 class LessonPlannerState(TypedDict):
@@ -134,6 +135,9 @@ from RSCDS books), you MUST:
 Remember: Teachers need COMPLETE information to teach effectively. A good lesson plan
 has everything they need without having to look anything up separately.
 """
+
+
+LESSON_PLANNER_SYSTEM_PROMPT += "\n" + DIFFICULTY_GUIDANCE
 
 
 class LessonPlannerAgent:

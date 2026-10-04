@@ -31,6 +31,7 @@ from dance_tools import (
     find_videos, find_recordings, find_devisors, find_publications,
     get_publication_dances, search_dance_lists, get_dance_list_detail
 )
+from dance_difficulty import DIFFICULTY_GUIDANCE
 from concept_resolver import (
     CanonicalConceptResolver,
     build_grounding_decision,
@@ -395,6 +396,7 @@ Example: For a dance with id=1786, link to https://my.strathspey.org/dd/dance/17
 Make the dance name clickable by formatting as: [Dance Name](https://my.strathspey.org/dd/dance/{id}/)
 """)]
 
+        system_messages.append(SystemMessage(content=DIFFICULTY_GUIDANCE))
         grounding_context = state.get("grounding_context", "").strip()
         if grounding_context:
             system_messages.append(SystemMessage(content=grounding_context))

@@ -5,7 +5,9 @@ Provides direct SQLite access to the SCDDB database for querying dances,
 formations, videos, recordings, and other dance-related data.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Literal
+from pydantic import Field
+from typing_extensions import Annotated
 from datetime import datetime
 import sqlite3
 import sys
@@ -16,6 +18,7 @@ import httpx
 from langchain_core.tools import tool
 
 from database import query, query_one, DatabasePool
+from dance_difficulty import with_difficulty
 
 
 # ============================================================================
@@ -79,7 +82,11 @@ async def find_dances(
     max_intensity: Optional[int] = None,
     sort_by_intensity: Optional[str] = None,
     random_variety: Optional[bool] = None,
-    limit: int = 25
+    limit: int = 25,
+    min_rscds_grade: Optional[Annotated[int, Field(ge=1, le=4)]] = None,
+    max_rscds_grade: Optional[Annotated[int, Field(ge=1, le=4)]] = None,
+    has_rscds_grade: Optional[bool] = None,
+    sort_by_rscds_grade: Optional[Literal['asc', 'desc']] = None,
 ) -> List[Dict[str, Any]]:
     """
     Search Scottish Country Dances by various criteria.
@@ -98,11 +105,14 @@ async def find_dances(
     - formation_token: Use specific tokens like 'POUSS;3C;', 'ALLMND;3C;', 'HR;3P;', 'R&L;3C;', 'REEL;R3;'
 
     FILTER BY DIFFICULTY:
-    - Use min_intensity and max_intensity to filter by difficulty (1-100 scale)
-    - Easy dances: max_intensity=40
-    - Medium dances: min_intensity=40, max_intensity=70
-    - Hard dances: min_intensity=70
-    - Use sort_by_intensity='asc' for easiest first, 'desc' for hardest first
+    - Prefer min_rscds_grade/max_rscds_grade, on the published 1-4 scale:
+      1=suitable for everyone; 2=experienced partner helpful;
+      3=more confident dancers; 4=expert or unusual, unsuitable for most programmes.
+    - Grade filters/sorting exclude ungraded dances; missing is never grade 1.
+    - For ungraded dances use has_rscds_grade=False. Legacy intensity bands
+      (easy <=40, medium 41-69, hard >=70) are estimates only. Check cribs
+      and formations; activity/intensity does not measure cognitive difficulty.
+    - Never use intensity to override a published grade or convert it to ghillies.
 
     Args:
         name_contains: Substring to search for in dance name (case-insensitive)
@@ -111,33 +121,31 @@ async def find_dances(
         max_bars: Maximum number of bars (per repeat) - common values: 32, 48, 64
         formation_token: Technical formation code - EXAMPLES: 'POUSS;3C;', 'ALLMND;3C;', 'REEL;R3;'
         official_rscds_dances: True=only RSCDS published dances, False=only non-RSCDS, None=all
-        min_intensity: Minimum difficulty level (1-100, where 1=easiest, 100=hardest)
-        max_intensity: Maximum difficulty level (1-100)
-        sort_by_intensity: Sort by difficulty - 'asc' for easiest first, 'desc' for hardest first
+        min_intensity: Minimum legacy activity score; not an official difficulty rating
+        max_intensity: Maximum legacy activity score; pair with has_rscds_grade=False for difficulty estimates
+        sort_by_intensity: Sort by legacy activity score ('asc'/'desc'), not published difficulty
         random_variety: DEFAULT=True for variety! Set to True for randomized diverse results
         limit: Maximum number of results (1-200, default 25)
+        min_rscds_grade: Minimum published grade (1-4), excluding ungraded dances
+        max_rscds_grade: Maximum published grade (1-4); 1 selects one-ghillie dances
+        has_rscds_grade: True=graded only, False=ungraded only (for fallback estimates), None=all
+        sort_by_rscds_grade: Published grade order ('asc'/'desc'); excludes ungraded dances
 
     Returns:
-        List of dance dictionaries with id, name, kind, metaform, bars, progression, and intensity
+        Dance metadata, intensity, rscds_grade, grade label, difficulty source and any fallback estimate
     """
     print(f"DEBUG: find_dances tool called", file=sys.stderr)
 
-    # Only include intensity field and join dance table if filtering/sorting by it
-    include_intensity = (min_intensity is not None or max_intensity is not None or sort_by_intensity is not None)
-
-    if include_intensity:
-        sql = """
-        SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression, d.intensity
-        FROM v_metaform m
-        INNER JOIN dance d ON m.id = d.id
-        LEFT JOIN v_dance_has_token t ON t.dance_id = m.id
-        """
-    else:
-        sql = """
-        SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression
+    if min_rscds_grade is not None and max_rscds_grade is not None and min_rscds_grade > max_rscds_grade:
+        raise ValueError('min_rscds_grade must not exceed max_rscds_grade')
+    if has_rscds_grade is False and any(v is not None for v in (min_rscds_grade, max_rscds_grade, sort_by_rscds_grade)):
+        raise ValueError('Grade filtering/sorting cannot be combined with has_rscds_grade=False')
+    sql = """
+        SELECT DISTINCT m.id, m.name, m.kind, m.metaform, m.bars, m.progression,
+                        m.intensity, m.rscds_grade
         FROM v_metaform m
         LEFT JOIN v_dance_has_token t ON t.dance_id = m.id
-        """
+    """
 
     # Add RSCDS filtering if requested
     if official_rscds_dances is not None:
@@ -178,27 +186,43 @@ async def find_dances(
         sql += " AND t.formation_tokens LIKE ?"
         args.append(f"%{formation_token}%")
     if min_intensity is not None:
-        sql += " AND d.intensity >= ? AND d.intensity > 0"
+        sql += " AND m.intensity >= ? AND m.intensity > 0"
         args.append(int(min_intensity))
     if max_intensity is not None:
-        sql += " AND d.intensity <= ? AND d.intensity > 0"
+        sql += " AND m.intensity <= ? AND m.intensity > 0"
         args.append(int(max_intensity))
 
-    # Add ordering - by intensity, random, or alphabetical
-    if sort_by_intensity == "asc":
-        sql += " ORDER BY d.intensity ASC, m.name LIMIT ?"
+    if has_rscds_grade is not None:
+        sql += ' AND m.rscds_grade IS NOT NULL' if has_rscds_grade else ' AND m.rscds_grade IS NULL'
+    if min_rscds_grade is not None:
+        sql += ' AND m.rscds_grade >= ?'
+        args.append(min_rscds_grade)
+    if max_rscds_grade is not None:
+        sql += ' AND m.rscds_grade <= ?'
+        args.append(max_rscds_grade)
+    if sort_by_rscds_grade:
+        sql += ' AND m.rscds_grade IS NOT NULL'
+    if sort_by_intensity:
+        sql += ' AND m.intensity > 0'
+
+    if sort_by_rscds_grade:
+        direction = 'ASC' if sort_by_rscds_grade == 'asc' else 'DESC'
+        tie = 'RANDOM()' if random_variety else 'm.name'
+        sql += f' ORDER BY m.rscds_grade {direction}, {tie} LIMIT ?'
+    elif sort_by_intensity == "asc":
+        sql += " ORDER BY m.intensity ASC, m.name LIMIT ?"
     elif sort_by_intensity == "desc":
-        sql += " ORDER BY d.intensity DESC, m.name LIMIT ?"
+        sql += " ORDER BY m.intensity DESC, m.name LIMIT ?"
     elif random_variety:
         sql += " ORDER BY RANDOM() LIMIT ?"
     else:
         sql += " ORDER BY m.name LIMIT ?"
-    args.append(limit)
+    args.append(max(1, min(limit, 200)))
 
     result = await query(sql, tuple(args))
     print(f"DEBUG: find_dances returned {len(result)} results", file=sys.stderr)
 
-    return result
+    return [with_difficulty(row) for row in result]
 
 
 @tool
@@ -259,7 +283,7 @@ async def get_dance_detail(
         (dance_id,),
     )
 
-    out = {"dance": dance, "formations": formations, "crib": crib, "publications": publications}
+    out = {"dance": with_difficulty(dance), "formations": formations, "crib": crib, "publications": publications}
     print(f"DEBUG: get_dance_detail completed", file=sys.stderr)
 
     return out
@@ -302,7 +326,7 @@ async def search_cribs(
     print(f"DEBUG: search_cribs tool called with query: '{query_text}' kind={kind} rscds={official_rscds_dances}", file=sys.stderr)
 
     sql = """
-        SELECT d.id, d.name, d.kind, d.metaform, d.bars
+        SELECT d.id, d.name, d.kind, d.metaform, d.bars, d.intensity, d.rscds_grade
         FROM fts_cribs f
         JOIN v_metaform d ON d.id = f.rowid
         WHERE fts_cribs MATCH ?
@@ -336,7 +360,7 @@ async def search_cribs(
         }]
 
     print(f"DEBUG: search_cribs completed - {len(rows)} results", file=sys.stderr)
-    return rows
+    return [with_difficulty(row) for row in rows]
 
 
 @tool
@@ -689,6 +713,8 @@ async def get_publication_dances(
         m.kind,
         m.bars,
         m.metaform,
+        m.intensity,
+        m.rscds_grade,
         dpm.number as position_in_book,
         dpm.page
     FROM dancespublicationsmap dpm
@@ -701,7 +727,7 @@ async def get_publication_dances(
 
     rows = await query(sql, (publication_id, limit))
 
-    result = {"publication": pub_info, "dances": rows}
+    result = {"publication": pub_info, "dances": [with_difficulty(row) for row in rows]}
     print(f"DEBUG: get_publication_dances completed - {len(rows)} dances", file=sys.stderr)
     return result
 

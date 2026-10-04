@@ -43,6 +43,13 @@ class DatabasePool:
         self._pool: List[aiosqlite.Connection] = []
         self._pool_lock = asyncio.Lock()
         self._initialized = False
+        self._file_identity = None
+        self._connection_files = {}
+
+    def _current_file_identity(self):
+        """An atomic nightly replacement must invalidate old SQLite handles."""
+        stat = os.stat(self.db_path)
+        return stat.st_dev, stat.st_ino
 
     @classmethod
     async def get_instance(cls, db_path: str = None) -> "DatabasePool":
@@ -79,9 +86,24 @@ class DatabasePool:
             An aiosqlite connection
         """
         async with self._pool_lock:
+            identity = self._current_file_identity()
+            if identity != self._file_identity:
+                for old in self._pool:
+                    await old.close()
+                    self._connection_files.pop(old, None)
+                self._pool.clear()
+                self._file_identity = identity
             if self._pool:
                 return self._pool.pop()
-            return await self._create_connection()
+            # The importer can replace the file while a connection is opening.
+            # Retry that rare race rather than assigning the wrong generation.
+            while True:
+                before = self._current_file_identity()
+                conn = await self._create_connection()
+                if before == self._current_file_identity():
+                    self._connection_files[conn] = before
+                    return conn
+                await conn.close()
 
     async def release(self, conn: aiosqlite.Connection):
         """Return a connection to the pool.
@@ -90,9 +112,11 @@ class DatabasePool:
             conn: The connection to return
         """
         async with self._pool_lock:
-            if len(self._pool) < self.pool_size:
+            identity = self._connection_files.get(conn)
+            if identity == self._current_file_identity() and len(self._pool) < self.pool_size:
                 self._pool.append(conn)
             else:
+                self._connection_files.pop(conn, None)
                 await conn.close()
 
     async def close_all(self):
@@ -103,6 +127,7 @@ class DatabasePool:
                     await conn.close()
                 except Exception as e:
                     logger.warning(f"Error closing connection: {e}")
+                self._connection_files.pop(conn, None)
             self._pool.clear()
             logger.info("All database connections closed")
 

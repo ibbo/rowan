@@ -1,3 +1,6 @@
+> Historical note: intensity is no longer treated as the primary difficulty scale.
+> Use published RSCDS grades where available; see [current guidance](docs/difficulty-and-refresh.md).
+
 # Intensity Filter Recursion Issue - Fix Documentation
 
 ## Problem

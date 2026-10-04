@@ -24,6 +24,7 @@ from langchain_core.tools import tool
 # Import shared components from dance_tools
 from dance_tools import _get_manual_kb, resolve_dance
 from database import query, query_one
+from dance_difficulty import with_difficulty
 
 # Lesson plan database path
 LESSON_DB_PATH = "data/lesson_plans.db"
@@ -136,6 +137,7 @@ async def get_full_crib(
     crib = await query_one("SELECT reliability, last_modified, text FROM v_crib_best WHERE dance_id=?", (dance_id,))
 
     print(f"DEBUG: get_full_crib completed", file=sys.stderr)
+    with_difficulty(dance_info)
 
     return {
         "dance_id": dance_id,
@@ -144,6 +146,10 @@ async def get_full_crib(
         "bars": dance_info.get("bars", 0),
         "couples": dance_info.get("couples", 0),
         "formation": dance_info.get("metaform", "Unknown"),
+        **{key: dance_info[key] for key in (
+            "rscds_grade", "rscds_grade_label", "intensity",
+            "difficulty_source", "difficulty_estimate",
+        )},
         "crib": _extract_crib_text(crib),
         "strathspey_link": f"https://my.strathspey.org/dd/dance/{dance_id}/"
     }
